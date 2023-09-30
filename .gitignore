@@ -1,7 +1,7 @@
 
 # Ignore rust files
 /rust/flecs-rs/target
-rust/flecs-rs/Cargo.lock
-rust/godot_entities_ecs/.vscode
-rust/godot_entities_ecs/target
-rust/godot_entities_ecs/Cargo.lock
+/rust/flecs-rs/Cargo.lock
+/rust/godot_entities_ecs/.vscode
+/rust/godot_entities_ecs/target
+/rust/godot_entities_ecs/Cargo.lock
