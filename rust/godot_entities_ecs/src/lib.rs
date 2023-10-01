@@ -14,7 +14,6 @@ use flecs::world::World as FlWorld;
 use flecs::Entity as FlEntity;
 use flecs::TermBuilder;
 
-
 use godot::engine;
 use godot::engine::GdScript;
 use godot::engine::Script;
@@ -26,6 +25,7 @@ use godot::engine::Object;
 use godot::engine::ObjectVirtual;
 use godot::engine::Engine;
 use godot::engine::global::MethodFlags;
+use godot::engine::global::Error as GdError;
 
 const TYPE_NIL:i32 = 0;
 const TYPE_BOOL:i32 = 1;
@@ -251,13 +251,27 @@ impl _BaseGEComponentAccess {
     }
 
     #[func]
-    fn _component_set(&mut self, property:StringName, value:Variant) -> bool {
-        assert!(self.mutable);
+    fn _component_has(&self, property:StringName) -> bool {
+        let world = unsafe {&*self.world};
+        let name = world.name_from_flex_id(self.flecs_id);
+        let Some(property_data) = world.script_components
+            .get(&name).unwrap().parameters.get(&property) else {
+                return false;
+            };
+        
+        return true;
+    }
+
+    #[func]
+    fn _component_set(&mut self, property:StringName, value:Variant) -> GdError {
+        if !self.mutable {
+            return GdError::ERR_DATABASE_CANT_WRITE;
+        }
         let world = unsafe {&*self.world};
         let name = world.name_from_flex_id(self.flecs_id);
         let Some(property_meta) = world.script_components
             .get(&name).unwrap().parameters.get(&property) else {
-                return false;
+                return GdError::ERR_DOES_NOT_EXIST;
             };
         
         fn set_param<T: FromVariant>(
@@ -284,7 +298,8 @@ impl _BaseGEComponentAccess {
                 todo!()
             }
         }
-        return true;
+
+        return GdError::OK;
     }
 
     #[func]
@@ -375,7 +390,7 @@ impl _BaseGEWorld {
     }
 
     #[func]
-    fn register_component(
+    fn _new_component(
         &mut self,
         component_name: StringName,
         mut component: Gd<Script>,
@@ -465,10 +480,7 @@ impl _BaseGEWorld {
         let world_ptr:*const _BaseGEWorld = self;
         self.system_contexts.push_back(Pin::new(Box::new(
             ScriptSystemContext {
-                callable: Callable::from_object_method(
-                    builder.callable.object().unwrap().clone(),
-                    builder.callable.method_name().unwrap().clone(),
-                ),
+                callable: builder.callable.clone(),
                 terms: terms.iter()
                     .map(|x| { (x.0.clone(), x.1) })
                     .collect(),
@@ -499,19 +511,21 @@ impl _BaseGEWorld {
                 columns.push(column);
             }
 
-            for i in 0..(iter.count() as usize) {
-                let column = columns.get_mut(i).unwrap();
+            for entity_i in 0..(iter.count() as usize) {
                 // Create components arguments
                 let mut args: Array<Variant> = array![];
                 args.resize(iter.field_count() as usize);
                 let fields = iter.raw_fields();
-                for i in 0..iter.field_count() as usize {
+                for field_i in 0..iter.field_count() as usize {
+                    let column = columns
+                        .get_mut(field_i)
+                        .unwrap();
                     let (term_script, term_mutable)
-                        = terms[i].clone();
+                        = terms[field_i].clone();
                     let data:*mut [u8] = if term_mutable {
-                        column.get_mut(i)
+                        column.get_mut(entity_i)
                     } else {
-                        let data_ptr:*const[u8] = column.get(i);
+                        let data_ptr:*const[u8] = column.get(field_i);
                         unsafe {
                             // `[_BaseECSComponent]` makes sure this reference
                             // is not mutated.
@@ -520,23 +534,25 @@ impl _BaseGEWorld {
                     };
 
                     if let Some(term_script) = term_script.try_cast::<GdScript>() {
-                        let mut compopnent = Gd::<_BaseGEComponentAccess>::with_base(|base| {
+                        let mut compopnent_access = Gd::<_BaseGEComponentAccess>::with_base(|base| {
                             _BaseGEComponentAccess {
                                 base,
-                                flecs_id: fields.get(i).unwrap().id,
+                                flecs_id: fields.get(field_i).unwrap().id,
                                 data,
                                 world,
                                 mutable: term_mutable,
                             }
                         });
-                        compopnent.set_script(term_script.to_variant());
-                        args.set(i, compopnent.to_variant());
+                        let comp_access_script = load::<Script>("res://addons/g_ecs/src/component_access.gd");
+                        // compopnent_access.set_script(term_script.to_variant());
+                        compopnent_access.set_script(comp_access_script.to_variant());
+                        args.set(field_i, compopnent_access.to_variant());
                     } else {
                         panic!();
                     }
                 }
                 
-                callable.callv(args);
+                let _result = callable.callv(args);
             }
         });
     }
