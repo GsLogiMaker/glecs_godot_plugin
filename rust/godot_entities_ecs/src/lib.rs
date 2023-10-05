@@ -9,6 +9,7 @@ use std::pin::Pin;
 use std::sync::Mutex;
 
 use flecs::EntityId;
+use flecs::Iter;
 use flecs::ecs_set_threads;
 use flecs::world::World as FlWorld;
 use flecs::Entity as FlEntity;
@@ -109,10 +110,43 @@ const TYPE_SIZES:&'static [usize] = &[
     /* MAX */ 0,
 ];
 
-struct SuperECGDS; #[gdextension] unsafe impl ExtensionLibrary for SuperECGDS {}
+struct GECS; #[gdextension] unsafe impl ExtensionLibrary for GECS {}
 
 #[derive(GodotClass)]
 #[class(base=RefCounted)]
+struct _BaseGEEntity {
+    #[base] base: Base<RefCounted>,
+    /// The world this entity is from.
+    world: Gd<_BaseGEWorld>,
+    /// The ID of this entity.
+    id: EntityId,
+}
+#[godot_api]
+impl _BaseGEEntity {
+    #[func]
+    fn set_component(&mut self, component:Gd<Script>, value:Variant) {
+        let world = self.world.bind_mut();
+        let component_name = world
+            .component_names
+            .get(&component.instance_id())
+            .ok_or_else(|| { format!(
+                "Can't set component '{}' in entity. That component hasn't been registered with the world.",
+                component,
+            )})
+            .unwrap();
+		// let component_id = unsafe { ecs_get_mut_id(self.world, self.entity, comp_id) };
+        // component.
+        // flecs::bindings::ecs_lookup(world.world.raw(), )
+        // world.world.find_entity(self.id)
+        //     .unwrap()
+        //     .comp
+        // world.world.set_component(self.id, comp, data)
+    }
+}
+
+#[derive(GodotClass)]
+#[class(base=RefCounted)]
+/// An ECS component.
 struct _BaseGEComponent {
     #[base] base: Base<RefCounted>,
     /// The Flecs component ID for this component.
@@ -123,88 +157,11 @@ struct _BaseGEComponent {
 }
 #[godot_api]
 impl _BaseGEComponent {
-    #[func]
-    fn _component_get(&self, property:StringName) -> Variant {
-        let world = unsafe {&*self.world};
-        let name = world.name_from_flex_id(self.flecs_id);
-        let Some(property_data) = world.script_components
-            .get(&name).unwrap().parameters.get(&property) else {
-                return Variant::nil();
-            };
-        
-        fn get_param<T: ToVariant + Copy>(
-            data:*mut [u8],
-            property_meta: &ScriptComponetProperty
-        ) -> Variant {
-            unsafe {
-                let param:*mut u8 = &mut (*data)[property_meta.offset];
-                let value = *param.cast::<T>();
-                return Variant::from(value);
-            }
-        }
-        
-        match property_data.type_id {
-            TYPE_BOOL => {
-                return get_param::<bool>(self.data, property_data);
-            }
-            TYPE_INT => {
-                return get_param::<i32>(self.data, property_data);
-            }
-            TYPE_FLOAT => {
-                return get_param::<f32>(self.data, property_data);
-            }
-            _ => {
-                todo!()
-            }
-        }
-    }
-
-    #[func]
-    fn _component_set(&mut self, property:StringName, value:Variant) -> bool {
-        assert!(self.mutable);
-        let world = unsafe {&*self.world};
-        let name = world.name_from_flex_id(self.flecs_id);
-        let Some(property_meta) = world.script_components
-            .get(&name).unwrap().parameters.get(&property) else {
-                return false;
-            };
-        
-        fn set_param<T: FromVariant>(
-            data:*mut [u8],
-            value: Variant,
-            property_meta: &ScriptComponetProperty,
-        ) {
-            unsafe {
-                let param:*mut u8 = &mut (*data)[property_meta.offset];
-                *param.cast::<T>() = value.to::<T>();
-            }
-        }
-        
-        match property_meta.type_id {
-            TYPE_BOOL => {
-                set_param::<bool>(self.data, value, property_meta);
-            }
-            TYPE_INT => {
-                set_param::<i32>(self.data, value, property_meta);
-            }
-            TYPE_FLOAT => {
-                set_param::<f32>(self.data, value, property_meta);
-            } _ => {
-                todo!()
-            }
-        }
-        return true;
-    }
-
-    #[func]
-    fn _component_get_property_list(&self) -> Array<Dictionary> {
-        return array![];
-    }
 }
 
 #[derive(GodotClass)]
 #[class(base=RefCounted)]
-struct _BaseGEComponentAccess {
+struct _BaseGEAccess {
     #[base] base: Base<RefCounted>,
     /// The Flecs component ID for this component.
     flecs_id: EntityId,
@@ -213,7 +170,7 @@ struct _BaseGEComponentAccess {
     mutable: bool,
 }
 #[godot_api]
-impl _BaseGEComponentAccess {
+impl _BaseGEAccess {
     #[func]
     fn _component_get(&self, property:StringName) -> Variant {
         let world = unsafe {&*self.world};
@@ -263,15 +220,23 @@ impl _BaseGEComponentAccess {
     }
 
     #[func]
-    fn _component_set(&mut self, property:StringName, value:Variant) -> GdError {
+    fn _component_set(&mut self, property:StringName, value:Variant) -> bool {
         if !self.mutable {
-            return GdError::ERR_DATABASE_CANT_WRITE;
+            godot_error!(
+                "Can't write to {} in {{component}}. The component was queried as read only.",
+                property,
+            );
+            return false;
         }
         let world = unsafe {&*self.world};
         let name = world.name_from_flex_id(self.flecs_id);
         let Some(property_meta) = world.script_components
             .get(&name).unwrap().parameters.get(&property) else {
-                return GdError::ERR_DOES_NOT_EXIST;
+                godot_error!(
+                    "Can't write to {} in {{component}}. Component has to property with that name",
+                    property,
+                );
+                return false;
             };
         
         fn set_param<T: FromVariant>(
@@ -299,7 +264,7 @@ impl _BaseGEComponentAccess {
             }
         }
 
-        return GdError::OK;
+        return true;
     }
 
     #[func]
@@ -327,11 +292,16 @@ struct ScriptComponetProperty {
 struct ScriptSystemContext {
     callable: Callable,
     terms: Vec<(Gd<Script>, bool)>,
+    /// The arguments passed to the system.
+    sysatem_args: Array<Variant>,
+    /// Holds the accesses stored in `sysatem_args` for quicker access.
+    term_accesses: Box<[Gd<_BaseGEAccess>]>,
     world: *const _BaseGEWorld,
 }
 
 #[derive(GodotClass)]
 #[class(base=RefCounted)]
+/// Builds a new ECS system.
 struct _BaseGESystemBuilder {
     callable: Callable,
     terms: Vec<(Gd<Script>, bool)>,
@@ -351,16 +321,19 @@ impl _BaseGESystemBuilder {
         })
     }
 
+    /// Adds a readable term to the system's query.
     #[func]
-    fn _term(&mut self, component: Gd<Script>) {
+    fn _reads(&mut self, component: Gd<Script>) {
         self.terms.push((component, false));
     }
 
+    /// Adds a writable term to the system's query.
     #[func]
-    fn _mut_term(& mut self, component: Gd<Script>) {
+    fn _writes(& mut self, component: Gd<Script>) {
         self.terms.push((component, true));
     }
 
+    /// Finalizes the builder and adds it to the world.
     #[func]
     fn _build(system: Gd<_BaseGESystemBuilder>, mut world: Gd<_BaseGEWorld>) {
         let mut world = world.bind_mut();
@@ -385,12 +358,12 @@ struct _BaseGEWorld {
 impl _BaseGEWorld {
     #[func]
     fn _world_process(&mut self, delta:f32) {
-        godot_print!("_world_process {delta}");
         self.world.progress(delta);
     }
 
+    /// Creates a new component in the world.
     #[func]
-    fn _new_component(
+    fn new_component(
         &mut self,
         component_name: StringName,
         mut component: Gd<Script>,
@@ -437,8 +410,10 @@ impl _BaseGEWorld {
         };
         let layout = Self::layout_from_script_component(&script_component);
 
-        self.component_names
-            .insert(component.instance_id(), component_name.clone());
+        if !self.component_names.contains_key(&component.instance_id()) {
+            self.component_names
+                .insert(component.instance_id(), component_name.clone());
+        }
 
         script_component.flecs_id = unsafe {
             // This unsafe block converts component_name into &'static str to
@@ -459,12 +434,38 @@ impl _BaseGEWorld {
             component_name.clone(),
             script_component,
         );
-        godot_print!("Registered component: {:?}", component_name);
     }
-    
+
+    /// Creates a new entity in the world.
+    #[func]
+    fn new_entity(&mut self, with_components:Array<Gd<Script>>) {
+        let mut entity = self.world.entity();
+        let mut i = 0;
+        while i != with_components.len() {
+            let script = with_components.get(i);
+            let component_name = self
+                .component_names
+                .get(&script.instance_id())
+                .unwrap();
+            let script_component = self
+                .script_components
+                .get(component_name)
+                .unwrap();
+            entity = entity.add_id(script_component.flecs_id);
+            i += 1;
+        }
+    }
+
+    fn name_from_flex_id(&self, flecs_component_id: EntityId) -> &StringName {
+        let names = &self.component_ids_to_names;
+        names.get(&flecs_component_id)
+            .unwrap()
+    }
+
     fn _new_system_from_builder(&mut self, builder: &_BaseGESystemBuilder) {
         let terms = &builder.terms;
 
+        // Create term list
         let mut term_ids = vec![];
         for i in 0..terms.len() {
             let (script, mutable) = terms.get(i).unwrap();
@@ -477,33 +478,67 @@ impl _BaseGEWorld {
             term_ids.push((script_component.flecs_id, mutable));
         }
 
+        // Create component accesses
+        let terms_copy:Vec<(Gd<Script>, bool)> = terms.iter()
+            .map(|x| { (x.0.clone(), x.1) })
+            .collect();
+        let mut system_args = array![];
+        let mut tarm_accesses = vec![];
         let world_ptr:*const _BaseGEWorld = self;
+        for term_i in 0..terms.len() as usize {
+            let (term_script, term_mutable) = terms[term_i]
+                .clone();
+            if let Some(_) = term_script.try_cast::<GdScript>() {
+                let mut compopnent_access = Gd
+                    ::<_BaseGEAccess>
+                    ::with_base(|base| {
+                        _BaseGEAccess {
+                            base,
+                            flecs_id: term_ids[term_i].0,
+                            data: &mut [],
+                            world: world_ptr,
+                            mutable: term_mutable,
+                        }
+                    });
+                let comp_access_script = load::<Script>(
+                    "res://addons/g_ecs/src/component_access.gd"
+                );
+                compopnent_access.set_script(comp_access_script.to_variant());
+                system_args.push(compopnent_access.to_variant());
+                tarm_accesses.push(compopnent_access);
+            } else {
+                panic!();
+            }
+        }
+        let term_args_fast = tarm_accesses.into_boxed_slice();
+
+        // Create contex
         self.system_contexts.push_back(Pin::new(Box::new(
             ScriptSystemContext {
+                sysatem_args: system_args,
+                term_accesses: term_args_fast,
                 callable: builder.callable.clone(),
-                terms: terms.iter()
-                    .map(|x| { (x.0.clone(), x.1) })
-                    .collect(),
+                terms: terms_copy,
                 world: world_ptr,
             }
         )));
         let context_ptr:*mut Pin<Box<ScriptSystemContext>> = self.system_contexts
             .back_mut()
             .unwrap();
+        
         let mut sys = self.world.system()
             .context_ptr(context_ptr.cast::<c_void>());
-
         for id in term_ids.iter() {
             sys = sys.term_dynamic(id.0);
         }
-
         sys.iter(|iter| {
             let context = unsafe {
-                iter.get_context::<Pin<Box<ScriptSystemContext>>>()
+                (iter as *const Iter)
+                    .cast_mut()
+                    .as_mut()
+                    .unwrap()
+                    .get_context_mut::<Pin<Box<ScriptSystemContext>>>()
             };
-            let world = context.world;
-            let terms = &context.terms;
-            let callable = &context.callable;
 
             let mut columns:Vec<flecs::ColumnDynamic> = vec![];
             for i in 1..=(iter.field_count()) as i32 {
@@ -513,72 +548,31 @@ impl _BaseGEWorld {
 
             for entity_i in 0..(iter.count() as usize) {
                 // Create components arguments
-                let mut args: Array<Variant> = array![];
-                args.resize(iter.field_count() as usize);
-                let fields = iter.raw_fields();
                 for field_i in 0..iter.field_count() as usize {
                     let column = columns
                         .get_mut(field_i)
                         .unwrap();
-                    let (term_script, term_mutable)
-                        = terms[field_i].clone();
-                    let data:*mut [u8] = if term_mutable {
-                        column.get_mut(entity_i)
-                    } else {
-                        let data_ptr:*const[u8] = column.get(field_i);
-                        unsafe {
-                            // `[_BaseECSComponent]` makes sure this reference
-                            // is not mutated.
-                            data_ptr.cast_mut().as_mut().unwrap()
-                        }
+                    let term_mutable = context.terms[field_i].1;
+                    let data:*mut [u8] = match term_mutable {
+                        // Get mutable component data
+                        true => {column.get_mut(entity_i)},
+                        // Get immutable component data
+                        false => {
+                            // `[_BaseECSComponent]` makes sure this
+                            // reference is not mutated.
+                            (column.get(field_i) as *const [u8])
+                                .cast_mut()
+                        },
                     };
 
-                    if let Some(term_script) = term_script.try_cast::<GdScript>() {
-                        let mut compopnent_access = Gd::<_BaseGEComponentAccess>::with_base(|base| {
-                            _BaseGEComponentAccess {
-                                base,
-                                flecs_id: fields.get(field_i).unwrap().id,
-                                data,
-                                world,
-                                mutable: term_mutable,
-                            }
-                        });
-                        let comp_access_script = load::<Script>("res://addons/g_ecs/src/component_access.gd");
-                        // compopnent_access.set_script(term_script.to_variant());
-                        compopnent_access.set_script(comp_access_script.to_variant());
-                        args.set(field_i, compopnent_access.to_variant());
-                    } else {
-                        panic!();
-                    }
+                    context.term_accesses[field_i].bind_mut().data = data;
                 }
                 
-                let _result = callable.callv(args);
+                let _result = context.callable.callv(
+                    context.sysatem_args.clone()
+                );
             }
         });
-    }
-
-
-    #[func]
-    fn _new_entity(&mut self, with_components:Array<Gd<Script>>) {
-        let mut entity = self.world.entity();
-        let mut i = 0;
-        while i != with_components.len() {
-            let script = with_components.get(i);
-            let component_name = self.component_names
-                .get(&script.instance_id())
-                .unwrap();
-            let script_component = self.script_components
-                .get(component_name)
-                .unwrap();
-            entity = entity.add_id(script_component.flecs_id);
-            i += 1;
-        }
-    }
-
-    fn name_from_flex_id(&self, flecs_component_id: EntityId) -> &StringName {
-        let names = &self.component_ids_to_names;
-        names.get(&flecs_component_id)
-            .unwrap()
     }
 
     fn script_is_component(script: Gd<Script>) -> bool {
@@ -593,6 +587,10 @@ impl _BaseGEWorld {
         Layout::from_size_align(size, 8).unwrap()
     }
 }
+
+// 2_205_783
+//   660_882
+
 #[godot_api]
 impl NodeVirtual for _BaseGEWorld {
     fn init(node: Base<Node>) -> Self {
@@ -610,24 +608,6 @@ impl NodeVirtual for _BaseGEWorld {
 
     fn physics_process(&mut self, delta:f64) {
         self.world.progress(delta as f32);
-    }
-}
-
-#[derive(GodotClass)]
-#[class(base=Object)]
-struct Entity {
-    #[base] base: Base<Object>,
-    entity: FlEntity,
-}
-#[godot_api]
-impl Entity {
-    fn set_component(&mut self, components: Array<StringName>) {
-        let world = Engine::singleton()
-            .get_singleton(StringName::from("ECSWorld"))
-            .unwrap()
-            .cast::<_BaseGEWorld>();
-        let script = world.get_script().to::<Gd<Script>>();
-        // script.get_class()
     }
 }
 
