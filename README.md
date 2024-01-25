@@ -1,7 +1,8 @@
 # Glecs development branch
-To install for development run the following command:
-```
+### Linux installation
+``` bash
 git clone https://github.com/GsLogiMaker/glecs_godot_plugin.git
+cd glecs_godot_plugin
 git switch dev
 git submodule update --init --recursive
 ```
