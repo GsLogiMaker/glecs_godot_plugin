@@ -21,9 +21,8 @@ use godot::engine::Script;
 use godot::obj::EngineEnum;
 use godot::prelude::*;
 use godot::engine::Node;
-use godot::engine::NodeVirtual;
+use godot::engine::INode;
 use godot::engine::Object;
-use godot::engine::ObjectVirtual;
 use godot::engine::Engine;
 use godot::engine::global::MethodFlags;
 use godot::engine::global::Error as GdError;
@@ -180,7 +179,7 @@ impl _BaseGEAccess {
                 return Variant::nil();
             };
         
-        fn get_param<T: ToVariant + Copy>(
+        fn get_param<T: ToGodot + Copy>(
             data:*mut [u8],
             property_meta: &ScriptComponetProperty
         ) -> Variant {
@@ -239,7 +238,7 @@ impl _BaseGEAccess {
                 return false;
             };
         
-        fn set_param<T: FromVariant>(
+        fn set_param<T: FromGodot>(
             data:*mut [u8],
             value: Variant,
             property_meta: &ScriptComponetProperty,
@@ -488,7 +487,7 @@ impl _BaseGEWorld {
         for term_i in 0..terms.len() as usize {
             let (term_script, term_mutable) = terms[term_i]
                 .clone();
-            if let Some(_) = term_script.try_cast::<GdScript>() {
+            if let Ok(_) = term_script.try_cast::<GdScript>() {
                 let mut compopnent_access = Gd
                     ::<_BaseGEAccess>
                     ::with_base(|base| {
@@ -531,7 +530,7 @@ impl _BaseGEWorld {
         for id in term_ids.iter() {
             sys = sys.term_dynamic(id.0);
         }
-        sys.iter(|iter| {
+        let system_fn:fn(&Iter) = |iter| {
             let context = unsafe {
                 (iter as *const Iter)
                     .cast_mut()
@@ -572,7 +571,8 @@ impl _BaseGEWorld {
                     context.sysatem_args.clone()
                 );
             }
-        });
+        };
+        sys.iter(system_fn);
     }
 
     fn script_is_component(script: Gd<Script>) -> bool {
@@ -592,7 +592,7 @@ impl _BaseGEWorld {
 //   660_882
 
 #[godot_api]
-impl NodeVirtual for _BaseGEWorld {
+impl INode for _BaseGEWorld {
     fn init(node: Base<Node>) -> Self {
         let world = FlWorld::new();
         unsafe {ecs_set_threads(world.raw(), 1)};
