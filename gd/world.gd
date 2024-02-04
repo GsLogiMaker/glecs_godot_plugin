@@ -1,20 +1,15 @@
 
 class_name GEWorldNode extends _BaseGEWorld
 
-func new_component(name:StringName, component:Script) -> void:
+func add_component(name:StringName, component:Script) -> void:
 	super(name, component)
 
-func new_entity(with_components:Array[Script] = []) -> void:
-	super(with_components)
+func add_system(callable:Callable, terms:Array[Script]) -> void:
+	_add_system(callable, terms)
 
-func new_system(callable: Callable) -> GESystemBuilder:
-	assert(
-		not _is_callable_error(callable),
-		_callable_error_message(callable),
-	)
-	var builder:= _BaseGESystemBuilder._new_for_world(callable, self)
-	builder.set_script(GESystemBuilder)
-	return builder
+func new_entity(with_components:Array[Script] = []) -> _BaseGEEntity:
+	var entity:= _new_entity(with_components)
+	return entity
 
 func _is_callable_error(callable:Callable) -> bool:
 	if not callable.get_object() is Script:
