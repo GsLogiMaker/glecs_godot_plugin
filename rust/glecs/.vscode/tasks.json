@@ -1,0 +1,51 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		//Godot Editor Operations
+		{
+			"label": "godot-rust: Launch Debug Editor",
+			"detail": "Builds debug rust game library, then opens the project with Godot Editor",
+			"dependsOn": "godot-rust: Build Debug",
+			"type": "shell",
+			"options": {
+				"cwd": "${config:godot-rust.environment.godotProjectPath}"
+			},
+			"command": "${config:godot-rust.environment.godotEditorPath} --editor",
+			"group": "build"
+		},
+		{
+			"label": "godot-rust: Launch Release Editor",
+			"detail": "Builds release rust game library, then opens the project with Godot Editor",
+			"dependsOn": "godot-rust: Build Release",
+			"type": "shell",
+			"options": {
+				"cwd": "${config:godot-rust.environment.godotProjectPath}"
+			},
+			"command": "${config:godot-rust.environment.godotEditorPath} --editor",
+			"group": "build"
+		},
+
+		//Build Operations
+		{
+			"label": "godot-rust: Build Debug",
+			"detail": "Builds debug rust game library",
+			"type": "shell",
+			"command": "cargo build",
+			"group": "build"
+		},
+		{
+			"label": "godot-rust: Build Release",
+			"detail": "Builds release rust game library",
+			"type": "shell",
+			"command": "cargo build --release",
+			"group": "build"
+		},
+		{
+			"label": "godot-rust: Clean",
+			"detail": "Removes all artifacts of rust game library and its dependencies",
+			"type": "shell",
+			"command": "cargo clean",
+			"group": "build"
+		}
+	]
+}

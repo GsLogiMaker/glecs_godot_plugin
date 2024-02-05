@@ -1,0 +1,41 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Game",
+            "preLaunchTask": "godot-rust: Build Debug",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${config:godot-rust.environment.godotEditorPath}",
+            "cwd": "${config:godot-rust.environment.godotProjectPath}",
+            "presentation": {
+                "group": "Debug",
+                "order": 1
+            }
+        },
+        {
+            "name": "Release Game",
+            "preLaunchTask": "godot-rust: Build Release",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${config:godot-rust.environment.godotEditorPath}",
+            "cwd": "${config:godot-rust.environment.godotProjectPath}",
+            "presentation": {
+                "group": "Debug",
+                "order": 2
+            }
+        },
+        {
+            "name": "Attach to Game",
+            "pid": "${command:pickMyProcess}",
+            "type": "lldb",
+            "request": "attach",
+            "program": "${config:godot-rust.environment.godotEditorPath}",
+            "port": 6007,
+            "presentation": {
+                "group": "Debug",
+                "order": 3
+            }
+        }
+    ]
+}

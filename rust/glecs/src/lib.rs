@@ -9,6 +9,9 @@ use std::hash::Hash;
 use std::mem::ManuallyDrop;
 use std::mem::size_of;
 use std::pin::Pin;
+use std::rc::Rc;
+use std::slice::from_raw_parts;
+use std::slice::from_raw_parts_mut;
 use std::sync::Mutex;
 
 use flecs::ecs_get_mut_id;
@@ -63,7 +66,7 @@ const TYPE_SIGNAL:i32 = 26;
 const TYPE_DICTIONARY:i32 = 27;
 const TYPE_ARRAY:i32 = 28;
 const TYPE_PACKED_BYTE_ARRAY:i32 = 29;
-const TYPE_PACKED_INT32_ARRAY:i32 = 20;
+const TYPE_PACKED_INT32_ARRAY:i32 = 30;
 const TYPE_PACKED_INT64_ARRAY:i32 = 31;
 const TYPE_PACKED_FLOAT32_ARRAY:i32 = 32;
 const TYPE_PACKED_FLOAT64_ARRAY:i32 = 33;
@@ -131,7 +134,6 @@ struct _BaseGEEntity {
 impl _BaseGEEntity {
     #[func]
     fn get_component(&mut self, component:Gd<Script>) -> Gd<_BaseGEComponent> {
-        let world_gd = self.world.clone();
         let world = self.world.bind();
 
         let component_definition = world
@@ -148,7 +150,7 @@ impl _BaseGEEntity {
                 base,
                 flecs_id: component_definition.flecs_id,
                 data: component_data,
-                world: world_gd,
+                component_definition,
             };
             base_comp
         });
@@ -158,21 +160,7 @@ impl _BaseGEEntity {
 
     #[func]
     fn set_component(&mut self, component:Gd<Script>, value:Variant) {
-        let world = self.world.bind_mut();
-        let component_name = world
-            .get_script_component_name(component);
-
-        let entt = world.world.find_entity(self.id)
-            .expect("TODO: Add err msg");
-
-
-		// let component_id = unsafe { ecs_get_mut_id(world.world, self.entity, comp_id) };
-        // component.
-        // flecs::bindings::ecs_lookup(world.world.raw(), )
-        // world.world.find_entity(self.id)
-        //     .unwrap()
-        //     .comp
-        // world.world.set_component(self.id, comp, data)
+        unimplemented!()
     }
 }
 
@@ -184,43 +172,38 @@ struct _BaseGEComponent {
     /// The Flecs component ID for the type of this component.
     flecs_id: EntityId,
     data: *mut [u8],
-    world: Gd<_BaseGEWorld>,
+    component_definition: Rc<ScriptComponetDefinition>,
 }
 #[godot_api]
 impl _BaseGEComponent {
     #[func]
     fn get(&self, property: StringName) -> Variant {
         self._get_property(property)
-        // Variant::from(5)
     }
 
     #[func]
     fn set(&mut self, property: StringName, value:Variant) {
-        self._set_property(property, value);
+        self._set_property(property.clone(), value.clone());
     }
 
     fn _get_property(&self, property:StringName) -> Variant {
-        let world = self.world.bind();
-
-        let description = world
-            .get_component_description(self.flecs_id)
-            .unwrap();
-
-        let Some(property_data) = description
+        let Some(property_data) = self
+            .component_definition
             .parameters
             .get(&property) else {
                 return Variant::nil();
             };
         
-        fn get_param<T: ToGodot + Clone>(
+        fn get_param<T: ToGodot + Clone + Debug>(
             data:*mut [u8],
             property_data: &ScriptComponetProperty
         ) -> Variant {
             unsafe {
                 let param:*mut u8 = &mut (*data)[property_data.offset];
-                let value = Variant::from((*param.cast::<T>()).clone());
-                return value;
-                // return Variant::nil();
+                let value = param as *mut T;
+                let copied = (*value).clone();
+                let variant = Variant::from(copied);
+                return variant;
             }
         }
         
@@ -251,8 +234,8 @@ impl _BaseGEComponent {
             TYPE_OBJECT => todo!("Object doesn't support conversion to variant or copying"), /* get_param::<Object>(self.data, property_data), */
             TYPE_CALLABLE => get_param::<Callable>(self.data, property_data),
             TYPE_SIGNAL => get_param::<Signal>(self.data, property_data),
-            TYPE_DICTIONARY => get_param::<Dictionary>(self.data, property_data),
-            TYPE_ARRAY => todo!("Causes crashes"), /* get_param::<Array<Variant>>(self.data, property_data), */
+            TYPE_DICTIONARY => todo!("Reading causes crashes"), /* get_param::<Dictionary>(self.data, property_data), */
+            TYPE_ARRAY => todo!("Reading causes crashes"), /* get_param::<Array<Variant>>(self.data, property_data), */
             TYPE_PACKED_BYTE_ARRAY => get_param::<PackedByteArray>(self.data, property_data),
             TYPE_PACKED_INT32_ARRAY => get_param::<PackedInt32Array>(self.data, property_data),
             TYPE_PACKED_INT64_ARRAY => get_param::<PackedInt64Array>(self.data, property_data),
@@ -270,13 +253,8 @@ impl _BaseGEComponent {
     }
 
     fn _set_property(&mut self, property:StringName, value:Variant) -> bool {
-        let world = self.world.bind();
-        
-        let description = world
-            .get_component_description(self.flecs_id)
-            .unwrap();
-
-        let Some(property_data) = description
+        let Some(property_data) = self
+            .component_definition
             .parameters
             .get(&property) else {
                 godot_error!(
@@ -292,19 +270,14 @@ impl _BaseGEComponent {
             property_data: &ScriptComponetProperty,
         ) {
             unsafe {
-                let param_raw:*mut u8 = &mut (*data)[property_data.offset];
-                let param = param_raw.cast::<T>();
+                let param_ptr:*mut u8 = &mut (*data)[property_data.offset];
                 {
                     let data_length = (&*data).len();
-                    godot_print!(
-                        "{} <= {} - {}",
-                        size_of::<T>(),
-                        data_length,
-                        property_data.offset
-                    );
                     assert!(size_of::<T>() <= data_length-property_data.offset);
                 }
-                *param = value.to::<T>().clone();
+                *(param_ptr as *mut T) = value.to::<T>().clone();
+                godot_print!("SET {:?}", *(param_ptr as *mut T));
+
             }
         }
         
@@ -336,7 +309,7 @@ impl _BaseGEComponent {
             TYPE_CALLABLE => set_param::<Callable>(self.data, value, property_data),
             TYPE_SIGNAL => set_param::<Signal>(self.data, value, property_data),
             TYPE_DICTIONARY => set_param::<Dictionary>(self.data, value, property_data),
-            TYPE_ARRAY => todo!("Causes crashes"), /* get_param::<Array<Variant>>(self.data, property_data), */
+            TYPE_ARRAY => set_param::<Array<Variant>>(self.data, value, property_data),
             TYPE_PACKED_BYTE_ARRAY => set_param::<PackedByteArray>(self.data, value, property_data),
             TYPE_PACKED_INT32_ARRAY => set_param::<PackedInt32Array>(self.data, value, property_data),
             TYPE_PACKED_INT64_ARRAY => set_param::<PackedInt64Array>(self.data, value, property_data),
@@ -352,68 +325,15 @@ impl _BaseGEComponent {
 
         return true;
     }
-}
-#[godot_api]
-impl IRefCounted for _BaseGEComponent {
-    fn get_property(&self, property: StringName) -> Option<Variant> {
-        Some(self._get_property(property))
-    }
 
-    fn set_property(&mut self, property: StringName, v:Variant) -> bool{
-        self._set_property(property, v)
-    }
-}
-
-#[derive(GodotClass)]
-#[class(base=RefCounted)]
-struct _BaseGEAccess {
-    #[base] base: Base<RefCounted>,
-    /// The Flecs component ID for this component.
-    flecs_id: EntityId,
-    data: *mut [u8],
-    world: Gd<_BaseGEWorld>,
-}
-#[godot_api]
-impl _BaseGEAccess {
-    fn _component_get(&self, property:StringName) -> Variant {
-        let world = self.world.bind();
-        let name = world.name_from_flex_id(self.flecs_id);
-        let Some(property_data) = world
-            .component_definitions
-            .get(&name)
-            .unwrap()
-            .parameters
-            .get(&property) else {
-                return Variant::nil();
-            };
-        
-        fn get_param<T: ToGodot + Copy>(
-            data:*mut [u8],
-            property_meta: &ScriptComponetProperty
-        ) -> Variant {
-            unsafe {
-                let param:*mut u8 = &mut (*data)[property_meta.offset];
-                let value = *param.cast::<T>();
-                return Variant::from(value);
-            }
-        }
-        
-        return match property_data.gd_type_id {
-            TYPE_BOOL => get_param::<bool>(self.data, property_data),
-            TYPE_INT => get_param::<i32>(self.data, property_data),
-            TYPE_FLOAT => get_param::<f32>(self.data, property_data),
-            _ => todo!(),
-        }
-    }
-
-
-    fn _component_set(&mut self, property:StringName, value:Variant) -> bool {
-        let world = self.world.bind();
-        let name = world.name_from_flex_id(self.flecs_id);
-        let Some(property_meta) = world
-            .component_definitions
-            .get(&name)
-            .unwrap()
+    // Similar to [_set_property], except it does not call the destructor.
+    fn _initialize_property(
+        data:&mut [u8],
+        description:&ScriptComponetDefinition,
+        property:StringName,
+        value:Variant, // TODO: Utilize the initialization value
+    ) -> bool {
+        let Some(property_data) = description
             .parameters
             .get(&property) else {
                 godot_error!(
@@ -423,21 +343,66 @@ impl _BaseGEAccess {
                 return false;
             };
         
-        fn set_param<T: FromGodot>(
+        fn init_param<T: FromGodot + Debug + Clone>(
             data:*mut [u8],
             value: Variant,
-            property_meta: &ScriptComponetProperty,
+            property_data: &ScriptComponetProperty,
         ) {
             unsafe {
-                let param:*mut u8 = &mut (*data)[property_meta.offset];
-                *param.cast::<T>() = value.to::<T>();
+                let param_ptr:*mut u8 = &mut (*data)[property_data.offset];
+                let param_slice = from_raw_parts_mut(param_ptr, size_of::<T>());
+                {
+                    let data_length = (&*data).len();
+                    assert!(size_of::<T>() <= data_length-property_data.offset);
+                }
+                let value_ptr:*const T = &value.to::<T>().clone();
+                let value_slice = from_raw_parts(value_ptr as *const u8, size_of::<T>());
+
+                param_slice.copy_from_slice(value_slice);
+
+                godot_print!("{:?}", *(param_ptr as *mut T));
             }
         }
         
-        match property_meta.gd_type_id {
-            TYPE_BOOL => set_param::<bool>(self.data, value, property_meta),
-            TYPE_INT => set_param::<i32>(self.data, value, property_meta),
-            TYPE_FLOAT => set_param::<f32>(self.data, value, property_meta),
+        match property_data.gd_type_id {
+            TYPE_BOOL => init_param::<bool>(data, Variant::from(bool::default()), property_data),
+            TYPE_INT => init_param::<i32>(data, Variant::from(i32::default()), property_data),
+            TYPE_FLOAT => init_param::<f32>(data, Variant::from(f32::default()), property_data),
+            TYPE_STRING => init_param::<GString>(data, Variant::from(GString::default()), property_data),
+            TYPE_VECTOR2 => init_param::<Vector2>(data, Variant::from(Vector2::default()), property_data),
+            TYPE_VECTOR2I => init_param::<Vector2i>(data, Variant::from(Vector2i::default()), property_data),
+            TYPE_RECT2 => init_param::<Rect2>(data, Variant::from(Rect2::default()), property_data),
+            TYPE_RECT2I => init_param::<Rect2i>(data, Variant::from(Rect2i::default()), property_data),
+            TYPE_VECTOR3 => init_param::<Vector3>(data, Variant::from(Vector3::default()), property_data),
+            TYPE_VECTOR3I => init_param::<Vector3i>(data, Variant::from(Vector3i::default()), property_data),
+            TYPE_TRANSFORM2D => init_param::<Transform2D>(data, Variant::from(Transform2D::default()), property_data),
+            TYPE_VECTOR4 => init_param::<Vector4>(data, Variant::from(Vector4::default()), property_data),
+            TYPE_VECTOR4I => init_param::<Vector4i>(data, Variant::from(Vector4i::default()), property_data),
+            TYPE_PLANE => todo!("Can't initialize planes with a sane default"),
+            TYPE_QUATERNION => init_param::<Quaternion>(data, Variant::from(Quaternion::default()), property_data),
+            TYPE_AABB => init_param::<Aabb>(data, Variant::from(Aabb::default()), property_data),
+            TYPE_BASIS => init_param::<Basis>(data, Variant::from(Basis::default()), property_data),
+            TYPE_TRANSFORM3D => init_param::<Transform3D>(data, Variant::from(Transform3D::default()), property_data),
+            TYPE_PROJECTION => init_param::<Projection>(data, Variant::from(Projection::default()), property_data),
+            TYPE_COLOR => init_param::<Color>(data, Variant::from(Color::default()), property_data),
+            TYPE_STRING_NAME => init_param::<StringName>(data, Variant::from(StringName::default()), property_data),
+            TYPE_NODE_PATH => init_param::<NodePath>(data, Variant::from(NodePath::default()), property_data),
+            TYPE_RID => todo!("Can't initialize RIDs with a sane default"),
+            TYPE_OBJECT => todo!("Objects don't support conversion to variant or copying"), /* get_param::<Object>(data, property_data), */
+            TYPE_CALLABLE => todo!("Can't initialize callables with a sane default"),
+            TYPE_SIGNAL => todo!("Can't initialize signals with a sane default"),
+            TYPE_DICTIONARY => init_param::<Dictionary>(data, Variant::from(Dictionary::default()), property_data),
+            TYPE_ARRAY => init_param::<Array<Variant>>(data, Variant::from(Array::<Variant>::default()), property_data),
+            TYPE_PACKED_BYTE_ARRAY => init_param::<PackedByteArray>(data, Variant::from(PackedByteArray::default()), property_data),
+            TYPE_PACKED_INT32_ARRAY => init_param::<PackedInt32Array>(data, Variant::from(PackedInt32Array::default()), property_data),
+            TYPE_PACKED_INT64_ARRAY => init_param::<PackedInt64Array>(data, Variant::from(PackedInt64Array::default()), property_data),
+            TYPE_PACKED_FLOAT32_ARRAY => init_param::<PackedFloat32Array>(data, Variant::from(PackedFloat32Array::default()), property_data),
+            TYPE_PACKED_FLOAT64_ARRAY => init_param::<PackedFloat64Array>(data, Variant::from(PackedFloat64Array::default()), property_data),
+            TYPE_PACKED_STRING_ARRAY => init_param::<PackedStringArray>(data, Variant::from(PackedStringArray::default()), property_data),
+            TYPE_PACKED_VECTOR2_ARRAY => init_param::<PackedVector2Array>(data, Variant::from(PackedVector2Array::default()), property_data),
+            TYPE_PACKED_VECTOR3_ARRAY => init_param::<PackedVector3Array>(data, Variant::from(PackedVector3Array::default()), property_data),
+            TYPE_PACKED_COLOR_ARRAY => init_param::<PackedColorArray>(data, Variant::from(PackedColorArray::default()), property_data),
+
             _ => todo!(),
         }
 
@@ -445,13 +410,13 @@ impl _BaseGEAccess {
     }
 }
 #[godot_api]
-impl IRefCounted for _BaseGEAccess {
-    fn get_property(&self, property: StringName) -> Option < Variant > {
-        Some(self._component_get(property))
+impl IRefCounted for _BaseGEComponent {
+    fn get_property(&self, property: StringName) -> Option<Variant> {
+        Some(self._get_property(property))
     }
 
-    fn set_property(&mut self, property: StringName, value: Variant) -> bool {
-        self._component_set(property, value)
+    fn set_property(&mut self, property: StringName, v:Variant) -> bool{
+        self._set_property(property, v)
     }
 }
 
@@ -478,9 +443,9 @@ struct ScriptSystemContext {
     callable: Callable,
     terms: Array<Gd<Script>>,
     /// The arguments passed to the system.
-    sysatem_args: Array<Variant>,
+    system_args: Array<Variant>,
     /// Holds the accesses stored in `sysatem_args` for quicker access.
-    term_accesses: Box<[Gd<_BaseGEAccess>]>,
+    term_accesses: Box<[Gd<_BaseGEComponent>]>,
     world: Gd<_BaseGEWorld>,
 }
 
@@ -585,12 +550,29 @@ impl _BaseGEWorld {
         let mut entity = self.world.entity();
         let mut i = 0;
         while i != with_components.len() {
-            let script = with_components.get(i);
+            let mut script = with_components.get(i);
             let comp_def = self.component_definitions
                 .get(script.instance_id())
                 .unwrap();
             entity = entity.add_id(comp_def.flecs_id);
+
+            let data = entity.get_mut_dynamic(&comp_def.name.to_string());
+
             i += 1;
+
+            // Initialize component properties
+            // TODO: Initialize properties in deterministic order
+            for property_name in comp_def.parameters.keys() {
+                // TODO: Get default values of properties
+                let default_value = Variant::nil();
+                godot_print!("default_value \"{property_name}\" {default_value}");
+                _BaseGEComponent::_initialize_property(
+                    data,
+                    comp_def.as_ref(),
+                    property_name.clone(),
+                    default_value,
+                );
+            }
         }
 
         Gd::from_init_fn(|base| {
@@ -625,29 +607,24 @@ impl _BaseGEWorld {
 
         // Create component accesses
         let mut system_args = array![];
-        let mut tarm_accesses = vec![];
+        let mut tarm_accesses: Vec<Gd<_BaseGEComponent>> = vec![];
         for term_i in 0..terms.len() as usize {
             let term_script = terms.get(term_i).clone();
-            if let Ok(_) = term_script.try_cast::<GdScript>() {
-                let mut compopnent_access = Gd
-                    ::<_BaseGEAccess>
-                    ::from_init_fn(|base| {
-                        _BaseGEAccess {
-                            base,
-                            flecs_id: term_ids[term_i],
-                            data: &mut [],
-                            world: self.to_gd(),
-                        }
-                    });
-                let comp_access_script = load::<Script>(
-                    "res://addons/glecs_godot_plugin/gd/component_access.gd"
-                );
-                compopnent_access.set_script(comp_access_script.to_variant());
-                system_args.push(compopnent_access.to_variant());
-                tarm_accesses.push(compopnent_access);
-            } else {
-                panic!();
-            }
+            let mut compopnent_access = Gd
+                ::<_BaseGEComponent>
+                ::from_init_fn(|base| {
+                    _BaseGEComponent {
+                        base,
+                        flecs_id: term_ids[term_i],
+                        data: &mut [],
+                        component_definition: self
+                            .get_component_description(term_script.instance_id())
+                            .unwrap(),
+                    }
+                });
+            compopnent_access.set_script(term_script.to_variant());
+            system_args.push(compopnent_access.to_variant());
+            tarm_accesses.push(compopnent_access);
         }
         let term_args_fast = tarm_accesses
             .into_boxed_slice();
@@ -655,7 +632,7 @@ impl _BaseGEWorld {
         // Create contex
         self.system_contexts.push_back(Pin::new(Box::new(
             ScriptSystemContext {
-                sysatem_args: system_args,
+                system_args: system_args,
                 term_accesses: term_args_fast,
                 callable: callable.clone(),
                 terms: terms,
@@ -666,54 +643,20 @@ impl _BaseGEWorld {
             .system_contexts
             .back_mut()
             .unwrap();
-        
         let mut sys = self.world.system()
             .context_ptr(context_ptr.cast::<c_void>());
         for id in term_ids.iter() {
             sys = sys.term_dynamic(*id);
         }
-        let system_fn:fn(&Iter) = |iter| {
-            let context = unsafe {
-                (iter as *const Iter)
-                    .cast_mut()
-                    .as_mut()
-                    .unwrap()
-                    .get_context_mut::<Pin<Box<ScriptSystemContext>>>()
-            };
 
-            let mut columns:Vec<flecs::ColumnDynamic> = vec![];
-            for i in 1..=(iter.field_count()) as i32 {
-                let column = iter.field_dynamic(i);
-                columns.push(column);
-            }
-
-            for entity_i in 0..(iter.count() as usize) {
-                // Create components arguments
-                for field_i in 0..iter.field_count() as usize {
-                    let column = columns
-                        .get_mut(field_i)
-                        .unwrap();
-                    let data:*mut [u8] = column.get_mut(entity_i);
-
-                    context.term_accesses[field_i].bind_mut().data = data;
-                }
-                
-                let _result = context.callable.callv(
-                    context.sysatem_args.clone()
-                );
-            }
-        };
-        sys.iter(system_fn);
-    }
-
-    fn script_is_component(script: Gd<Script>) -> bool {
-        todo!()
+        // System body
+        sys.iter(Self::system_iteration);
     }
 
     fn get_component_description(
         &self,
         key:impl Into<ComponentDefinitionsMapKey>,
-    ) -> Option<&ScriptComponetDefinition> {
+    ) -> Option<Rc<ScriptComponetDefinition>> {
         self.component_definitions.get(key)
     }
 
@@ -725,6 +668,34 @@ impl _BaseGEWorld {
             size += TYPE_SIZES[property.gd_type_id as usize];
         }
         Layout::from_size_align(size, 8).unwrap()
+    }
+
+    fn system_iteration(iter:&Iter) {
+        // Get context
+        let context = unsafe {
+            (iter as *const Iter)
+                .cast_mut()
+                .as_mut()
+                .unwrap()
+                .get_context_mut::<Pin<Box<ScriptSystemContext>>>()
+        };
+
+        for entity_i in 0..(iter.count() as usize) {
+            // Create components arguments
+            for field_i in 0i32..iter.field_count() {
+                let mut column = iter
+                    .field_dynamic(field_i+1);
+                let data:*mut [u8] = column.get_mut(entity_i);
+
+                context.term_accesses[field_i as usize]
+                    .bind_mut()
+                    .data = data;
+            }
+            
+            let _result = context.callable.callv(
+                context.system_args.clone()
+            );
+        }
     }
 }
 
@@ -744,9 +715,9 @@ impl INode for _BaseGEWorld {
         }
     }
 
-    fn physics_process(&mut self, delta:f64) {
-        self.world.progress(delta as f32);
-    }
+    // fn physics_process(&mut self, delta:f64) {
+    //     self.world.progress(delta as f32);
+    // }
 }
 
 #[derive(Eq, PartialEq, Hash)]
@@ -787,18 +758,10 @@ enum ComponentDefinitionsMapKey {
         }
     }
 
-    fn get_value<'a>(&self, d:&'a ComponentDefinitions) -> Option<&'a ScriptComponetDefinition> {
-        d.data.get(self.get_index(d))
-    }
-
-    fn get_value_mut<'a>(&self, d:&'a mut ComponentDefinitions) -> Option<&'a mut ScriptComponetDefinition> {
-        let idnex = self.get_index(d);
-        d.data.get_mut(idnex)
-    }
-    
-    fn set_value(&self, d:&mut ComponentDefinitions, value:ScriptComponetDefinition) {
-        let idnex = self.get_index(d);
-        d.data[idnex] = value;
+    fn get_value(&self, d:&ComponentDefinitions) -> Option<Rc<ScriptComponetDefinition>> {
+        d.data.get(self.get_index(d)).map(|x| {
+            x.clone()
+        })
     }
 } impl From<StringName> for ComponentDefinitionsMapKey {
     fn from(value: StringName) -> Self {
@@ -828,7 +791,7 @@ enum ComponentDefinitionsMapKey {
 
 #[derive(Debug, Default)]
 struct ComponentDefinitions {
-    data: Vec<ScriptComponetDefinition>,
+    data: Vec<Rc<ScriptComponetDefinition>>,
     name_map:HashMap<StringName, usize>,
     flecs_id_map:HashMap<EntityId, usize>,
     script_id_map:HashMap<InstanceId, usize>,
@@ -856,23 +819,15 @@ struct ComponentDefinitions {
             element.flecs_id,
             element.script_id.clone(),
         );
-        self.data.push(element);
+        self.data.push(Rc::new(element));
     }
 
     fn get(
         &self,
         key:impl Into<ComponentDefinitionsMapKey>,
-    ) -> Option<&ScriptComponetDefinition> {
+    ) -> Option<Rc<ScriptComponetDefinition>> {
         let x = key.into();
         x.get_value(self)
-    }
-
-    fn get_mut(
-        &mut self,
-        key:impl Into<ComponentDefinitionsMapKey>,
-    ) -> Option<&mut ScriptComponetDefinition> {
-        let x = key.into();
-        x.get_value_mut(self)
     }
 
     fn has(&self, map:impl Into<ComponentDefinitionsMapKey>) -> bool{
