@@ -1,0 +1,4 @@
+
+extends GEComponent
+
+var dict:= {}

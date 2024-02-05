@@ -1,0 +1,10 @@
+[gd_scene load_steps=3 format=3 uid="uid://bmgtmjefq4coa"]
+
+[ext_resource type="Script" path="res://main.gd" id="1_280wi"]
+[ext_resource type="Script" path="res://addons/glecs/gd/world.gd" id="2_c0wdw"]
+
+[node name="Node2D" type="Node2D"]
+script = ExtResource("1_280wi")
+
+[node name="GEWorldNode" type="_BaseGEWorld" parent="."]
+script = ExtResource("2_c0wdw")
