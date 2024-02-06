@@ -78,7 +78,7 @@ const TYPE_MAX:i32 = 38;
 
 const TYPE_SIZES:&'static [usize] = &[
     /* NIL */ 0,
-    /* BOOL */ size_of::<bool>(),
+    /* BOOL */ 4, //size_of::<bool>(),
     /* INT */ size_of::<i32>(),
     /* FLOAT */ size_of::<f64>(),
     /* STRING */ size_of::<String>(),
@@ -177,12 +177,12 @@ struct _BaseGEComponent {
 #[godot_api]
 impl _BaseGEComponent {
     #[func]
-    fn get(&self, property: StringName) -> Variant {
+    fn getc(&self, property: StringName) -> Variant {
         self._get_property(property)
     }
 
     #[func]
-    fn set(&mut self, property: StringName, value:Variant) {
+    fn setc(&mut self, property: StringName, value:Variant) {
         self._set_property(property.clone(), value.clone());
     }
 
@@ -271,13 +271,7 @@ impl _BaseGEComponent {
         ) {
             unsafe {
                 let param_ptr:*mut u8 = &mut (*data)[property_data.offset];
-                {
-                    let data_length = (&*data).len();
-                    assert!(size_of::<T>() <= data_length-property_data.offset);
-                }
                 *(param_ptr as *mut T) = value.to::<T>().clone();
-                godot_print!("SET {:?}", *(param_ptr as *mut T));
-
             }
         }
         
@@ -343,65 +337,63 @@ impl _BaseGEComponent {
                 return false;
             };
         
-        fn init_param<T: FromGodot + Debug + Clone>(
+        fn init_param<T: FromGodot + ToGodot + Debug + Default + Clone>(
             data:*mut [u8],
             value: Variant,
             property_data: &ScriptComponetProperty,
         ) {
+             let default_value = if value != Variant::nil() {
+                value
+            } else {
+                Variant::from(T::default())
+            };
             unsafe {
                 let param_ptr:*mut u8 = &mut (*data)[property_data.offset];
                 let param_slice = from_raw_parts_mut(param_ptr, size_of::<T>());
-                {
-                    let data_length = (&*data).len();
-                    assert!(size_of::<T>() <= data_length-property_data.offset);
-                }
-                let value_ptr:*const T = &value.to::<T>().clone();
+                let value_ptr:*const T = &default_value.to::<T>().clone();
                 let value_slice = from_raw_parts(value_ptr as *const u8, size_of::<T>());
-
                 param_slice.copy_from_slice(value_slice);
-
-                godot_print!("{:?}", *(param_ptr as *mut T));
             }
         }
         
         match property_data.gd_type_id {
-            TYPE_BOOL => init_param::<bool>(data, Variant::from(bool::default()), property_data),
-            TYPE_INT => init_param::<i32>(data, Variant::from(i32::default()), property_data),
-            TYPE_FLOAT => init_param::<f32>(data, Variant::from(f32::default()), property_data),
-            TYPE_STRING => init_param::<GString>(data, Variant::from(GString::default()), property_data),
-            TYPE_VECTOR2 => init_param::<Vector2>(data, Variant::from(Vector2::default()), property_data),
-            TYPE_VECTOR2I => init_param::<Vector2i>(data, Variant::from(Vector2i::default()), property_data),
-            TYPE_RECT2 => init_param::<Rect2>(data, Variant::from(Rect2::default()), property_data),
-            TYPE_RECT2I => init_param::<Rect2i>(data, Variant::from(Rect2i::default()), property_data),
-            TYPE_VECTOR3 => init_param::<Vector3>(data, Variant::from(Vector3::default()), property_data),
-            TYPE_VECTOR3I => init_param::<Vector3i>(data, Variant::from(Vector3i::default()), property_data),
-            TYPE_TRANSFORM2D => init_param::<Transform2D>(data, Variant::from(Transform2D::default()), property_data),
-            TYPE_VECTOR4 => init_param::<Vector4>(data, Variant::from(Vector4::default()), property_data),
-            TYPE_VECTOR4I => init_param::<Vector4i>(data, Variant::from(Vector4i::default()), property_data),
+            TYPE_BOOL => init_param::<bool>(data, value, property_data),
+            TYPE_INT => init_param::<i32>(data, value, property_data),
+            TYPE_FLOAT => init_param::<f32>(data, value, property_data),
+            TYPE_STRING => init_param::<GString>(data, value, property_data),
+            TYPE_VECTOR2 => init_param::<Vector2>(data, value, property_data),
+            TYPE_VECTOR2I => init_param::<Vector2i>(data, value, property_data),
+            TYPE_RECT2 => init_param::<Rect2>(data, value, property_data),
+            TYPE_RECT2I => init_param::<Rect2i>(data, value, property_data),
+            TYPE_VECTOR3 => init_param::<Vector3>(data, value, property_data),
+            TYPE_VECTOR3I => init_param::<Vector3i>(data, value, property_data),
+            TYPE_TRANSFORM2D => init_param::<Transform2D>(data, value, property_data),
+            TYPE_VECTOR4 => init_param::<Vector4>(data, value, property_data),
+            TYPE_VECTOR4I => init_param::<Vector4i>(data, value, property_data),
             TYPE_PLANE => todo!("Can't initialize planes with a sane default"),
-            TYPE_QUATERNION => init_param::<Quaternion>(data, Variant::from(Quaternion::default()), property_data),
-            TYPE_AABB => init_param::<Aabb>(data, Variant::from(Aabb::default()), property_data),
-            TYPE_BASIS => init_param::<Basis>(data, Variant::from(Basis::default()), property_data),
-            TYPE_TRANSFORM3D => init_param::<Transform3D>(data, Variant::from(Transform3D::default()), property_data),
-            TYPE_PROJECTION => init_param::<Projection>(data, Variant::from(Projection::default()), property_data),
-            TYPE_COLOR => init_param::<Color>(data, Variant::from(Color::default()), property_data),
-            TYPE_STRING_NAME => init_param::<StringName>(data, Variant::from(StringName::default()), property_data),
-            TYPE_NODE_PATH => init_param::<NodePath>(data, Variant::from(NodePath::default()), property_data),
+            TYPE_QUATERNION => init_param::<Quaternion>(data, value, property_data),
+            TYPE_AABB => init_param::<Aabb>(data, value, property_data),
+            TYPE_BASIS => init_param::<Basis>(data, value, property_data),
+            TYPE_TRANSFORM3D => init_param::<Transform3D>(data, value, property_data),
+            TYPE_PROJECTION => init_param::<Projection>(data, value, property_data),
+            TYPE_COLOR => init_param::<Color>(data, value, property_data),
+            TYPE_STRING_NAME => init_param::<StringName>(data, value, property_data),
+            TYPE_NODE_PATH => init_param::<NodePath>(data, value, property_data),
             TYPE_RID => todo!("Can't initialize RIDs with a sane default"),
             TYPE_OBJECT => todo!("Objects don't support conversion to variant or copying"), /* get_param::<Object>(data, property_data), */
             TYPE_CALLABLE => todo!("Can't initialize callables with a sane default"),
             TYPE_SIGNAL => todo!("Can't initialize signals with a sane default"),
-            TYPE_DICTIONARY => init_param::<Dictionary>(data, Variant::from(Dictionary::default()), property_data),
-            TYPE_ARRAY => init_param::<Array<Variant>>(data, Variant::from(Array::<Variant>::default()), property_data),
-            TYPE_PACKED_BYTE_ARRAY => init_param::<PackedByteArray>(data, Variant::from(PackedByteArray::default()), property_data),
-            TYPE_PACKED_INT32_ARRAY => init_param::<PackedInt32Array>(data, Variant::from(PackedInt32Array::default()), property_data),
-            TYPE_PACKED_INT64_ARRAY => init_param::<PackedInt64Array>(data, Variant::from(PackedInt64Array::default()), property_data),
-            TYPE_PACKED_FLOAT32_ARRAY => init_param::<PackedFloat32Array>(data, Variant::from(PackedFloat32Array::default()), property_data),
-            TYPE_PACKED_FLOAT64_ARRAY => init_param::<PackedFloat64Array>(data, Variant::from(PackedFloat64Array::default()), property_data),
-            TYPE_PACKED_STRING_ARRAY => init_param::<PackedStringArray>(data, Variant::from(PackedStringArray::default()), property_data),
-            TYPE_PACKED_VECTOR2_ARRAY => init_param::<PackedVector2Array>(data, Variant::from(PackedVector2Array::default()), property_data),
-            TYPE_PACKED_VECTOR3_ARRAY => init_param::<PackedVector3Array>(data, Variant::from(PackedVector3Array::default()), property_data),
-            TYPE_PACKED_COLOR_ARRAY => init_param::<PackedColorArray>(data, Variant::from(PackedColorArray::default()), property_data),
+            TYPE_DICTIONARY => init_param::<Dictionary>(data, value, property_data),
+            TYPE_ARRAY => init_param::<Array<Variant>>(data, value, property_data),
+            TYPE_PACKED_BYTE_ARRAY => init_param::<PackedByteArray>(data, value, property_data),
+            TYPE_PACKED_INT32_ARRAY => init_param::<PackedInt32Array>(data, value, property_data),
+            TYPE_PACKED_INT64_ARRAY => init_param::<PackedInt64Array>(data, value, property_data),
+            TYPE_PACKED_FLOAT32_ARRAY => init_param::<PackedFloat32Array>(data, value, property_data),
+            TYPE_PACKED_FLOAT64_ARRAY => init_param::<PackedFloat64Array>(data, value, property_data),
+            TYPE_PACKED_STRING_ARRAY => init_param::<PackedStringArray>(data, value, property_data),
+            TYPE_PACKED_VECTOR2_ARRAY => init_param::<PackedVector2Array>(data, value, property_data),
+            TYPE_PACKED_VECTOR3_ARRAY => init_param::<PackedVector3Array>(data, value, property_data),
+            TYPE_PACKED_COLOR_ARRAY => init_param::<PackedColorArray>(data, value, property_data),
 
             _ => todo!(),
         }
@@ -411,13 +403,13 @@ impl _BaseGEComponent {
 }
 #[godot_api]
 impl IRefCounted for _BaseGEComponent {
-    fn get_property(&self, property: StringName) -> Option<Variant> {
-        Some(self._get_property(property))
-    }
+    // fn get_property(&self, property: StringName) -> Option<Variant> {
+    //     Some(self._get_property(property))
+    // }
 
-    fn set_property(&mut self, property: StringName, v:Variant) -> bool{
-        self._set_property(property, v)
-    }
+    // fn set_property(&mut self, property: StringName, v:Variant) -> bool{
+    //     self._set_property(property, v)
+    // }
 }
 
 /// The metadata regarding a component's structure.
@@ -564,8 +556,8 @@ impl _BaseGEWorld {
             // TODO: Initialize properties in deterministic order
             for property_name in comp_def.parameters.keys() {
                 // TODO: Get default values of properties
-                let default_value = Variant::nil();
-                godot_print!("default_value \"{property_name}\" {default_value}");
+                let default_value = script
+                    .get_property_default_value(property_name.clone());
                 _BaseGEComponent::_initialize_property(
                     data,
                     comp_def.as_ref(),

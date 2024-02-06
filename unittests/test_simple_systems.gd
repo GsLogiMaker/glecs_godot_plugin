@@ -66,6 +66,7 @@ func test_bools():
 func test_ints():
 	var entity:= world.new_entity([Ints])
 	entity.get_component(Ints).b = 1
+	entity.get_component(Ints).some()
 	
 	world._world_process(0.0)
 	world._world_process(0.0)
@@ -103,7 +104,7 @@ func test_byte_arrays():
 	world._world_process(0.0)
 	world._world_process(0.0)
 	
-	assert_eq(entity.get_component(ByteArrays).a, PackedByteArray([78, 14, 12]))
+	assert_eq(entity.get_component(ByteArrays).a, PackedByteArray([7, 14, 12]))
 
 #endregion
 
@@ -119,11 +120,14 @@ class Bools extends GEComponent:
 
 class Ints extends GEComponent:
 	var a:int:
-		get: return get(&"a")
-		set(v): set(&"a", v)
-	var b:int:
-		get: return get(&"b")
-		set(v): set(&"b", v)
+		get: return getc(&"a")
+		set(v): setc(&"a", v)
+	var b:int = 25:
+		get: return getc(&"b")
+		set(v): setc(&"b", v)
+	
+	func some():
+		prints("some", get(&"b"), getc(&"b"))
 
 class Floats extends GEComponent:
 	var a:float:
@@ -135,18 +139,18 @@ class Floats extends GEComponent:
 
 class Strings extends GEComponent:
 	var a:String:
-		get: return get(&"a")
-		set(v): set(&"a", v)
+		get: return getc(&"a")
+		set(v): setc(&"a", v)
 	var b:String:
-		get: return get(&"b")
-		set(v): set(&"b", v)
+		get: return getc(&"b")
+		set(v): setc(&"b", v)
 
 class ByteArrays extends GEComponent:
 	var a:PackedByteArray:
-		get: return get(&"a")
-		set(v): set(&"a", v)
+		get: return getc(&"a")
+		set(v): setc(&"a", v)
 	var b:PackedByteArray:
-		get: return get(&"b")
-		set(v): set(&"b", v)
+		get: return getc(&"b")
+		set(v): setc(&"b", v)
 
 #endregion
