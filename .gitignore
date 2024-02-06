@@ -6,5 +6,8 @@ addons/glecs/rust/glecs/.vscode
 addons/glecs/rust/glecs/target
 addons/glecs/rust/glecs/Cargo.lock
 
+.vscode/settings.json
+addons/glecs/.vscode/settings.json
+
 # Ignore Godot files
 .godot
