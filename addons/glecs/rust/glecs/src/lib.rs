@@ -23,6 +23,7 @@ use flecs::Entity as FlEntity;
 use flecs::TermBuilder;
 
 use godot::engine;
+use godot::engine::utilities::push_error;
 use godot::engine::GdScript;
 use godot::engine::Script;
 use godot::obj::EngineClass;
@@ -35,46 +36,6 @@ use godot::engine::Object;
 use godot::engine::Engine;
 use godot::engine::global::MethodFlags;
 use godot::engine::global::Error as GdError;
-
-const TYPE_NIL:i32 = 0;
-const TYPE_BOOL:i32 = 1;
-const TYPE_INT:i32 = 2;
-const TYPE_FLOAT:i32 = 3;
-const TYPE_STRING:i32 = 4;
-const TYPE_VECTOR2:i32 = 5;
-const TYPE_VECTOR2I:i32 = 6;
-const TYPE_RECT2:i32 = 7;
-const TYPE_RECT2I:i32 = 8;
-const TYPE_VECTOR3:i32 = 9;
-const TYPE_VECTOR3I:i32 = 10;
-const TYPE_TRANSFORM2D:i32 = 11;
-const TYPE_VECTOR4:i32 = 12;
-const TYPE_VECTOR4I:i32 = 13;
-const TYPE_PLANE:i32 = 14;
-const TYPE_QUATERNION:i32 = 15;
-const TYPE_AABB:i32 = 16;
-const TYPE_BASIS:i32 = 17;
-const TYPE_TRANSFORM3D:i32 = 18;
-const TYPE_PROJECTION:i32 = 19;
-const TYPE_COLOR:i32 = 20;
-const TYPE_STRING_NAME:i32 = 21;
-const TYPE_NODE_PATH:i32 = 22;
-const TYPE_RID:i32 = 23;
-const TYPE_OBJECT:i32 = 24;
-const TYPE_CALLABLE:i32 = 25;
-const TYPE_SIGNAL:i32 = 26;
-const TYPE_DICTIONARY:i32 = 27;
-const TYPE_ARRAY:i32 = 28;
-const TYPE_PACKED_BYTE_ARRAY:i32 = 29;
-const TYPE_PACKED_INT32_ARRAY:i32 = 30;
-const TYPE_PACKED_INT64_ARRAY:i32 = 31;
-const TYPE_PACKED_FLOAT32_ARRAY:i32 = 32;
-const TYPE_PACKED_FLOAT64_ARRAY:i32 = 33;
-const TYPE_PACKED_STRING_ARRAY:i32 = 34;
-const TYPE_PACKED_VECTOR2_ARRAY:i32 = 35;
-const TYPE_PACKED_VECTOR3_ARRAY:i32 = 36;
-const TYPE_PACKED_COLOR_ARRAY:i32 = 37;
-const TYPE_MAX:i32 = 38;
 
 const TYPE_SIZES:&'static [usize] = &[
     /* NIL */ 0,
@@ -133,15 +94,41 @@ struct _BaseGEEntity {
 #[godot_api]
 impl _BaseGEEntity {
     #[func]
-    fn get_component(&mut self, component:Gd<Script>) -> Gd<_BaseGEComponent> {
+    fn get_component(&mut self, component:Gd<Script>) -> Option<Gd<_BaseGEComponent>> {
         let world = self.world.bind();
 
-        let component_definition = world
-            .get_component_description(component.instance_id())
-            .unwrap();
+        // Get component description
+        let Some(component_definition) = world
+            .get_component_description(&component)
+            else {
+                godot_error!(
+                    "Failed to get component from entity. Component {} has not been added to entity {}.",
+                    component,
+                    self.to_gd(),
+                );
+                return None;
+            };
+
+        // Get flecs entity
         let component_symbol = component_definition.name.to_string();
-        let mut entt = world.world.find_entity(self.id)
-            .expect("TODO: Add err msg");
+        let Some(mut entt) = world.world.find_entity(self.id)
+            else { 
+                godot_error!(
+                    "Failed to get component from entity. Entity {} was freed.",
+                    self.to_gd(),
+                );
+                return None;
+            };
+        
+        // Get component data
+        if !entt.has_id(component_definition.flecs_id) {
+            godot_error!(
+                "Failed to get component from entity. Component {} has not been added to entity {}.",
+                    component,
+                    self.to_gd(),
+            );
+            return None;
+        }
         let component_data = entt.get_mut_dynamic(&component_symbol);
 
         
@@ -155,18 +142,17 @@ impl _BaseGEEntity {
             base_comp
         });
         comp.bind_mut().base_mut().set_script(component.to_variant());
-        comp
+
+        Some(comp)
     }
 
-    #[func]
-    fn set_component(&mut self, component:Gd<Script>, value:Variant) {
-        unimplemented!()
+    fn add_component(&self, component:Gd<Script>) -> Gd<_BaseGEComponent> {
     }
 }
 
+/// An ECS component.
 #[derive(GodotClass)]
 #[class(base=RefCounted)]
-/// An ECS component.
 struct _BaseGEComponent {
     #[base] base: Base<RefCounted>,
     /// The Flecs component ID for the type of this component.
@@ -176,11 +162,19 @@ struct _BaseGEComponent {
 }
 #[godot_api]
 impl _BaseGEComponent {
+    /// Returns the name of the the type of this component.
+    #[func]
+    fn get_component_type_name(&self) -> StringName {
+        self.component_definition.name.clone()
+    }
+
+    /// Returns a property from the component data.
     #[func]
     fn getc(&self, property: StringName) -> Variant {
         self._get_property(property)
     }
 
+    /// Sets a property in the component data.
     #[func]
     fn setc(&mut self, property: StringName, value:Variant) {
         self._set_property(property.clone(), value.clone());
@@ -190,7 +184,13 @@ impl _BaseGEComponent {
         let Some(property_data) = self
             .component_definition
             .parameters
-            .get(&property) else {
+            .get(&property)
+            else {
+                godot_error!(
+                    "Failed to get property. No property named \"{}\" in component of type \"{}\"",
+                    property,
+                    self.get_component_type_name()
+                );
                 return Variant::nil();
             };
         
@@ -208,48 +208,47 @@ impl _BaseGEComponent {
         }
         
         let value =  match property_data.gd_type_id {
-            TYPE_BOOL => get_param::<bool>(self.data, property_data),
-            TYPE_INT => get_param::<i32>(self.data, property_data),
-            TYPE_FLOAT => get_param::<f32>(self.data, property_data),
-            TYPE_STRING => get_param::<GString>(self.data, property_data),
-            TYPE_VECTOR2 => get_param::<Vector2>(self.data, property_data),
-            TYPE_VECTOR2I => get_param::<Vector2i>(self.data, property_data),
-            TYPE_RECT2 => get_param::<Rect2>(self.data, property_data),
-            TYPE_RECT2I => get_param::<Rect2i>(self.data, property_data),
-            TYPE_VECTOR3 => get_param::<Vector3>(self.data, property_data),
-            TYPE_VECTOR3I => get_param::<Vector3i>(self.data, property_data),
-            TYPE_TRANSFORM2D => get_param::<Transform2D>(self.data, property_data),
-            TYPE_VECTOR4 => get_param::<Vector4>(self.data, property_data),
-            TYPE_VECTOR4I => get_param::<Vector4i>(self.data, property_data),
-            TYPE_PLANE => get_param::<Plane>(self.data, property_data),
-            TYPE_QUATERNION => get_param::<Quaternion>(self.data, property_data),
-            TYPE_AABB => get_param::<Aabb>(self.data, property_data),
-            TYPE_BASIS => get_param::<Basis>(self.data, property_data),
-            TYPE_TRANSFORM3D => get_param::<Transform3D>(self.data, property_data),
-            TYPE_PROJECTION => get_param::<Projection>(self.data, property_data),
-            TYPE_COLOR => get_param::<Color>(self.data, property_data),
-            TYPE_STRING_NAME => get_param::<StringName>(self.data, property_data),
-            TYPE_NODE_PATH => get_param::<NodePath>(self.data, property_data),
-            TYPE_RID => get_param::<Rid>(self.data, property_data),
-            TYPE_OBJECT => todo!("Object doesn't support conversion to variant or copying"), /* get_param::<Object>(self.data, property_data), */
-            TYPE_CALLABLE => get_param::<Callable>(self.data, property_data),
-            TYPE_SIGNAL => get_param::<Signal>(self.data, property_data),
-            TYPE_DICTIONARY => todo!("Reading causes crashes"), /* get_param::<Dictionary>(self.data, property_data), */
-            TYPE_ARRAY => todo!("Reading causes crashes"), /* get_param::<Array<Variant>>(self.data, property_data), */
-            TYPE_PACKED_BYTE_ARRAY => get_param::<PackedByteArray>(self.data, property_data),
-            TYPE_PACKED_INT32_ARRAY => get_param::<PackedInt32Array>(self.data, property_data),
-            TYPE_PACKED_INT64_ARRAY => get_param::<PackedInt64Array>(self.data, property_data),
-            TYPE_PACKED_FLOAT32_ARRAY => get_param::<PackedFloat32Array>(self.data, property_data),
-            TYPE_PACKED_FLOAT64_ARRAY => get_param::<PackedFloat64Array>(self.data, property_data),
-            TYPE_PACKED_STRING_ARRAY => get_param::<PackedStringArray>(self.data, property_data),
-            TYPE_PACKED_VECTOR2_ARRAY => get_param::<PackedVector2Array>(self.data, property_data),
-            TYPE_PACKED_VECTOR3_ARRAY => get_param::<PackedVector3Array>(self.data, property_data),
-            TYPE_PACKED_COLOR_ARRAY => get_param::<PackedColorArray>(self.data, property_data),
+            VariantType::Bool => get_param::<bool>(self.data, property_data),
+            VariantType::Int => get_param::<i32>(self.data, property_data),
+            VariantType::Float => get_param::<f32>(self.data, property_data),
+            VariantType::String => get_param::<GString>(self.data, property_data),
+            VariantType::Vector2 => get_param::<Vector2>(self.data, property_data),
+            VariantType::Vector2i => get_param::<Vector2i>(self.data, property_data),
+            VariantType::Rect2 => get_param::<Rect2>(self.data, property_data),
+            VariantType::Rect2i => get_param::<Rect2i>(self.data, property_data),
+            VariantType::Vector3 => get_param::<Vector3>(self.data, property_data),
+            VariantType::Vector3i => get_param::<Vector3i>(self.data, property_data),
+            VariantType::Transform2D => get_param::<Transform2D>(self.data, property_data),
+            VariantType::Vector4 => get_param::<Vector4>(self.data, property_data),
+            VariantType::Vector4i => get_param::<Vector4i>(self.data, property_data),
+            VariantType::Plane => get_param::<Plane>(self.data, property_data),
+            VariantType::Quaternion => get_param::<Quaternion>(self.data, property_data),
+            VariantType::Aabb => get_param::<Aabb>(self.data, property_data),
+            VariantType::Basis => get_param::<Basis>(self.data, property_data),
+            VariantType::Transform3D => get_param::<Transform3D>(self.data, property_data),
+            VariantType::Projection => get_param::<Projection>(self.data, property_data),
+            VariantType::Color => get_param::<Color>(self.data, property_data),
+            VariantType::StringName => get_param::<StringName>(self.data, property_data),
+            VariantType::NodePath => get_param::<NodePath>(self.data, property_data),
+            VariantType::Rid => get_param::<Rid>(self.data, property_data),
+            VariantType::Object => todo!("Object doesn't support conversion to variant or copying"), /* get_param::<Object>(self.data, property_data), */
+            VariantType::Callable => get_param::<Callable>(self.data, property_data),
+            VariantType::Signal => get_param::<Signal>(self.data, property_data),
+            VariantType::Dictionary => todo!("Reading causes crashes"), /* get_param::<Dictionary>(self.data, property_data), */
+            VariantType::Array => todo!("Reading causes crashes"), /* get_param::<Array<Variant>>(self.data, property_data), */
+            VariantType::PackedByteArray => get_param::<PackedByteArray>(self.data, property_data),
+            VariantType::PackedInt32Array => get_param::<PackedInt32Array>(self.data, property_data),
+            VariantType::PackedInt64Array => get_param::<PackedInt64Array>(self.data, property_data),
+            VariantType::PackedFloat32Array => get_param::<PackedFloat32Array>(self.data, property_data),
+            VariantType::PackedFloat64Array => get_param::<PackedFloat64Array>(self.data, property_data),
+            VariantType::PackedStringArray => get_param::<PackedStringArray>(self.data, property_data),
+            VariantType::PackedVector2Array => get_param::<PackedVector2Array>(self.data, property_data),
+            VariantType::PackedVector3Array => get_param::<PackedVector3Array>(self.data, property_data),
+            VariantType::PackedColorArray => get_param::<PackedColorArray>(self.data, property_data),
 
             _ => todo!(),
         };
         value
-        // return Variant::from(5);
     }
 
     fn _set_property(&mut self, property:StringName, value:Variant) -> bool {
@@ -258,11 +257,21 @@ impl _BaseGEComponent {
             .parameters
             .get(&property) else {
                 godot_error!(
-                    "Can't write to {} in {{component}}. Component has to property with that name",
+                    "Failed to set property. No property named \"{}\" in component of type \"{}\"",
                     property,
+                    self.get_component_type_name(),
                 );
                 return false;
             };
+
+        if value.get_type() != property_data.gd_type_id {
+            godot_error!(
+                "Failed to set property. Expected type {:?}, but got type {:?}",
+                property_data.gd_type_id,
+                value.get_type(),
+            );
+            return true;
+        }
         
         fn set_param<T: FromGodot + ToGodot + Debug + Clone>(
             data:*mut [u8],
@@ -276,43 +285,43 @@ impl _BaseGEComponent {
         }
         
         match property_data.gd_type_id {
-            TYPE_BOOL => set_param::<bool>(self.data, value, property_data),
-            TYPE_INT => set_param::<i32>(self.data, value, property_data),
-            TYPE_FLOAT => set_param::<f32>(self.data, value, property_data),
-            TYPE_STRING => set_param::<GString>(self.data, value, property_data),
-            TYPE_VECTOR2 => set_param::<Vector2>(self.data, value, property_data),
-            TYPE_VECTOR2I => set_param::<Vector2i>(self.data, value, property_data),
-            TYPE_RECT2 => set_param::<Rect2>(self.data, value, property_data),
-            TYPE_RECT2I => set_param::<Rect2i>(self.data, value, property_data),
-            TYPE_VECTOR3 => set_param::<Vector3>(self.data, value, property_data),
-            TYPE_VECTOR3I => set_param::<Vector3i>(self.data, value, property_data),
-            TYPE_TRANSFORM2D => set_param::<Transform2D>(self.data, value, property_data),
-            TYPE_VECTOR4 => set_param::<Vector4>(self.data, value, property_data),
-            TYPE_VECTOR4I => set_param::<Vector4i>(self.data, value, property_data),
-            TYPE_PLANE => set_param::<Plane>(self.data, value, property_data),
-            TYPE_QUATERNION => set_param::<Quaternion>(self.data, value, property_data),
-            TYPE_AABB => set_param::<Aabb>(self.data, value, property_data),
-            TYPE_BASIS => set_param::<Basis>(self.data, value, property_data),
-            TYPE_TRANSFORM3D => set_param::<Transform3D>(self.data, value, property_data),
-            TYPE_PROJECTION => set_param::<Projection>(self.data, value, property_data),
-            TYPE_COLOR => set_param::<Color>(self.data, value, property_data),
-            TYPE_STRING_NAME => set_param::<StringName>(self.data, value, property_data),
-            TYPE_NODE_PATH => set_param::<NodePath>(self.data, value, property_data),
-            TYPE_RID => set_param::<Rid>(self.data, value, property_data),
-            TYPE_OBJECT => todo!("Object doesn't support conversion to variant or copying"), /* get_param::<Object>(self.data, property_data), */
-            TYPE_CALLABLE => set_param::<Callable>(self.data, value, property_data),
-            TYPE_SIGNAL => set_param::<Signal>(self.data, value, property_data),
-            TYPE_DICTIONARY => set_param::<Dictionary>(self.data, value, property_data),
-            TYPE_ARRAY => set_param::<Array<Variant>>(self.data, value, property_data),
-            TYPE_PACKED_BYTE_ARRAY => set_param::<PackedByteArray>(self.data, value, property_data),
-            TYPE_PACKED_INT32_ARRAY => set_param::<PackedInt32Array>(self.data, value, property_data),
-            TYPE_PACKED_INT64_ARRAY => set_param::<PackedInt64Array>(self.data, value, property_data),
-            TYPE_PACKED_FLOAT32_ARRAY => set_param::<PackedFloat32Array>(self.data, value, property_data),
-            TYPE_PACKED_FLOAT64_ARRAY => set_param::<PackedFloat64Array>(self.data, value, property_data),
-            TYPE_PACKED_STRING_ARRAY => set_param::<PackedStringArray>(self.data, value, property_data),
-            TYPE_PACKED_VECTOR2_ARRAY => set_param::<PackedVector2Array>(self.data, value, property_data),
-            TYPE_PACKED_VECTOR3_ARRAY => set_param::<PackedVector3Array>(self.data, value, property_data),
-            TYPE_PACKED_COLOR_ARRAY => set_param::<PackedColorArray>(self.data, value, property_data),
+            VariantType::Bool => set_param::<bool>(self.data, value, property_data),
+            VariantType::Int => set_param::<i32>(self.data, value, property_data),
+            VariantType::Float => set_param::<f32>(self.data, value, property_data),
+            VariantType::String => set_param::<GString>(self.data, value, property_data),
+            VariantType::Vector2 => set_param::<Vector2>(self.data, value, property_data),
+            VariantType::Vector2i => set_param::<Vector2i>(self.data, value, property_data),
+            VariantType::Rect2 => set_param::<Rect2>(self.data, value, property_data),
+            VariantType::Rect2i => set_param::<Rect2i>(self.data, value, property_data),
+            VariantType::Vector3 => set_param::<Vector3>(self.data, value, property_data),
+            VariantType::Vector3i => set_param::<Vector3i>(self.data, value, property_data),
+            VariantType::Transform2D => set_param::<Transform2D>(self.data, value, property_data),
+            VariantType::Vector4 => set_param::<Vector4>(self.data, value, property_data),
+            VariantType::Vector4i => set_param::<Vector4i>(self.data, value, property_data),
+            VariantType::Plane => set_param::<Plane>(self.data, value, property_data),
+            VariantType::Quaternion => set_param::<Quaternion>(self.data, value, property_data),
+            VariantType::Aabb => set_param::<Aabb>(self.data, value, property_data),
+            VariantType::Basis => set_param::<Basis>(self.data, value, property_data),
+            VariantType::Transform3D => set_param::<Transform3D>(self.data, value, property_data),
+            VariantType::Projection => set_param::<Projection>(self.data, value, property_data),
+            VariantType::Color => set_param::<Color>(self.data, value, property_data),
+            VariantType::StringName => set_param::<StringName>(self.data, value, property_data),
+            VariantType::NodePath => set_param::<NodePath>(self.data, value, property_data),
+            VariantType::Rid => set_param::<Rid>(self.data, value, property_data),
+            VariantType::Object => todo!("Object doesn't support conversion to variant or copying"), /* get_param::<Object>(self.data, property_data), */
+            VariantType::Callable => set_param::<Callable>(self.data, value, property_data),
+            VariantType::Signal => set_param::<Signal>(self.data, value, property_data),
+            VariantType::Dictionary => set_param::<Dictionary>(self.data, value, property_data),
+            VariantType::Array => set_param::<Array<Variant>>(self.data, value, property_data),
+            VariantType::PackedByteArray => set_param::<PackedByteArray>(self.data, value, property_data),
+            VariantType::PackedInt32Array => set_param::<PackedInt32Array>(self.data, value, property_data),
+            VariantType::PackedInt64Array => set_param::<PackedInt64Array>(self.data, value, property_data),
+            VariantType::PackedFloat32Array => set_param::<PackedFloat32Array>(self.data, value, property_data),
+            VariantType::PackedFloat64Array => set_param::<PackedFloat64Array>(self.data, value, property_data),
+            VariantType::PackedStringArray => set_param::<PackedStringArray>(self.data, value, property_data),
+            VariantType::PackedVector2Array => set_param::<PackedVector2Array>(self.data, value, property_data),
+            VariantType::PackedVector3Array => set_param::<PackedVector3Array>(self.data, value, property_data),
+            VariantType::PackedColorArray => set_param::<PackedColorArray>(self.data, value, property_data),
 
             _ => todo!(),
         }
@@ -357,43 +366,43 @@ impl _BaseGEComponent {
         }
         
         match property_data.gd_type_id {
-            TYPE_BOOL => init_param::<bool>(data, value, property_data),
-            TYPE_INT => init_param::<i32>(data, value, property_data),
-            TYPE_FLOAT => init_param::<f32>(data, value, property_data),
-            TYPE_STRING => init_param::<GString>(data, value, property_data),
-            TYPE_VECTOR2 => init_param::<Vector2>(data, value, property_data),
-            TYPE_VECTOR2I => init_param::<Vector2i>(data, value, property_data),
-            TYPE_RECT2 => init_param::<Rect2>(data, value, property_data),
-            TYPE_RECT2I => init_param::<Rect2i>(data, value, property_data),
-            TYPE_VECTOR3 => init_param::<Vector3>(data, value, property_data),
-            TYPE_VECTOR3I => init_param::<Vector3i>(data, value, property_data),
-            TYPE_TRANSFORM2D => init_param::<Transform2D>(data, value, property_data),
-            TYPE_VECTOR4 => init_param::<Vector4>(data, value, property_data),
-            TYPE_VECTOR4I => init_param::<Vector4i>(data, value, property_data),
-            TYPE_PLANE => todo!("Can't initialize planes with a sane default"),
-            TYPE_QUATERNION => init_param::<Quaternion>(data, value, property_data),
-            TYPE_AABB => init_param::<Aabb>(data, value, property_data),
-            TYPE_BASIS => init_param::<Basis>(data, value, property_data),
-            TYPE_TRANSFORM3D => init_param::<Transform3D>(data, value, property_data),
-            TYPE_PROJECTION => init_param::<Projection>(data, value, property_data),
-            TYPE_COLOR => init_param::<Color>(data, value, property_data),
-            TYPE_STRING_NAME => init_param::<StringName>(data, value, property_data),
-            TYPE_NODE_PATH => init_param::<NodePath>(data, value, property_data),
-            TYPE_RID => todo!("Can't initialize RIDs with a sane default"),
-            TYPE_OBJECT => todo!("Objects don't support conversion to variant or copying"), /* get_param::<Object>(data, property_data), */
-            TYPE_CALLABLE => todo!("Can't initialize callables with a sane default"),
-            TYPE_SIGNAL => todo!("Can't initialize signals with a sane default"),
-            TYPE_DICTIONARY => init_param::<Dictionary>(data, value, property_data),
-            TYPE_ARRAY => init_param::<Array<Variant>>(data, value, property_data),
-            TYPE_PACKED_BYTE_ARRAY => init_param::<PackedByteArray>(data, value, property_data),
-            TYPE_PACKED_INT32_ARRAY => init_param::<PackedInt32Array>(data, value, property_data),
-            TYPE_PACKED_INT64_ARRAY => init_param::<PackedInt64Array>(data, value, property_data),
-            TYPE_PACKED_FLOAT32_ARRAY => init_param::<PackedFloat32Array>(data, value, property_data),
-            TYPE_PACKED_FLOAT64_ARRAY => init_param::<PackedFloat64Array>(data, value, property_data),
-            TYPE_PACKED_STRING_ARRAY => init_param::<PackedStringArray>(data, value, property_data),
-            TYPE_PACKED_VECTOR2_ARRAY => init_param::<PackedVector2Array>(data, value, property_data),
-            TYPE_PACKED_VECTOR3_ARRAY => init_param::<PackedVector3Array>(data, value, property_data),
-            TYPE_PACKED_COLOR_ARRAY => init_param::<PackedColorArray>(data, value, property_data),
+            VariantType::Bool => init_param::<bool>(data, value, property_data),
+            VariantType::Int => init_param::<i32>(data, value, property_data),
+            VariantType::Float => init_param::<f32>(data, value, property_data),
+            VariantType::String => init_param::<GString>(data, value, property_data),
+            VariantType::Vector2 => init_param::<Vector2>(data, value, property_data),
+            VariantType::Vector2i => init_param::<Vector2i>(data, value, property_data),
+            VariantType::Rect2 => init_param::<Rect2>(data, value, property_data),
+            VariantType::Rect2i => init_param::<Rect2i>(data, value, property_data),
+            VariantType::Vector3 => init_param::<Vector3>(data, value, property_data),
+            VariantType::Vector3i => init_param::<Vector3i>(data, value, property_data),
+            VariantType::Transform2D => init_param::<Transform2D>(data, value, property_data),
+            VariantType::Vector4 => init_param::<Vector4>(data, value, property_data),
+            VariantType::Vector4i => init_param::<Vector4i>(data, value, property_data),
+            VariantType::Plane => todo!("Can't initialize planes with a sane default"),
+            VariantType::Quaternion => init_param::<Quaternion>(data, value, property_data),
+            VariantType::Aabb => init_param::<Aabb>(data, value, property_data),
+            VariantType::Basis => init_param::<Basis>(data, value, property_data),
+            VariantType::Transform3D => init_param::<Transform3D>(data, value, property_data),
+            VariantType::Projection => init_param::<Projection>(data, value, property_data),
+            VariantType::Color => init_param::<Color>(data, value, property_data),
+            VariantType::StringName => init_param::<StringName>(data, value, property_data),
+            VariantType::NodePath => init_param::<NodePath>(data, value, property_data),
+            VariantType::Rid => todo!("Can't initialize RIDs with a sane default"),
+            VariantType::Object => todo!("Objects don't support conversion to variant or copying"), /* get_param::<Object>(data, property_data), */
+            VariantType::Callable => todo!("Can't initialize callables with a sane default"),
+            VariantType::Signal => todo!("Can't initialize signals with a sane default"),
+            VariantType::Dictionary => init_param::<Dictionary>(data, value, property_data),
+            VariantType::Array => init_param::<Array<Variant>>(data, value, property_data),
+            VariantType::PackedByteArray => init_param::<PackedByteArray>(data, value, property_data),
+            VariantType::PackedInt32Array => init_param::<PackedInt32Array>(data, value, property_data),
+            VariantType::PackedInt64Array => init_param::<PackedInt64Array>(data, value, property_data),
+            VariantType::PackedFloat32Array => init_param::<PackedFloat32Array>(data, value, property_data),
+            VariantType::PackedFloat64Array => init_param::<PackedFloat64Array>(data, value, property_data),
+            VariantType::PackedStringArray => init_param::<PackedStringArray>(data, value, property_data),
+            VariantType::PackedVector2Array => init_param::<PackedVector2Array>(data, value, property_data),
+            VariantType::PackedVector3Array => init_param::<PackedVector3Array>(data, value, property_data),
+            VariantType::PackedColorArray => init_param::<PackedColorArray>(data, value, property_data),
 
             _ => todo!(),
         }
@@ -420,14 +429,76 @@ struct ScriptComponetDefinition {
     flecs_id: EntityId,
     script_id: InstanceId,
     layout: Layout,
+} impl ScriptComponetDefinition {
+    fn new(
+        mut component: Gd<Script>,
+        mut world: &mut _BaseGEWorld,
+    ) -> Self {
+        let script_properties = component
+            .get_script_property_list();
+
+        let mut component_properties = HashMap::default();
+        let mut offset = 0;
+        let mut i = 0;
+        while i != script_properties.len() {
+            let property = script_properties.get(i);
+            let property_type = property
+                .get(StringName::from("type"))
+                .unwrap()
+                .to::<VariantType>();
+            if property_type == VariantType::Nil {
+                i += 1;
+                continue;
+            }
+            let property_name:StringName = property
+                .get(StringName::from("name"))
+                .unwrap()
+                .to::<String>()
+                .into();
+
+            component_properties.insert(
+                property_name.clone(),
+                ScriptComponetProperty {
+                    name: property_name,
+                    gd_type_id: property_type,
+                    offset,
+                },
+            );
+
+            offset += TYPE_SIZES[property_type as usize];
+            i += 1;
+        }
+
+        let name = component.to_string();
+        let layout = _BaseGEWorld::layout_from_properties(&component_properties);
+        let mut script_component = Self {
+            name: name.clone().into(),
+            parameters: component_properties,
+            flecs_id: 0,
+            script_id: component.instance_id(),
+            layout,
+        };
+        script_component.flecs_id = world.world
+            .component_dynamic(name, layout);
+        
+        script_component
+    }
 }
 
 /// The definition for one property in a component's definition.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 struct ScriptComponetProperty {
     name: StringName,
-    gd_type_id: i32,
+    gd_type_id: VariantType,
     offset: usize,
+} impl Default for ScriptComponetProperty {
+    fn default() -> Self {
+        Self { 
+            name: Default::default(),
+            gd_type_id: VariantType::Nil,
+            offset: Default::default(),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -456,70 +527,6 @@ impl _BaseGEWorld {
         self.world.progress(delta);
     }
 
-    /// Defines a new component to be used in the world.
-    #[func]
-    fn add_component(
-        &mut self,
-        component_name: StringName,
-        mut component: Gd<Script>,
-    ) {
-        if self.component_definitions.has(component.instance_id()) {
-            panic!("Component with that script already registered TODO: better msg")
-        }
-        if self.component_definitions.has(&component_name) {
-            panic!("Component with that name already registered TODO: better msg")
-        }
-
-        let script_properties = component
-            .get_script_property_list();
-
-        let mut component_properties = HashMap::default();
-        let mut offset = 0;
-        let mut i = 0;
-        while i != script_properties.len() {
-            let property = script_properties.get(i);
-            let property_type = property
-                .get(StringName::from("type"))
-                .unwrap()
-                .to::<i32>();
-            if property_type == TYPE_NIL {
-                i += 1;
-                continue;
-            }
-            let property_name:StringName = property
-                .get(StringName::from("name"))
-                .unwrap()
-                .to::<String>()
-                .into();
-
-            component_properties.insert(
-                property_name.clone(),
-                ScriptComponetProperty {
-                    name: property_name,
-                    gd_type_id: property_type,
-                    offset,
-                },
-            );
-
-            offset += TYPE_SIZES[property_type as usize];
-            i += 1;
-        }
-
-
-        let layout = Self::layout_from_properties(&component_properties);
-        let mut script_component = ScriptComponetDefinition {
-            name: component_name.clone(),
-            parameters: component_properties,
-            flecs_id: 0,
-            script_id: component.instance_id(),
-            layout,
-        };
-        script_component.flecs_id = self.world
-            .component_dynamic(component_name, layout);
-        
-        self.component_definitions.insert(script_component);
-    }
-
     /// Returns the name of the Script that was registered with the world.
     #[func]
     fn get_script_component_name(
@@ -538,14 +545,17 @@ impl _BaseGEWorld {
 
     /// Creates a new entity in the world.
     #[func]
-    fn _new_entity(&mut self, with_components:Array<Gd<Script>>) -> Gd<_BaseGEEntity> {
+    fn _new_entity(
+        &mut self,
+        with_components:Array<Gd<Script>>,
+    ) -> Gd<_BaseGEEntity> {
         let mut entity = self.world.entity();
         let mut i = 0;
         while i != with_components.len() {
             let mut script = with_components.get(i);
-            let comp_def = self.component_definitions
-                .get(script.instance_id())
-                .unwrap();
+
+            let comp_def = self
+                .get_or_add_component(&script);
             entity = entity.add_id(comp_def.flecs_id);
 
             let data = entity.get_mut_dynamic(&comp_def.name.to_string());
@@ -576,13 +586,7 @@ impl _BaseGEWorld {
         })
     }
 
-    fn name_from_flex_id(&self, flecs_component_id: EntityId) -> StringName {
-        self.component_definitions
-            .get(flecs_component_id)
-            .unwrap()
-            .name
-            .clone()
-    }
+    
 
     // Defines a new system to be run in the world.
     #[func]
@@ -610,8 +614,7 @@ impl _BaseGEWorld {
                         flecs_id: term_ids[term_i],
                         data: &mut [],
                         component_definition: self
-                            .get_component_description(term_script.instance_id())
-                            .unwrap(),
+                            .get_or_add_component(&term_script),
                     }
                 });
             compopnent_access.set_script(term_script.to_variant());
@@ -650,6 +653,25 @@ impl _BaseGEWorld {
         key:impl Into<ComponentDefinitionsMapKey>,
     ) -> Option<Rc<ScriptComponetDefinition>> {
         self.component_definitions.get(key)
+    }
+
+    fn get_or_add_component(
+        &mut self,
+        key: &Gd<Script>,
+    ) -> Rc<ScriptComponetDefinition> {
+        let value = ComponentDefinitionsMapKey
+            ::from(key)
+            .get_value(&self.component_definitions);
+        match value {
+            Some(value) => value,
+            None => {
+                let def = ScriptComponetDefinition::new(
+                    key.clone(),
+                    self,
+                );
+                self.component_definitions.insert(def)
+            }
+        }
     }
 
     fn layout_from_properties(
@@ -751,7 +773,7 @@ enum ComponentDefinitionsMapKey {
     }
 
     fn get_value(&self, d:&ComponentDefinitions) -> Option<Rc<ScriptComponetDefinition>> {
-        d.data.get(self.get_index(d)).map(|x| {
+        d.data.get(self.get_index_maybe(d)?).map(|x| {
             x.clone()
         })
     }
@@ -762,6 +784,14 @@ enum ComponentDefinitionsMapKey {
 } impl From<EntityId> for ComponentDefinitionsMapKey {
     fn from(value: EntityId) -> Self {
         ComponentDefinitionsMapKey::FlecsId(value)
+    }
+} impl From<Gd<Script>> for ComponentDefinitionsMapKey {
+    fn from(value: Gd<Script>) -> Self {
+        ComponentDefinitionsMapKey::ScriptId(value.instance_id())
+    }
+} impl From<&Gd<Script>> for ComponentDefinitionsMapKey {
+    fn from(value: &Gd<Script>) -> Self {
+        ComponentDefinitionsMapKey::ScriptId(value.instance_id())
     }
 } impl From<InstanceId> for ComponentDefinitionsMapKey {
     fn from(value: InstanceId) -> Self {
@@ -803,7 +833,7 @@ struct ComponentDefinitions {
         }
     }
 
-    fn insert(&mut self, element:ScriptComponetDefinition) {
+    fn insert(&mut self, element:ScriptComponetDefinition) -> Rc<ScriptComponetDefinition> {
         let len: usize = self.data.len();
         self.add_mapping(
             len,
@@ -811,7 +841,9 @@ struct ComponentDefinitions {
             element.flecs_id,
             element.script_id.clone(),
         );
-        self.data.push(Rc::new(element));
+        let rc = Rc::new(element);
+        self.data.push(rc.clone());
+        rc
     }
 
     fn get(

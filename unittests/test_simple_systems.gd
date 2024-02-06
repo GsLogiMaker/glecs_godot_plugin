@@ -6,12 +6,6 @@ var world:GEWorldNode
 func before_all():
 	world = GEWorldNode.new()
 	
-	world.add_component(&"Bools", Bools)
-	world.add_component(&"Ints", Ints)
-	world.add_component(&"Floats", Floats)
-	world.add_component(&"Strings", Strings)
-	world.add_component(&"ByteArrays", ByteArrays)
-	
 	world.add_system(
 		func(x:Bools):
 			x.b = x.a
@@ -66,7 +60,6 @@ func test_bools():
 func test_ints():
 	var entity:= world.new_entity([Ints])
 	entity.get_component(Ints).b = 1
-	entity.get_component(Ints).some()
 	
 	world._world_process(0.0)
 	world._world_process(0.0)
@@ -125,9 +118,6 @@ class Ints extends GEComponent:
 	var b:int = 25:
 		get: return getc(&"b")
 		set(v): setc(&"b", v)
-	
-	func some():
-		prints("some", get(&"b"), getc(&"b"))
 
 class Floats extends GEComponent:
 	var a:float:

@@ -1,9 +1,6 @@
 
 class_name GEWorldNode extends _BaseGEWorld
 
-func add_component(name:StringName, component:Script) -> void:
-	super(name, component)
-
 func add_system(callable:Callable, terms:Array[Script]) -> void:
 	_add_system(callable, terms)
 

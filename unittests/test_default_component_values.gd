@@ -35,19 +35,19 @@ func test_default_values():
 
 class Foo extends GEComponent:
 	var a:bool = true:
-		get: return get(&"a")
-		set(v): set(&"a", v)
+		get: return getc(&"a")
+		set(v): setc(&"a", v)
 	var b:int = 35:
-		get: return get(&"b")
-		set(v): set(&"b", v)
+		get: return getc(&"b")
+		set(v): setc(&"b", v)
 	var c:float = 2.36:
-		get: return get(&"c")
-		set(v): set(&"c", v)
+		get: return getc(&"c")
+		set(v): setc(&"c", v)
 	var d:Array = [2, "thirty"]:
-		get: return get(&"d")
-		set(v): set(&"d", v)
+		get: return getc(&"d")
+		set(v): setc(&"d", v)
 	var e:Dictionary = {"some": "value"}:
-		get: return get(&"e")
-		set(v): set(&"e", v)
+		get: return getc(&"e")
+		set(v): setc(&"e", v)
 		
 #endregion
