@@ -1,0 +1,19 @@
+[package]
+name = "glecs"
+version = "0.1.0"
+edition = "2021"
+
+[build-dependencies]
+bindgen = "0.68.1"
+build = "0.0.2"
+cc = "1.0.83"
+
+[dependencies]
+flecs = "0.1.4"
+godot = { git = "https://github.com/godot-rust/gdext", branch = "master" }
+
+[patch.crates-io]
+flecs = {path = "../flecs-rs"}
+
+[lib]
+crate-type = ["cdylib"]
