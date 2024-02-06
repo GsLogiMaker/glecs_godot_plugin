@@ -10,6 +10,7 @@ func before_all():
 	world.add_component(&"Ints", Ints)
 	world.add_component(&"Floats", Floats)
 	world.add_component(&"Strings", Strings)
+	world.add_component(&"ByteArrays", ByteArrays)
 	
 	world.add_system(
 		func(x:Bools):
@@ -20,7 +21,7 @@ func before_all():
 	)
 	world.add_system(
 		func(x:Ints):
-			x.b *= 2.0
+			x.b *= 2
 			x.a += x.b
 			,
 		[Ints],
@@ -38,6 +39,13 @@ func before_all():
 			x.a += x.b
 			,
 		[Strings],
+	)
+	world.add_system(
+		func(x:ByteArrays):
+			for i in range(x.a.size()):
+				x.a[i] += x.b[i]
+			,
+		[ByteArrays],
 	)
 
 func after_all():
@@ -86,6 +94,17 @@ func test_strings():
 	assert_eq(entity.get_component(Strings).a, "poempoemempoememem")
 	assert_eq(entity.get_component(Strings).b, "poememem")
 
+func test_byte_arrays():
+	var entity:= world.new_entity([ByteArrays])
+	entity.get_component(ByteArrays).a = PackedByteArray([1, 2, 3])
+	entity.get_component(ByteArrays).b = PackedByteArray([2, 4, 3])
+	
+	world._world_process(0.0)
+	world._world_process(0.0)
+	world._world_process(0.0)
+	
+	assert_eq(entity.get_component(ByteArrays).a, PackedByteArray([78, 14, 12]))
+
 #endregion
 
 #region Components
@@ -119,6 +138,14 @@ class Strings extends GEComponent:
 		get: return get(&"a")
 		set(v): set(&"a", v)
 	var b:String:
+		get: return get(&"b")
+		set(v): set(&"b", v)
+
+class ByteArrays extends GEComponent:
+	var a:PackedByteArray:
+		get: return get(&"a")
+		set(v): set(&"a", v)
+	var b:PackedByteArray:
 		get: return get(&"b")
 		set(v): set(&"b", v)
 
