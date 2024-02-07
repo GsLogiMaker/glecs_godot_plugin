@@ -8,7 +8,7 @@ func before_all():
 	world = GEWorldNode.new()
 
 func after_all():
-	world.queue_free()
+	world.free()
 
 #region Tests
 

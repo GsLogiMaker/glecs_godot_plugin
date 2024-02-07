@@ -4,23 +4,26 @@ use std::rc::Rc;
 use std::mem::size_of;
 
 use flecs::EntityId;
+use godot::engine::notify::ObjectNotification;
 use godot::prelude::*;
 
 use crate::component_definitions::ComponetDefinition;
 use crate::component_definitions::ComponetProperty;
+use crate::entity::FREED_BY_ENTITY_TAG;
 
 /// An ECS component.
 #[derive(GodotClass)]
-#[class(base=RefCounted)]
+#[class(base=Object)]
 pub struct _BaseGEComponent {
-    #[base] pub(crate) base: Base<RefCounted>,
-    /// The Flecs component ID for the type of this component.
+    #[base] pub(crate) base: Base<Object>,
+    /// The Flecs ID for the type of this component.
     pub(crate) flecs_id: EntityId,
     pub(crate) data: *mut [u8],
     pub(crate) component_definition: Rc<ComponetDefinition>,
 }
 #[godot_api]
 impl _BaseGEComponent {
+
     /// Returns the name of the the type of this component.
     #[func]
     fn get_component_type_name(&self) -> StringName {
@@ -37,6 +40,13 @@ impl _BaseGEComponent {
     #[func]
     fn setc(&mut self, property: StringName, value:Variant) {
         self._set_property(property.clone(), value.clone());
+    }
+
+    /// Prevent user from freeing a component.
+    #[func]
+    fn free(&self) {
+        godot_print!("FAKE FREE");
+        return;
     }
 
     pub(crate) fn _get_property(
@@ -174,7 +184,7 @@ impl _BaseGEComponent {
             VariantType::StringName => set_param::<StringName>(self.data, value, property_data),
             VariantType::NodePath => set_param::<NodePath>(self.data, value, property_data),
             VariantType::Rid => set_param::<Rid>(self.data, value, property_data),
-            VariantType::Object => todo!("Object doesn't support conversion to variant or copying"), /* get_param::<Object>(self.data, property_data), */
+            VariantType::Object => todo!("Object doesn't support conversion to variant or copying"), /* set_param::<Object>(self.data, value, property_data), */
             VariantType::Callable => set_param::<Callable>(self.data, value, property_data),
             VariantType::Signal => set_param::<Signal>(self.data, value, property_data),
             VariantType::Dictionary => set_param::<Dictionary>(self.data, value, property_data),
@@ -275,9 +285,26 @@ impl _BaseGEComponent {
 
         return true;
     }
+
+    fn on_free(&mut self) {
+        let mut base = self.base_mut();
+        if !base.has_meta(FREED_BY_ENTITY_TAG.into()) {
+            base.cancel_free();
+            return;
+        }
+    }
 }
 #[godot_api]
-impl IRefCounted for _BaseGEComponent {
+impl IObject for _BaseGEComponent {
+    fn on_notification(&mut self, what: ObjectNotification) {
+        match what {
+            ObjectNotification::Predelete => {
+                self.on_free()
+            },
+            _ => {},
+        }
+    }
+    
     // fn get_property(&self, property: StringName) -> Option<Variant> {
     //     Some(self._get_property(property))
     // }

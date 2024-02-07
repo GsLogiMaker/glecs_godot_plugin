@@ -10,6 +10,7 @@ use flecs::EntityId;
 use flecs::Iter;
 use flecs::TermBuilder;
 use flecs::World as FlWorld;
+use godot::engine::notify::NodeNotification;
 use godot::engine::Script;
 use godot::prelude::*;
 
@@ -29,6 +30,7 @@ pub struct _BaseGEWorld {
     component_definitions: ComponentDefinitions,
     system_contexts: LinkedList<Pin<Box<ScriptSystemContext>>>,
     gd_entity_map: HashMap<EntityId, Gd<_BaseGEEntity>>,
+	deleting:bool
 }
 #[godot_api]
 impl _BaseGEWorld {
@@ -92,6 +94,8 @@ impl _BaseGEWorld {
                 base,
                 world: self.to_gd(),
                 id: entity.id(),
+				world_deletion: false,
+                gd_components_map: Default::default(),
             }
         });
         self.gd_entity_map.insert(entity.id(), gd_entity.clone());
@@ -198,33 +202,48 @@ impl _BaseGEWorld {
         Layout::from_size_align(size, 8).unwrap()
     }
 
-    pub(crate) fn system_iteration(iter:&Iter) {
-        // Get context
-        let context = unsafe {
-            (iter as *const Iter)
-                .cast_mut()
-                .as_mut()
-                .unwrap()
-                .get_context_mut::<Pin<Box<ScriptSystemContext>>>()
-        };
+	pub(crate) fn on_entity_freed(&mut self, entity_id:EntityId) {
+		if self.deleting {
+			return;
+		}
+		self.gd_entity_map.remove(&entity_id);
+	}
 
-        for entity_i in 0..(iter.count() as usize) {
-            // Create components arguments
-            for field_i in 0i32..iter.field_count() {
-                let mut column = iter
-                    .field_dynamic(field_i+1);
-                let data:*mut [u8] = column.get_mut(entity_i);
+	pub(crate) fn on_free(&mut self) {
+		self.deleting = true;
+		for (_, gd_entity) in &mut self.gd_entity_map {
+			gd_entity.bind_mut().world_deletion = true;
+			gd_entity.clone().free();
+		}
+	}
 
-                context.term_accesses[field_i as usize]
-                    .bind_mut()
-                    .data = data;
-            }
-            
-            let _result = context.callable.callv(
-                context.system_args.clone()
-            );
-        }
-    }
+	// Get context
+	pub(crate) fn system_iteration(iter:&Iter) {
+		let context = unsafe {
+			(iter as *const Iter)
+				.cast_mut()
+				.as_mut()
+				.unwrap()
+				.get_context_mut::<Pin<Box<ScriptSystemContext>>>()
+		};
+
+		for entity_index in 0..(iter.count() as usize) {
+			// Create components arguments
+			for field_i in 1i32..(iter.field_count()+1) {
+				let mut column = iter
+					.field_dynamic(field_i+1);
+				let data:*mut [u8] = column.get_mut(entity_index);
+
+				context.term_accesses[field_i as usize]
+					.bind_mut()
+					.data = data;
+			}
+			
+			let _result = context.callable.callv(
+				context.system_args.clone()
+			);
+		}
+	}
 }
 
 #[godot_api]
@@ -237,6 +256,16 @@ impl INode for _BaseGEWorld {
             component_definitions: Default::default(),
             system_contexts: Default::default(),
             gd_entity_map: Default::default(),
+			deleting: false,
+        }
+    }
+
+	fn on_notification(&mut self, what: NodeNotification) {
+        match what {
+            NodeNotification::Predelete => {
+                self.on_free()
+            },
+            _ => {},
         }
     }
 

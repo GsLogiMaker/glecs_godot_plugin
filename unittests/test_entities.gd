@@ -8,7 +8,7 @@ func before_all():
 	add_child(world, true)
 
 func after_all():
-	world.queue_free()
+	world.free()
 
 #region Tests
 
