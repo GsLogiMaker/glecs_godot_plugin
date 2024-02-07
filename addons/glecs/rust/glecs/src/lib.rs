@@ -83,9 +83,9 @@ struct GECS; #[gdextension] unsafe impl ExtensionLibrary for GECS {}
 
 
 #[derive(GodotClass)]
-#[class(base=RefCounted)]
+#[class(base=Object)]
 struct _BaseGEEntity {
-    #[base] base: Base<RefCounted>,
+    #[base] base: Base<Object>,
     /// The world this entity is from.
     world: Gd<_BaseGEWorld>,
     /// The ID of this entity.
@@ -146,7 +146,83 @@ impl _BaseGEEntity {
         Some(comp)
     }
 
-    fn add_component(&self, component:Gd<Script>) -> Gd<_BaseGEComponent> {
+    fn add_component(&mut self, component:Gd<Script>) -> Option<Gd<_BaseGEComponent>> {
+        let component_definition = self.world
+            .bind_mut()
+            .get_or_add_component(&component);
+
+        let world = self.world.bind();
+
+        unsafe {
+            flecs::ecs_add_id(
+                world.world.raw(),
+                self.id,
+                component_definition.flecs_id,
+            )
+        };
+
+        // Get component data
+        let Some(mut entt) = world.world.find_entity(self.id)
+            else { 
+                godot_error!(
+                    "Failed to get component from entity. Entity {} was freed.",
+                    self.to_gd(),
+                );
+                return None;
+            };
+        if !entt.has_id(component_definition.flecs_id) {
+            godot_error!(
+                "Failed to get component from entity. Component {} has not been added to entity {}.",
+                    component,
+                    self.to_gd(),
+            );
+            return None;
+        }
+        let component_data = entt.get_mut_dynamic(
+            &component_definition.name.to_string()
+        );
+
+        // Initialize component properties
+        // TODO: Initialize properties in deterministic order
+        for property_name in component_definition.parameters.keys() {
+            // TODO: Get default values of properties
+            let default_value = Variant::nil();
+            _BaseGEComponent::_initialize_property(
+                component_data,
+                component_definition.as_ref(),
+                property_name.clone(),
+                default_value,
+            );
+        }
+
+        let mut comp = Gd::from_init_fn(|base| {
+            let base_comp = _BaseGEComponent {
+                base,
+                flecs_id: component_definition.flecs_id,
+                data: component_data,
+                component_definition,
+            };
+            base_comp
+        });
+        comp.bind_mut().base_mut().set_script(component.to_variant());
+
+        Some(comp)
+    }
+
+    fn flecs_free(&self) {
+        let entt = self.world.bind().world.find_entity(self.id).unwrap();
+        entt.destruct()
+    }
+}
+#[godot_api]
+impl IObject for _BaseGEEntity {
+    fn on_notification(&mut self, what: engine::notify::ObjectNotification) {
+        match what {
+            engine::notify::ObjectNotification::Predelete => {
+                self.flecs_free()
+            },
+            _ => {},
+        }
     }
 }
 
@@ -519,6 +595,7 @@ struct _BaseGEWorld {
     world: FlWorld,
     component_definitions: ComponentDefinitions,
     system_contexts: LinkedList<Pin<Box<ScriptSystemContext>>>,
+    gd_entity_map: HashMap<EntityId, Gd<_BaseGEEntity>>,
 }
 #[godot_api]
 impl _BaseGEWorld {
@@ -577,13 +654,15 @@ impl _BaseGEWorld {
             }
         }
 
-        Gd::from_init_fn(|base| {
+        let gd_entity = Gd::from_init_fn(|base| {
             _BaseGEEntity {
                 base,
                 world: self.to_gd(),
                 id: entity.id(),
             }
-        })
+        });
+        self.gd_entity_map.insert(entity.id(), gd_entity);
+        gd_entity
     }
 
     
@@ -638,7 +717,10 @@ impl _BaseGEWorld {
             .system_contexts
             .back_mut()
             .unwrap();
-        let mut sys = self.world.system()
+
+        // Create system
+        let mut sys = self.world
+            .system()
             .context_ptr(context_ptr.cast::<c_void>());
         for id in term_ids.iter() {
             sys = sys.term_dynamic(*id);
