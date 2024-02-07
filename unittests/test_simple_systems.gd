@@ -105,11 +105,11 @@ func test_byte_arrays():
 
 class Bools extends GEComponent:
 	var a:bool:
-		get: return get(&"a")
-		set(v): set(&"a", v)
+		get: return getc(&"a")
+		set(v): setc(&"a", v)
 	var b:bool:
-		get: return get(&"b")
-		set(v): set(&"b", v)
+		get: return getc(&"b")
+		set(v): setc(&"b", v)
 
 class Ints extends GEComponent:
 	var a:int:
@@ -121,11 +121,11 @@ class Ints extends GEComponent:
 
 class Floats extends GEComponent:
 	var a:float:
-		get: return get(&"a")
-		set(v): set(&"a", v)
+		get: return getc(&"a")
+		set(v): setc(&"a", v)
 	var b:float:
-		get: return get(&"b")
-		set(v): set(&"b", v)
+		get: return getc(&"b")
+		set(v): setc(&"b", v)
 
 class Strings extends GEComponent:
 	var a:String:

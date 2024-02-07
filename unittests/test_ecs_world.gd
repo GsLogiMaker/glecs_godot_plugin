@@ -6,8 +6,6 @@ var world:GEWorldNode = null
 func before_all():
 	world = GEWorldNode.new()
 	add_child(world, true)
-	
-	world.add_component("Foo", Foo)
 
 func after_all():
 	world.queue_free()
