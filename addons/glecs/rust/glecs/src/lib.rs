@@ -54,3 +54,11 @@ const TYPE_SIZES:&'static [usize] = &[
 
 struct GECS; #[gdextension] unsafe impl ExtensionLibrary for GECS {}
 
+#[macro_export]
+macro_rules! show_error {
+    ($title:literal, $fmt:literal $(, $args:expr)* $(,)?) => {
+        let msg = format!("***{}*** {}", $title, format!($fmt, $($args,)*));
+        godot_error!("{msg}");
+        godot_print!("{msg}");
+    };
+}

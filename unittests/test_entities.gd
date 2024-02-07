@@ -20,6 +20,19 @@ func test_component_get_and_set():
 	
 	foo.value = 2.3
 	assert_almost_eq(foo.value, 2.3, 0.01)
+
+func test_component_string_get_and_set():
+	var e:_BaseGEEntity = world.new_entity([Stringy])
+	
+	var foo:Stringy = e.get_component(Stringy)
+	foo.a = "po"
+	foo.b = "em"
+	assert_eq(foo.a, "po")
+	
+	foo.a += foo.b
+	
+	assert_eq(foo.a, "poem")
+	assert_eq(foo.b, "em")
 	
 func test_get_unadded_component():
 	var e:_BaseGEEntity = world.new_entity()
@@ -34,16 +47,37 @@ func test_new_entity_with_unregistered_component():
 #region Classes
 
 class Foo extends GEComponent:
+	const PROPS:= {
+		value = TYPE_FLOAT,
+	}
 	var value:float:
 		get: return getc(&"value")
 		set(v): setc(&"value", v)
 
+class Stringy extends GEComponent:
+	const PROPS:= {
+		a = TYPE_STRING,
+		b = TYPE_STRING,
+	}
+	var a:String:
+		get: return getc(&"a")
+		set(v): setc(&"a", v)
+	var b:String:
+		get: return getc(&"b")
+		set(v): setc(&"b", v)
+
 class Unadded extends GEComponent:
+	const PROPS:= {
+		value = TYPE_INT,
+	}
 	var value:int:
 		get: return getc(&"value")
 		set(v): setc(&"value", v)
 
 class Unregistered extends GEComponent:
+	const PROPS:= {
+		value = TYPE_INT,
+	}
 	var value:int:
 		get: return getc(&"value")
 		set(v): setc(&"value", v)

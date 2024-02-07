@@ -7,6 +7,7 @@ use godot::engine::Script;
 use godot::prelude::*;
 
 use crate::component::_BaseGEComponent;
+use crate::show_error;
 use crate::world::_BaseGEWorld;
 
 pub(crate) static FREED_BY_ENTITY_TAG:&str = "freed_by_entity";
@@ -34,8 +35,9 @@ impl _BaseGEEntity {
         let Some(component_definition) = world
             .get_component_description(&component)
             else {
-                godot_error!(
-                    "Failed to get component from entity. Component {} has not been added to entity {}.",
+                show_error!(
+                    "Failed to get component from entity",
+                    "Component {} has not been added to entity {}.",
                     component,
                     self.to_gd(),
                 );
@@ -52,18 +54,20 @@ impl _BaseGEEntity {
         // Get flecs entity
         let component_symbol = component_definition.name.to_string();
         let Some(mut entt) = world.world.find_entity(self.id)
-            else { 
-                godot_error!(
-                    "Failed to get component from entity. Entity {} was freed.",
+            else {
+                show_error!(
+                    "Failed to get component from entity",
+                    "Entity {} was freed.",
                     self.to_gd(),
                 );
-                return None;
+                unreachable!();
             };
         
         // Get component data
         if !entt.has_id(component_definition.flecs_id) {
-            godot_error!(
-                "Failed to get component from entity. Component {} has not been added to entity {}.",
+            show_error!(
+                "Failed to get component from entity",
+                "Component {} has not been added to entity {}.",
                     component,
                     self.to_gd(),
             );
@@ -109,15 +113,18 @@ impl _BaseGEEntity {
         // Get component data
         let Some(mut entt) = world.world.find_entity(self.id)
             else { 
-                godot_error!(
-                    "Failed to get component from entity. Entity {} was freed.",
+                show_error!(
+                    "Failed to get component from entity",
+                    "Entity {} was freed.",
                     self.to_gd(),
                 );
+                unreachable!();
                 return None;
             };
         if !entt.has_id(component_definition.flecs_id) {
-            godot_error!(
-                "Failed to get component from entity. Component {} has not been added to entity {}.",
+            show_error!(
+                "Failed to get component from entity",
+                "Component {} has not been added to entity {}.",
                     component,
                     self.to_gd(),
             );

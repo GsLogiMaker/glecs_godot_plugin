@@ -229,7 +229,7 @@ impl _BaseGEWorld {
 
 		for entity_index in 0..(iter.count() as usize) {
 			// Create components arguments
-			for field_i in 1i32..(iter.field_count()+1) {
+			for field_i in 0i32..(iter.field_count()) {
 				let mut column = iter
 					.field_dynamic(field_i+1);
 				let data:*mut [u8] = column.get_mut(entity_index);

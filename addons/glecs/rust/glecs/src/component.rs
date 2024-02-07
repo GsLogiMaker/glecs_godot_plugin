@@ -10,6 +10,7 @@ use godot::prelude::*;
 use crate::component_definitions::ComponetDefinition;
 use crate::component_definitions::ComponetProperty;
 use crate::entity::FREED_BY_ENTITY_TAG;
+use crate::show_error;
 
 /// An ECS component.
 #[derive(GodotClass)]
@@ -45,7 +46,6 @@ impl _BaseGEComponent {
     /// Prevent user from freeing a component.
     #[func]
     fn free(&self) {
-        godot_print!("FAKE FREE");
         return;
     }
 
@@ -58,10 +58,11 @@ impl _BaseGEComponent {
             .parameters
             .get(&property)
             else {
-                godot_error!(
-                    "Failed to get property. No property named \"{}\" in component of type \"{}\"",
+                show_error!(
+                    "Failed to get property",
+                    "No property named \"{}\" in component of type \"{}\"",
                     property,
-                    self.get_component_type_name()
+                    self.get_component_type_name(),
                 );
                 return Variant::nil();
             };
@@ -132,8 +133,9 @@ impl _BaseGEComponent {
             .component_definition
             .parameters
             .get(&property) else {
-                godot_error!(
-                    "Failed to set property. No property named \"{}\" in component of type \"{}\"",
+                show_error!(
+                    "Failed to set property",
+                    "No property named \"{}\" in component of type \"{}\"",
                     property,
                     self.get_component_type_name(),
                 );
@@ -141,8 +143,9 @@ impl _BaseGEComponent {
             };
 
         if value.get_type() != property_data.gd_type_id {
-            godot_error!(
-                "Failed to set property. Expected type {:?}, but got type {:?}",
+            show_error!(
+                "Failed to set property",
+                "Expected type {:?}, but got type {:?}.",
                 property_data.gd_type_id,
                 value.get_type(),
             );
@@ -215,8 +218,9 @@ impl _BaseGEComponent {
         let Some(property_data) = description
             .parameters
             .get(&property) else {
-                godot_error!(
-                    "Can't write to {} in {{component}}. Component has to property with that name",
+                show_error!(
+                    "Property initialization failed",
+                    "Can't write to {} in {{component}}. Component has no property with that name",
                     property,
                 );
                 return false;

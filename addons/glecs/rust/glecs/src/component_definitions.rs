@@ -1,4 +1,5 @@
 
+use core::panic;
 use std::alloc::Layout;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -8,7 +9,10 @@ use godot::engine::Script;
 use godot::prelude::*;
 
 use crate::world::_BaseGEWorld;
+use crate::show_error;
 use crate::TYPE_SIZES;
+
+const COMPONENT_PROPERTIES_DICT:&str = "PROPS";
 
 /// The metadata regarding a component's structure.
 #[derive(Debug, Clone)]
@@ -24,26 +28,54 @@ pub(crate) struct ComponetDefinition {
         world: &mut _BaseGEWorld,
     ) -> Self {
         let script_properties = component
-            .get_script_property_list();
-
+            .get_script_constant_map()
+            .get(COMPONENT_PROPERTIES_DICT)
+            .unwrap_or_else(|| {
+                show_error!(
+                    "Incomplete component",
+                    "Component {} lacks constant dictionary named \"{}\", that maps component property names to Variant.Type IDs.",
+                    component,
+                    COMPONENT_PROPERTIES_DICT,
+                );
+                Dictionary::default().to_variant()
+            })
+            .try_to::<Dictionary>()
+            .unwrap_or_else(|_err| {
+                show_error!(
+                    "Error defining component",
+                    "Expected constant \"{}\" in {} to be a dictionary mapping component property names to Variant.Type IDs.",
+                    COMPONENT_PROPERTIES_DICT,
+                    component,
+                );
+                Dictionary::default()
+            });
+        
         let mut component_properties = HashMap::default();
         let mut offset = 0;
         let mut i = 0;
-        while i != script_properties.len() {
-            let property = script_properties.get(i);
-            let property_type = property
-                .get(StringName::from("type"))
-                .unwrap()
-                .to::<VariantType>();
+        for (key, value) in script_properties.iter_shared() {
+            let property_type = value.to::<VariantType>();
+
+            
+
             if property_type == VariantType::Nil {
                 i += 1;
                 continue;
             }
-            let property_name:StringName = property
-                .get(StringName::from("name"))
-                .unwrap()
-                .to::<String>()
-                .into();
+            let property_name = match key.get_type() {
+                VariantType::String => StringName::from(key.to::<GString>()),
+                VariantType::StringName => key.to::<StringName>(),
+                _ => {
+                    show_error!(
+                        "Error defining component",
+                        "Expected all keys of constant \"{}\" in component \"{}\" to be of type String or StringName, but got {}.",
+                        COMPONENT_PROPERTIES_DICT,
+                        component,
+                        key,
+                    );
+                    continue;
+                }
+            };
 
             component_properties.insert(
                 property_name.clone(),
@@ -110,7 +142,6 @@ pub(crate) enum ComponentDefinitionsMapKey {
                         "No component has been registered with script \"{}\"",
                         script,
                     );
-                    godot_error!("{msg}");
                     panic!("{msg}");
                 },
             }
@@ -184,9 +215,6 @@ pub(crate) struct ComponentDefinitions {
         self.name_map.insert(name_map, index);
         self.flecs_id_map.insert(flecs_id_map, index);
         self.script_id_map.insert(script_id_map, index);
-        for key in &self.script_id_map {
-            godot_print!("ADD NEW COMP {}", key.0);
-        }
     }
 
     pub(crate) fn insert(&mut self, element:ComponetDefinition) -> Rc<ComponetDefinition> {

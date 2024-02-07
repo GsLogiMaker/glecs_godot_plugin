@@ -41,7 +41,7 @@ func test_world_deletion():
 func test_simple_system():
 	world.add_system(
 		func(foo:Foo):
-			foo.setc(&"vec", 2.67)
+			foo.set_value(Vector2(2, 5))
 			,
 		[Foo],
 	)
@@ -49,9 +49,29 @@ func test_simple_system():
 	
 	world._world_process(1.0)
 	
-	assert_almost_eq(entity.get_component(Foo).getc(&"vec"), 2.67, 0.01)
+	assert_eq(entity.get_component(Foo).get_value(), Vector2(2, 5))
+
+func test_error_no_define():
+	var entity:= world.new_entity([NoDefine])
+	assert_ne(entity, null)
+
+func test_error_wrong_type_define():
+	var entity:= world.new_entity([WrongTypeDefine])
+	assert_ne(entity, null)
 
 class Foo extends GEComponent:
 	const PROPS:= {
-		vec = TYPE_FLOAT
+		value = TYPE_VECTOR2,
 	}
+	
+	func get_value() -> Vector2:
+		return getc(&"value")
+	
+	func set_value(v:Vector2) -> void:
+		setc(&"value", v)
+
+class NoDefine extends GEComponent:
+	pass
+
+class WrongTypeDefine extends GEComponent:
+	const PROPS:= ""
