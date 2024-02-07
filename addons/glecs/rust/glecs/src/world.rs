@@ -99,8 +99,6 @@ impl _BaseGEWorld {
         gd_entity
     }
 
-    
-
     // Defines a new system to be run in the world.
     #[func]
     fn _add_system(&mut self, callable: Callable, terms: Array<Gd<Script>>) {
@@ -108,9 +106,9 @@ impl _BaseGEWorld {
         let mut term_ids = vec![];
         for i in 0..terms.len() {
             let script = terms.get(i);
+			
             let comp_def = self
-                .component_definitions
-                .get(script.instance_id()).unwrap();
+				.get_or_add_component(&script);
             term_ids.push(comp_def.flecs_id);
         }
 
@@ -228,9 +226,6 @@ impl _BaseGEWorld {
         }
     }
 }
-
-// 2_205_783
-//   660_882
 
 #[godot_api]
 impl INode for _BaseGEWorld {

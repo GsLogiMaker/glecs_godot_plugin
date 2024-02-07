@@ -15,6 +15,7 @@ func before_all():
 	)
 	world.add_system(
 		func(x:Ints):
+			prints("INTS")
 			x.b *= 2
 			x.a += x.b
 			,
