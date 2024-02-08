@@ -197,7 +197,6 @@ impl _BaseGEWorld {
         for id in term_ids.iter() {
             sys = sys.term_dynamic(*id);
         }
-        sys.
 
         // System body
         sys.iter(Self::system_iteration);
