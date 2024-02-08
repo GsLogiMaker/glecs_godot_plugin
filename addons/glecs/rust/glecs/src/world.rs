@@ -3,6 +3,7 @@ use std::alloc::Layout;
 use std::collections::HashMap;
 use std::collections::LinkedList;
 use std::ffi::c_void;
+use std::hash::Hash;
 use std::pin::Pin;
 use std::rc::Rc;
 
@@ -19,6 +20,7 @@ use crate::component_definitions::ComponentDefinitions;
 use crate::component_definitions::ComponentDefinitionsMapKey;
 use crate::component_definitions::ComponetDefinition;
 use crate::component_definitions::ComponetProperty;
+use crate::entity::EntityLike;
 use crate::entity::_BaseGEEntity;
 use crate::prefab::PrefabDefinition;
 use crate::prefab::_BaseGEPrefab;
@@ -34,6 +36,7 @@ pub struct _BaseGEWorld {
     system_contexts: LinkedList<Pin<Box<ScriptSystemContext>>>,
     gd_entity_map: HashMap<EntityId, Gd<_BaseGEEntity>>,
     prefabs: HashMap<Gd<Script>, Rc<PrefabDefinition>>,
+    relations: HashMap<VariantKey, EntityId>,
 	deleting:bool
 }
 #[godot_api]
@@ -63,9 +66,11 @@ impl _BaseGEWorld {
     #[func]
     fn _new_entity(
         &mut self,
+        mut name: String,
         with_components:Array<Gd<Script>>,
     ) -> Gd<_BaseGEEntity> {
         let mut entity = self.world.entity();
+
         let mut i = 0;
         while i != with_components.len() {
             let mut script = with_components.get(i);
@@ -93,7 +98,7 @@ impl _BaseGEWorld {
             }
         }
 
-        let gd_entity = Gd::from_init_fn(|base| {
+        let mut gd_entity = Gd::from_init_fn(|base| {
             _BaseGEEntity {
                 base,
                 world: self.to_gd(),
@@ -102,6 +107,7 @@ impl _BaseGEWorld {
                 gd_components_map: Default::default(),
             }
         });
+        gd_entity.bind_mut().set_name(&name);
         self.gd_entity_map.insert(entity.id(), gd_entity.clone());
         
         gd_entity
@@ -191,6 +197,7 @@ impl _BaseGEWorld {
         for id in term_ids.iter() {
             sys = sys.term_dynamic(*id);
         }
+        sys.
 
         // System body
         sys.iter(Self::system_iteration);
@@ -230,6 +237,22 @@ impl _BaseGEWorld {
             .new_prefab_def(script.clone());
         self.prefabs.insert(script.clone(), prefab);
         self.prefabs.get(&script).unwrap().clone()
+    }
+
+    pub(crate) fn get_or_add_relation(&mut self, key:Variant) -> EntityId{
+        if let Ok(entity_gd) = key.try_to::<Gd<_BaseGEEntity>>() {
+            return entity_gd.bind().get_flecs_id()
+        }
+
+        let key = VariantKey {variant: key};
+        
+        self.relations.get(&key)
+            .map(|x| *x)
+            .unwrap_or_else(|| {
+                let id = self.world.entity().id();
+                self.relations.insert(key, id);
+                id
+            })
     }
 
     pub(crate) fn layout_from_properties(
@@ -325,6 +348,7 @@ impl INode for _BaseGEWorld {
             system_contexts: Default::default(),
             gd_entity_map: Default::default(),
             prefabs: Default::default(),
+            relations: Default::default(),
 			deleting: false,
         }
     }
@@ -352,4 +376,14 @@ pub(crate) struct ScriptSystemContext {
     /// Holds the accesses stored in `sysatem_args` for quicker access.
     term_accesses: Box<[Gd<_BaseGEComponent>]>,
     world: Gd<_BaseGEWorld>,
+}
+
+#[derive(Debug, Default, Clone, PartialEq)]
+struct VariantKey {
+    variant: Variant
+} impl Eq for VariantKey {
+} impl Hash for VariantKey {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        Variant::hash(&self.variant).hash(state);
+    }
 }

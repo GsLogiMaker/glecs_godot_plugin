@@ -4,7 +4,7 @@ use godot::engine::Script;
 use godot::prelude::*;
 
 use crate::component::_BaseGEComponent;
-use crate::entity::EcsIdAttachment;
+use crate::entity::EntityLike;
 use crate::world::_BaseGEWorld;
 
 pub(crate) const PREFAB_COMPONENTS:&str = "COMPONENTS";
@@ -25,10 +25,10 @@ impl _BaseGEPrefab {
 		&mut self,
 		component:Gd<Script>,
 	) -> Option<Gd<_BaseGEComponent>>{
-		EcsIdAttachment::add_component(self, component)
+		EntityLike::add_component(self, component)
 	}
 }
-impl EcsIdAttachment for _BaseGEPrefab {
+impl EntityLike for _BaseGEPrefab {
     fn get_world(&self) -> Gd<_BaseGEWorld> {
         self.world.clone()
     }

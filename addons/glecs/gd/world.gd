@@ -4,8 +4,8 @@ class_name GEWorldNode extends _BaseGEWorld
 func add_system(callable:Callable, terms:Array[Script]) -> void:
 	_add_system(callable, terms)
 
-func new_entity(with_components:Array[Script] = []) -> _BaseGEEntity:
-	var entity:= _new_entity(with_components)
+func new_entity(name:String, with_components:Array[Script] = []) -> _BaseGEEntity:
+	var entity:= _new_entity(name, with_components)
 	return entity
 
 func _is_callable_error(callable:Callable) -> bool:

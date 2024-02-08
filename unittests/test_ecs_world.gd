@@ -11,16 +11,16 @@ func after_all():
 	world.free()
 
 func test_add_entity():
-	var _entity:= world.new_entity()
+	var _entity:= world.new_entity("Test")
 	
 	# Can't assert, but should be fine as long as it doesn't crash
 	assert_null(null)
 	
 func test_world_deletion():
 	var w:= GEWorldNode.new()
-	var e:= w.new_entity([Foo])
+	var e:= w.new_entity("Test", [Foo])
 	var foo = e.get_component(Foo)
-	var e2:= w.new_entity([Foo])
+	var e2:= w.new_entity("Test", [Foo])
 	var foo2 = e2.get_component(Foo)
 	
 	foo.setc(&"vec", 24.3)
@@ -45,7 +45,7 @@ func test_simple_system():
 			,
 		[Foo],
 	)
-	var entity:= world.new_entity([Foo])
+	var entity:= world.new_entity("Test", [Foo])
 	
 	world._world_process(1.0)
 	

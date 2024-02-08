@@ -42,7 +42,7 @@ func after_all():
 #region Tests
 
 func test_bools():
-	var entity:= world.new_entity([Bools])
+	var entity:= world.new_entity("Test", [Bools])
 	
 	world._world_process(0.0)
 	world._world_process(0.0)
@@ -54,7 +54,7 @@ func test_bools():
 	entity.free()
 
 func test_ints():
-	var entity:= world.new_entity([Ints])
+	var entity:= world.new_entity("Test", [Ints])
 	entity.get_component(Ints).b = 1
 	
 	world._world_process(0.0)
@@ -64,7 +64,7 @@ func test_ints():
 	assert_eq(entity.get_component(Ints).a, 14)
 
 func test_floats():
-	var entity:= world.new_entity([Floats])
+	var entity:= world.new_entity("Test", [Floats])
 	entity.get_component(Floats).b = 1.2
 	
 	world._world_process(0.0)
@@ -82,7 +82,7 @@ func test_strings():
 		[Strings],
 	)
 	
-	var entity:= world.new_entity([Strings])
+	var entity:= world.new_entity("Test", [Strings])
 	var strings:Strings = entity.get_component(Strings)
 	strings.a = ""
 	strings.b = "po"
@@ -95,7 +95,7 @@ func test_strings():
 	assert_eq(strings.b, "poememem")
 
 func test_byte_arrays():
-	var entity:= world.new_entity([ByteArrays])
+	var entity:= world.new_entity("Test", [ByteArrays])
 	entity.get_component(ByteArrays).a = PackedByteArray([1, 2, 3])
 	entity.get_component(ByteArrays).b = PackedByteArray([2, 4, 3])
 	

@@ -13,13 +13,13 @@ func after_all():
 #region Tests
 
 func test_get_nonexistant_property():
-	var entity:= world.new_entity([Foo])
+	var entity:= world.new_entity("Test", [Foo])
 	var foo:Foo = entity.get_component(Foo)
 	
 	assert_eq(foo.getc(&"not a real property"), null)
 
 func test_set_nonexistant_property():
-	var entity:= world.new_entity([Foo])
+	var entity:= world.new_entity("Test", [Foo])
 	var foo:Foo = entity.get_component(Foo)
 	
 	foo.setc(&"not a real property", 1)
@@ -29,7 +29,7 @@ func test_set_nonexistant_property():
 	assert_null(null)
 
 func test_set_wrong_type():
-	var entity:= world.new_entity([Foo])
+	var entity:= world.new_entity("Test", [Foo])
 	var foo:Foo = entity.get_component(Foo)
 	
 	foo.setc(&"vec", true)
@@ -39,7 +39,7 @@ func test_set_wrong_type():
 	assert_null(null)
 
 func test_new_entity_with_unregistered_component():
-	var _entity:= world.new_entity([Unregistered])
+	var _entity:= world.new_entity("Test", [Unregistered])
 	
 	# We can't assert the right error is thrown, but it should be fine as
 	# long as it doesn't crash

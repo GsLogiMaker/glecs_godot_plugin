@@ -13,7 +13,7 @@ func after_all():
 #region Tests
 
 func test_component_get_and_set():
-	var e:_BaseGEEntity = world.new_entity([Foo])
+	var e:_BaseGEEntity = world.new_entity("Test", [Foo])
 	
 	var foo:Foo = e.get_component(Foo)
 	assert_almost_eq(foo.value, 0.0, 0.01)
@@ -22,7 +22,7 @@ func test_component_get_and_set():
 	assert_almost_eq(foo.value, 2.3, 0.01)
 
 func test_component_string_get_and_set():
-	var e:_BaseGEEntity = world.new_entity([Stringy])
+	var e:_BaseGEEntity = world.new_entity("Test", [Stringy])
 	
 	var foo:Stringy = e.get_component(Stringy)
 	foo.a = "po"
@@ -35,11 +35,11 @@ func test_component_string_get_and_set():
 	assert_eq(foo.b, "em")
 	
 func test_get_unadded_component():
-	var e:_BaseGEEntity = world.new_entity()
+	var e:_BaseGEEntity = world.new_entity("Test")
 	assert_eq(e.get_component(Unadded), null)
 
 func test_new_entity_with_unregistered_component():
-	var e:_BaseGEEntity = world.new_entity([Unregistered])
+	var e:_BaseGEEntity = world.new_entity("Test", [Unregistered])
 	assert_eq(e.get_component(Unregistered).value, 0)
 
 #endregion

@@ -13,7 +13,7 @@ func after_all():
 #region Tests
 
 func test_default_values():
-	var entity:= world.new_entity([Foo])
+	var entity:= world.new_entity("Test", [Foo])
 	
 	world._world_process(0.0)
 	world._world_process(0.0)
