@@ -1,14 +1,17 @@
 
 pub mod component;
 pub mod entity;
+pub mod prefab;
 pub mod world;
 
 pub(crate) mod component_definitions;
 
 use std::mem::size_of;
 
+use flecs::EntityId;
 use godot::prelude::*;
 use godot::engine::Object;
+use world::_BaseGEWorld;
 
 const TYPE_SIZES:&'static [usize] = &[
     /* NIL */ 0,
@@ -57,8 +60,10 @@ struct GECS; #[gdextension] unsafe impl ExtensionLibrary for GECS {}
 #[macro_export]
 macro_rules! show_error {
     ($title:literal, $fmt:literal $(, $args:expr)* $(,)?) => {
-        let msg = format!("***{}*** {}", $title, format!($fmt, $($args,)*));
-        godot_error!("{msg}");
-        godot_print!("{msg}");
+        {
+            let msg = format!("***{}*** {}", $title, format!($fmt, $($args,)*));
+            godot_error!("{msg}");
+            godot_print!("{msg}");
+        }
     };
 }

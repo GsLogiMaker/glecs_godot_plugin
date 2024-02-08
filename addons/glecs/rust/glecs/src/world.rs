@@ -20,6 +20,9 @@ use crate::component_definitions::ComponentDefinitionsMapKey;
 use crate::component_definitions::ComponetDefinition;
 use crate::component_definitions::ComponetProperty;
 use crate::entity::_BaseGEEntity;
+use crate::prefab::PrefabDefinition;
+use crate::prefab::_BaseGEPrefab;
+use crate::prefab::PREFAB_COMPONENTS;
 use crate::TYPE_SIZES;
 
 #[derive(GodotClass)]
@@ -30,6 +33,7 @@ pub struct _BaseGEWorld {
     component_definitions: ComponentDefinitions,
     system_contexts: LinkedList<Pin<Box<ScriptSystemContext>>>,
     gd_entity_map: HashMap<EntityId, Gd<_BaseGEEntity>>,
+    prefabs: HashMap<Gd<Script>, Rc<PrefabDefinition>>,
 	deleting:bool
 }
 #[godot_api]
@@ -103,6 +107,33 @@ impl _BaseGEWorld {
         gd_entity
     }
 
+    /// Creates a new entity in the world.
+    #[func]
+    fn new_entity_with_prefab(
+        &mut self,
+        prefab:Gd<Script>,
+    ) -> Gd<_BaseGEEntity> {
+        let entity = self.world.entity();
+
+        let prefab_def = self
+            .get_or_add_prefab_definition(prefab);
+
+        entity.add_relation_ids(unsafe {flecs::EcsIsA}, prefab_def.flecs_id);
+
+        let gd_entity = Gd::from_init_fn(|base| {
+            _BaseGEEntity {
+                base,
+                world: self.to_gd(),
+                id: entity.id(),
+				world_deletion: false,
+                gd_components_map: Default::default(),
+            }
+        });
+        self.gd_entity_map.insert(entity.id(), gd_entity.clone());
+        
+        gd_entity
+    }
+
     // Defines a new system to be run in the world.
     #[func]
     fn _add_system(&mut self, callable: Callable, terms: Array<Gd<Script>>) {
@@ -126,7 +157,6 @@ impl _BaseGEWorld {
                 ::from_init_fn(|base| {
                     _BaseGEComponent {
                         base,
-                        flecs_id: term_ids[term_i],
                         data: &mut [],
                         component_definition: self
                             .get_or_add_component(&term_script),
@@ -192,6 +222,16 @@ impl _BaseGEWorld {
         }
     }
 
+    fn get_or_add_prefab_definition(&mut self, script:Gd<Script>) -> Rc<PrefabDefinition> {
+        if let Some(prefab_def) = self.prefabs.get(&script) {
+            return prefab_def.clone()
+        }
+        let prefab = self
+            .new_prefab_def(script.clone());
+        self.prefabs.insert(script.clone(), prefab);
+        self.prefabs.get(&script).unwrap().clone()
+    }
+
     pub(crate) fn layout_from_properties(
         parameters: &HashMap<StringName, ComponetProperty>,
     ) -> Layout {
@@ -244,6 +284,34 @@ impl _BaseGEWorld {
 			);
 		}
 	}
+
+    pub(crate) fn new_prefab_def(
+        &mut self,
+        mut script:Gd<Script>,
+    ) -> Rc<PrefabDefinition> {
+        let prefab_entt = self.world
+            .prefab(&script.instance_id().to_string());
+
+        let componets = script.get_script_constant_map()
+            .get(StringName::from(PREFAB_COMPONENTS))
+            .unwrap_or_else(|| {Array::<Variant>::default().to_variant()})
+            .try_to::<Array<Variant>>()
+            .unwrap_or_default();
+
+        for component in componets.iter_shared() {
+            let Ok(component) = component.try_to::<Gd<Script>>()
+                else {continue};
+                
+            prefab_entt.add_id(
+                self.get_or_add_component(&component).flecs_id
+            );
+        }
+
+        Rc::new(PrefabDefinition {
+            script: script,
+            flecs_id: prefab_entt.id(),
+        })
+    }
 }
 
 #[godot_api]
@@ -256,6 +324,7 @@ impl INode for _BaseGEWorld {
             component_definitions: Default::default(),
             system_contexts: Default::default(),
             gd_entity_map: Default::default(),
+            prefabs: Default::default(),
 			deleting: false,
         }
     }

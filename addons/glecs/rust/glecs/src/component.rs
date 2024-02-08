@@ -17,13 +17,29 @@ use crate::show_error;
 #[class(base=Object)]
 pub struct _BaseGEComponent {
     #[base] pub(crate) base: Base<Object>,
-    /// The Flecs ID for the type of this component.
-    pub(crate) flecs_id: EntityId,
     pub(crate) data: *mut [u8],
     pub(crate) component_definition: Rc<ComponetDefinition>,
 }
 #[godot_api]
 impl _BaseGEComponent {
+
+    /// Copies the data from the given component to this one.
+    #[func]
+    fn copy_from_component(&mut self, from_component:Gd<_BaseGEComponent>) {
+        if self.get_flecs_id() != from_component.bind().get_flecs_id() {
+            show_error!(
+                "Failed to copy component",
+                "Destination component is of type {}, but source component is of type {}",
+                self.base().get_script(),
+                from_component.bind().base().get_script(),
+            )
+        }
+        unsafe {
+            self.data.as_mut().unwrap().copy_from_slice(
+                from_component.bind().data.as_ref().unwrap(),
+            );
+        }
+    }
 
     /// Returns the name of the the type of this component.
     #[func]
@@ -47,6 +63,11 @@ impl _BaseGEComponent {
     #[func]
     fn free(&self) {
         return;
+    }
+
+    /// Returns the Flecs ID of this component's type.
+    pub(crate) fn get_flecs_id(&self) -> EntityId {
+        self.component_definition.flecs_id
     }
 
     pub(crate) fn _get_property(
@@ -309,11 +330,11 @@ impl IObject for _BaseGEComponent {
         }
     }
     
-    // fn get_property(&self, property: StringName) -> Option<Variant> {
-    //     Some(self._get_property(property))
-    // }
+    fn get_property(&self, property: StringName) -> Option<Variant> {
+        Some(self._get_property(property))
+    }
 
-    // fn set_property(&mut self, property: StringName, v:Variant) -> bool{
-    //     self._set_property(property, v)
-    // }
+    fn set_property(&mut self, property: StringName, v:Variant) -> bool{
+        self._set_property(property, v)
+    }
 }
