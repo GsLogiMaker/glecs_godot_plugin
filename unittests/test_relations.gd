@@ -13,9 +13,9 @@ func after_all():
 
 func test_bools():
 	world.add_system(
+		[],
 		func():
 			,
-		[],
 	)
 	
 	var man:= world.new_entity("Man", [])
@@ -25,7 +25,7 @@ func test_bools():
 	var grass:= world.new_entity("Grass", [])
 	cow.add_relation("eats", grass)
 	
-	world._world_process(0.0)
+	world.run_process(&"process", 0.0)
 	
 	assert_eq(true, true)
 	

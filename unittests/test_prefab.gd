@@ -14,6 +14,7 @@ func after_all():
 
 func test_prefab():
 	world.add_system(
+		[Foo, Bar],
 		func(foo:Foo, bar:Bar):
 			foo.a = true
 			foo.b += 1
@@ -22,13 +23,12 @@ func test_prefab():
 			bar.a.y += foo.c * 2
 			bar.b = PI
 			,
-		[Foo, Bar],
 	)
-	var entity:= world.new_entity_with_prefab(PrefabPck)
+	var entity:= world.new_entity_with_prefab("Test", PrefabPck)
 	
-	world._world_process(0.0)
-	world._world_process(0.0)
-	world._world_process(0.0)
+	world.run_process("process", 0.0)
+	world.run_process("process", 0.0)
+	world.run_process("process", 0.0)
 	
 	var foo:Foo = entity.get_component(Foo)
 	var bar:Bar = entity.get_component(Bar)

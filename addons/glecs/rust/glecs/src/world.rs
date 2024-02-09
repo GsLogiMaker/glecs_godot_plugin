@@ -4,11 +4,13 @@ use std::collections::HashMap;
 use std::collections::LinkedList;
 use std::ffi::c_void;
 use std::hash::Hash;
+use std::mem::MaybeUninit;
 use std::pin::Pin;
 use std::rc::Rc;
 
 use flecs::EntityId;
 use flecs::Iter;
+use flecs::QueryBuilder;
 use flecs::TermBuilder;
 use flecs::World as FlWorld;
 use godot::engine::notify::NodeNotification;
@@ -23,7 +25,6 @@ use crate::component_definitions::ComponetProperty;
 use crate::entity::EntityLike;
 use crate::entity::_BaseGEEntity;
 use crate::prefab::PrefabDefinition;
-use crate::prefab::_BaseGEPrefab;
 use crate::prefab::PREFAB_COMPONENTS;
 use crate::TYPE_SIZES;
 
@@ -36,16 +37,13 @@ pub struct _BaseGEWorld {
     system_contexts: LinkedList<Pin<Box<ScriptSystemContext>>>,
     gd_entity_map: HashMap<EntityId, Gd<_BaseGEEntity>>,
     prefabs: HashMap<Gd<Script>, Rc<PrefabDefinition>>,
-    relations: HashMap<VariantKey, EntityId>,
+    /// Maps identifiers to entities that serve as tags, relations
+    /// or other things.
+    tag_entities: HashMap<VariantKey, EntityId>,
 	deleting:bool
 }
 #[godot_api]
 impl _BaseGEWorld {
-    #[func]
-    fn _world_process(&mut self, delta:f32) {
-        self.world.progress(delta);
-    }
-
     /// Returns the name of the Script that was registered with the world.
     #[func]
     fn get_script_component_name(
@@ -98,34 +96,6 @@ impl _BaseGEWorld {
             }
         }
 
-        let mut gd_entity = Gd::from_init_fn(|base| {
-            _BaseGEEntity {
-                base,
-                world: self.to_gd(),
-                id: entity.id(),
-				world_deletion: false,
-                gd_components_map: Default::default(),
-            }
-        });
-        gd_entity.bind_mut().set_name(&name);
-        self.gd_entity_map.insert(entity.id(), gd_entity.clone());
-        
-        gd_entity
-    }
-
-    /// Creates a new entity in the world.
-    #[func]
-    fn new_entity_with_prefab(
-        &mut self,
-        prefab:Gd<Script>,
-    ) -> Gd<_BaseGEEntity> {
-        let entity = self.world.entity();
-
-        let prefab_def = self
-            .get_or_add_prefab_definition(prefab);
-
-        entity.add_relation_ids(unsafe {flecs::EcsIsA}, prefab_def.flecs_id);
-
         let gd_entity = Gd::from_init_fn(|base| {
             _BaseGEEntity {
                 base,
@@ -135,14 +105,81 @@ impl _BaseGEWorld {
                 gd_components_map: Default::default(),
             }
         });
+        gd_entity.set_name_by_ref(name, self);
         self.gd_entity_map.insert(entity.id(), gd_entity.clone());
         
         gd_entity
     }
 
+    /// Creates a new entity in the world.
+    #[func]
+    fn new_entity_with_prefab(
+        &mut self,
+        name:String,
+        prefab:Gd<Script>,
+    ) -> Gd<_BaseGEEntity> {
+        let gd_entity = self._new_entity(name, Array::default());
+        let e_id = gd_entity.bind().get_flecs_id();
+
+        let prefab_def = self
+            .get_or_add_prefab_definition(prefab);
+
+        unsafe { flecs::ecs_add_id(
+            self.world.raw(),
+            e_id,
+            flecs::ecs_pair(flecs::EcsIsA, prefab_def.flecs_id),
+        ) };
+
+        gd_entity
+    }
+
+
+    /// Runs all processess associated with the given pipeline.
+    #[func]
+    fn run_pipeline(&mut self, pipeline:Variant, delta:f32) {
+        let raw_world = self.world.raw();
+        let pipeline_id = self.get_or_add_tag_entity(pipeline);
+        unsafe {
+            flecs::ecs_set_pipeline(raw_world, pipeline_id);
+            flecs::ecs_progress(raw_world, delta);
+        }
+    }
+
     // Defines a new system to be run in the world.
     #[func]
-    fn _add_system(&mut self, callable: Callable, terms: Array<Gd<Script>>) {
+    fn _add_system(
+        &mut self,
+        terms: Array<Gd<Script>>,
+        callable: Callable,
+        pipeline:Variant,
+    ) {
+        let nil_id = self.get_or_add_tag_entity(Variant::nil());
+        let pipeline_id = if !self.has_tag_entity(pipeline.clone()) {
+            // Initialize pipeline
+            let pipeline_id = self.get_or_add_tag_entity(pipeline);
+            
+            let mut system_query = flecs::ecs_query_desc_t{
+                ..unsafe { MaybeUninit::zeroed().assume_init() }
+            };
+            system_query.filter.terms[0] = flecs::ecs_term_t {
+                id: pipeline_id,
+                ..unsafe { MaybeUninit::zeroed().assume_init() }
+            };
+
+            unsafe { flecs::ecs_pipeline_init(
+                self.world.raw(),
+                &flecs::ecs_pipeline_desc_t {
+                    entity: pipeline_id,
+                    query: system_query,
+                },
+            ) };
+
+            pipeline_id
+        } else {
+            // Get already made pipeline
+            self.get_or_add_tag_entity(pipeline)
+        };
+
         // Create term list
         let mut term_ids = vec![];
         for i in 0..terms.len() {
@@ -199,7 +236,11 @@ impl _BaseGEWorld {
         }
 
         // System body
-        sys.iter(Self::system_iteration);
+        let sys_id = sys.iter(
+            Self::system_iteration,
+            nil_id,
+        ).id();
+        unsafe { flecs::ecs_add_id(self.world.raw(), sys_id, pipeline_id) };
     }
 
     pub(crate) fn get_component_description(
@@ -238,20 +279,29 @@ impl _BaseGEWorld {
         self.prefabs.get(&script).unwrap().clone()
     }
 
-    pub(crate) fn get_or_add_relation(&mut self, key:Variant) -> EntityId{
+    pub(crate) fn get_or_add_tag_entity(&mut self, key:Variant) -> EntityId {
         if let Ok(entity_gd) = key.try_to::<Gd<_BaseGEEntity>>() {
             return entity_gd.bind().get_flecs_id()
         }
 
         let key = VariantKey {variant: key};
         
-        self.relations.get(&key)
+        self.tag_entities.get(&key)
             .map(|x| *x)
             .unwrap_or_else(|| {
                 let id = self.world.entity().id();
-                self.relations.insert(key, id);
+                self.tag_entities.insert(key, id);
                 id
             })
+    }
+
+    pub(crate) fn has_tag_entity(&mut self, key:Variant) -> bool {
+        if let Ok(entity_gd) = key.try_to::<Gd<_BaseGEEntity>>() {
+            return true
+        }
+
+        let key = VariantKey {variant: key};
+        self.tag_entities.contains_key(&key)
     }
 
     pub(crate) fn layout_from_properties(
@@ -347,7 +397,7 @@ impl INode for _BaseGEWorld {
             system_contexts: Default::default(),
             gd_entity_map: Default::default(),
             prefabs: Default::default(),
-            relations: Default::default(),
+            tag_entities: Default::default(),
 			deleting: false,
         }
     }

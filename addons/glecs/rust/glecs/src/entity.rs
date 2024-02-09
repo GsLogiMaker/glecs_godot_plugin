@@ -80,7 +80,7 @@ impl _BaseGEEntity {
     /// Sets the entity's name.
     #[func]
     fn set_name(&self, value:String) {
-        EntityLike::set_name(self, &value)
+        EntityLike::set_name(self, value)
     }
 
     /// Adds a relationship from this entity to another.
@@ -361,24 +361,20 @@ pub(crate) trait EntityLike: Debug {
         entt.name().into()
     }
 
-    fn set_name(&self, value:&str) {
-        let entt = self.get_world()
-            .bind()
+    fn set_name(&self, value:String) {
+        self.set_name_by_ref(value, &self.get_world().bind());
+    }
+
+    fn set_name_by_ref(&self, mut value:String, world:&_BaseGEWorld) {
+        let entt = world
             .world
             .find_entity(self.get_flecs_id())
             .unwrap();
 
-        if self.get_world().bind().world.lookup(&value).is_some() {
-            // Name is not unique, incremently increase number in name till its unique.
-            let mut name = value.to_owned();
-            increment_name(&mut name);
-            while self.get_world().bind().world.lookup(&value).is_some() {
-                increment_name(&mut name);
-            }
-            entt.named(&name);
-        } else {
-            entt.named(value);
+        while world.world.lookup(&value).is_some() {
+            increment_name(&mut value);
         }
+        entt.named(&value);
     }
 
     fn remove_component(&mut self, component:Gd<Script>) {
@@ -404,7 +400,7 @@ pub(crate) trait EntityLike: Debug {
 
         let raw_world = self.get_world().bind_mut().world.raw();
         let pair = unsafe { flecs::ecs_make_pair(
-            self.get_world().bind_mut().get_or_add_relation(relation),
+            self.get_world().bind_mut().get_or_add_tag_entity(relation),
             with_entity.get_flecs_id()
         ) };
         unsafe { flecs::ecs_add_id(raw_world, self_id, pair) };

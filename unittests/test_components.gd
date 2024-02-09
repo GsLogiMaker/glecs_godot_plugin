@@ -40,14 +40,14 @@ func test_world_deletion():
 	
 func test_simple_system():
 	world.add_system(
+		[Foo],
 		func(foo:Foo):
 			foo.set_value(Vector2(2, 5))
 			,
-		[Foo],
 	)
 	var entity:= world.new_entity("Test", [Foo])
 	
-	world._world_process(1.0)
+	world.run_process(&"process", 1.0)
 	
 	assert_eq(entity.get_component(Foo).get_value(), Vector2(2, 5))
 

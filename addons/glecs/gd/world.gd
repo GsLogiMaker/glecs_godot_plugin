@@ -1,8 +1,12 @@
 
 class_name GEWorldNode extends _BaseGEWorld
 
-func add_system(callable:Callable, terms:Array[Script]) -> void:
-	_add_system(callable, terms)
+func add_system(
+	terms:Array[Script],
+	callable:Callable,
+	pipeline:Variant="process",
+) -> void:
+	_add_system(terms, callable, pipeline)
 
 func new_entity(name:String, with_components:Array[Script] = []) -> _BaseGEEntity:
 	var entity:= _new_entity(name, with_components)

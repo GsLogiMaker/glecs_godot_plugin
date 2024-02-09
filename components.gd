@@ -12,4 +12,3 @@ class List extends GEComponent:
 
 static func move_position(positional:Positional2D, motional:Motional2D) -> void:
 	positional.transform.origin += motional.velocity
-	prints(positional.transform.origin)
