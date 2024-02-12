@@ -6,6 +6,7 @@ var world:GEWorldNode
 
 func before_all():
 	world = GEWorldNode.new()
+	add_child(world)
 
 func after_all():
 	world.free()
@@ -15,7 +16,7 @@ func after_all():
 func test_prefab():
 	world.add_system(
 		[Foo, Bar],
-		func(foo:Foo, bar:Bar):
+		func(_delta:float, foo:Foo, bar:Bar):
 			foo.a = true
 			foo.b += 1
 			foo.c += 1.3
@@ -26,9 +27,9 @@ func test_prefab():
 	)
 	var entity:= world.new_entity_with_prefab("Test", PrefabPck)
 	
-	world.run_process("process", 0.0)
-	world.run_process("process", 0.0)
-	world.run_process("process", 0.0)
+	world.run_pipeline(&"process", 0.0)
+	world.run_pipeline(&"process", 0.0)
+	world.run_pipeline(&"process", 0.0)
 	
 	var foo:Foo = entity.get_component(Foo)
 	var bar:Bar = entity.get_component(Bar)

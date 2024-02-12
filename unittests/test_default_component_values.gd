@@ -15,9 +15,9 @@ func after_all():
 func test_default_values():
 	var entity:= world.new_entity("Test", [Foo])
 	
-	world.run_process("process", 0.0)
-	world.run_process("process", 0.0)
-	world.run_process("process", 0.0)
+	world.run_pipeline("process", 0.0)
+	world.run_pipeline("process", 0.0)
+	world.run_pipeline("process", 0.0)
 	
 	var comp:Foo = entity.get_component(Foo)
 	

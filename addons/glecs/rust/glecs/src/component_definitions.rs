@@ -56,8 +56,6 @@ pub(crate) struct ComponetDefinition {
         for (key, value) in script_properties.iter_shared() {
             let property_type = value.to::<VariantType>();
 
-            
-
             if property_type == VariantType::Nil {
                 i += 1;
                 continue;

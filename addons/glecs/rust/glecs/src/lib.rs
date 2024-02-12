@@ -1,6 +1,7 @@
 
 pub mod component;
 pub mod entity;
+pub mod event;
 pub mod prefab;
 pub mod world;
 

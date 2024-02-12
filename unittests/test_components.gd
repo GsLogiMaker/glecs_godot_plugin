@@ -39,15 +39,16 @@ func test_world_deletion():
 	assert_eq(is_instance_valid(foo), false)
 	
 func test_simple_system():
-	world.add_system(
+	world.new_process_system(
 		[Foo],
-		func(foo:Foo):
+		func(_delta:float, foo:Foo):
 			foo.set_value(Vector2(2, 5))
 			,
 	)
 	var entity:= world.new_entity("Test", [Foo])
 	
-	world.run_process(&"process", 1.0)
+	await get_tree().process_frame # Skip this frame
+	await get_tree().process_frame # Process is called first time here
 	
 	assert_eq(entity.get_component(Foo).get_value(), Vector2(2, 5))
 
