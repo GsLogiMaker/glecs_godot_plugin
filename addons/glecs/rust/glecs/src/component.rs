@@ -1,24 +1,28 @@
 
 use std::fmt::Debug;
+use std::ptr;
 use std::rc::Rc;
 use std::mem::size_of;
 
 use flecs::EntityId;
 use godot::engine::notify::ObjectNotification;
+use godot::engine::Script;
 use godot::prelude::*;
 
 use crate::component_definitions::ComponetDefinition;
 use crate::component_definitions::ComponetProperty;
 use crate::entity::FREED_BY_ENTITY_TAG;
 use crate::show_error;
+use crate::world::_BaseGEWorld;
 
 /// An ECS component.
 #[derive(GodotClass)]
 #[class(base=Object)]
 pub struct _BaseGEComponent {
     #[base] pub(crate) base: Base<Object>,
-    pub(crate) data: *mut [u8],
     pub(crate) component_definition: Rc<ComponetDefinition>,
+    pub(crate) world: Gd<_BaseGEWorld>,
+    pub(crate) get_data_fn_ptr: Box<dyn Fn(&Self) -> *mut [u8]>,
 }
 #[godot_api]
 impl _BaseGEComponent {
@@ -35,8 +39,8 @@ impl _BaseGEComponent {
             )
         }
         unsafe {
-            self.data.as_mut().unwrap().copy_from_slice(
-                from_component.bind().data.as_ref().unwrap(),
+            self.get_data().as_mut().unwrap().copy_from_slice(
+                from_component.bind().get_data().as_ref().unwrap(),
             );
         }
     }
@@ -63,6 +67,28 @@ impl _BaseGEComponent {
     #[func]
     fn free(&self) {
         return;
+    }
+
+    pub(crate) fn new_default_data_getter(entity:EntityId) -> Box<dyn Fn(&Self) -> *mut [u8]> {
+        Box::new(move |this| {
+            let value = unsafe { flecs::ecs_get_mut_id(
+                this.world.bind().world.raw(),
+                entity,
+                this.get_flecs_id(),
+            ) };
+            unsafe { std::slice::from_raw_parts_mut(
+                value as *mut u8,
+                this.component_definition.layout.size(),
+            ) }
+        })
+    }
+
+    pub(crate) fn new_empty_data_getter() -> Box<dyn Fn(&Self) -> *mut [u8]> {
+        Box::new(|_this| { &mut [] })
+    }
+
+    fn get_data(&self) -> *mut [u8] {
+        ( &(*self.get_data_fn_ptr) )(self)
     }
 
     /// Returns the Flecs ID of this component's type.
@@ -100,45 +126,59 @@ impl _BaseGEComponent {
                 return variant;
             }
         }
+
+        fn get_param_variant(
+            data:*mut [u8],
+            property_data: &ComponetProperty
+        ) -> Variant {
+            unsafe {
+                let param:*mut u8 = &mut (*data)[property_data.offset];
+                let value = param as *mut Variant;
+                let copied = (*value).clone();
+                return copied;
+            }
+        }
         
+        let data = self.get_data();
         let value =  match property_data.gd_type_id {
-            VariantType::Bool => get_param::<bool>(self.data, property_data),
-            VariantType::Int => get_param::<i32>(self.data, property_data),
-            VariantType::Float => get_param::<f32>(self.data, property_data),
-            VariantType::String => get_param::<GString>(self.data, property_data),
-            VariantType::Vector2 => get_param::<Vector2>(self.data, property_data),
-            VariantType::Vector2i => get_param::<Vector2i>(self.data, property_data),
-            VariantType::Rect2 => get_param::<Rect2>(self.data, property_data),
-            VariantType::Rect2i => get_param::<Rect2i>(self.data, property_data),
-            VariantType::Vector3 => get_param::<Vector3>(self.data, property_data),
-            VariantType::Vector3i => get_param::<Vector3i>(self.data, property_data),
-            VariantType::Transform2D => get_param::<Transform2D>(self.data, property_data),
-            VariantType::Vector4 => get_param::<Vector4>(self.data, property_data),
-            VariantType::Vector4i => get_param::<Vector4i>(self.data, property_data),
-            VariantType::Plane => get_param::<Plane>(self.data, property_data),
-            VariantType::Quaternion => get_param::<Quaternion>(self.data, property_data),
-            VariantType::Aabb => get_param::<Aabb>(self.data, property_data),
-            VariantType::Basis => get_param::<Basis>(self.data, property_data),
-            VariantType::Transform3D => get_param::<Transform3D>(self.data, property_data),
-            VariantType::Projection => get_param::<Projection>(self.data, property_data),
-            VariantType::Color => get_param::<Color>(self.data, property_data),
-            VariantType::StringName => get_param::<StringName>(self.data, property_data),
-            VariantType::NodePath => get_param::<NodePath>(self.data, property_data),
-            VariantType::Rid => get_param::<Rid>(self.data, property_data),
-            VariantType::Object => todo!("Object doesn't support conversion to variant or copying"), /* get_param::<Object>(self.data, property_data), */
-            VariantType::Callable => get_param::<Callable>(self.data, property_data),
-            VariantType::Signal => get_param::<Signal>(self.data, property_data),
-            VariantType::Dictionary => todo!("Reading causes crashes"), /* get_param::<Dictionary>(self.data, property_data), */
-            VariantType::Array => todo!("Reading causes crashes"), /* get_param::<Array<Variant>>(self.data, property_data), */
-            VariantType::PackedByteArray => get_param::<PackedByteArray>(self.data, property_data),
-            VariantType::PackedInt32Array => get_param::<PackedInt32Array>(self.data, property_data),
-            VariantType::PackedInt64Array => get_param::<PackedInt64Array>(self.data, property_data),
-            VariantType::PackedFloat32Array => get_param::<PackedFloat32Array>(self.data, property_data),
-            VariantType::PackedFloat64Array => get_param::<PackedFloat64Array>(self.data, property_data),
-            VariantType::PackedStringArray => get_param::<PackedStringArray>(self.data, property_data),
-            VariantType::PackedVector2Array => get_param::<PackedVector2Array>(self.data, property_data),
-            VariantType::PackedVector3Array => get_param::<PackedVector3Array>(self.data, property_data),
-            VariantType::PackedColorArray => get_param::<PackedColorArray>(self.data, property_data),
+            VariantType::Nil => Variant::nil(),
+            VariantType::Bool => get_param::<bool>(data, property_data),
+            VariantType::Int => get_param::<i32>(data, property_data),
+            VariantType::Float => get_param::<f32>(data, property_data),
+            VariantType::String => get_param::<GString>(data, property_data),
+            VariantType::Vector2 => get_param::<Vector2>(data, property_data),
+            VariantType::Vector2i => get_param::<Vector2i>(data, property_data),
+            VariantType::Rect2 => get_param::<Rect2>(data, property_data),
+            VariantType::Rect2i => get_param::<Rect2i>(data, property_data),
+            VariantType::Vector3 => get_param::<Vector3>(data, property_data),
+            VariantType::Vector3i => get_param::<Vector3i>(data, property_data),
+            VariantType::Transform2D => get_param::<Transform2D>(data, property_data),
+            VariantType::Vector4 => get_param::<Vector4>(data, property_data),
+            VariantType::Vector4i => get_param::<Vector4i>(data, property_data),
+            VariantType::Plane => get_param::<Plane>(data, property_data),
+            VariantType::Quaternion => get_param::<Quaternion>(data, property_data),
+            VariantType::Aabb => get_param::<Aabb>(data, property_data),
+            VariantType::Basis => get_param::<Basis>(data, property_data),
+            VariantType::Transform3D => get_param::<Transform3D>(data, property_data),
+            VariantType::Projection => get_param::<Projection>(data, property_data),
+            VariantType::Color => get_param::<Color>(data, property_data),
+            VariantType::StringName => get_param::<StringName>(data, property_data),
+            VariantType::NodePath => get_param::<NodePath>(data, property_data),
+            VariantType::Rid => get_param::<Rid>(data, property_data),
+            VariantType::Object => get_param_variant(data, property_data),
+            VariantType::Callable => get_param::<Callable>(data, property_data),
+            VariantType::Signal => get_param::<Signal>(data, property_data),
+            VariantType::Dictionary => get_param_variant(data, property_data),
+            VariantType::Array => get_param_variant(data, property_data),
+            VariantType::PackedByteArray => get_param::<PackedByteArray>(data, property_data),
+            VariantType::PackedInt32Array => get_param::<PackedInt32Array>(data, property_data),
+            VariantType::PackedInt64Array => get_param::<PackedInt64Array>(data, property_data),
+            VariantType::PackedFloat32Array => get_param::<PackedFloat32Array>(data, property_data),
+            VariantType::PackedFloat64Array => get_param::<PackedFloat64Array>(data, property_data),
+            VariantType::PackedStringArray => get_param::<PackedStringArray>(data, property_data),
+            VariantType::PackedVector2Array => get_param::<PackedVector2Array>(data, property_data),
+            VariantType::PackedVector3Array => get_param::<PackedVector3Array>(data, property_data),
+            VariantType::PackedColorArray => get_param::<PackedColorArray>(data, property_data),
 
             _ => todo!(),
         };
@@ -163,14 +203,23 @@ impl _BaseGEComponent {
                 return false;
             };
 
-        if value.get_type() != property_data.gd_type_id {
-            show_error!(
-                "Failed to set property",
-                "Expected type {:?}, but got type {:?}.",
-                property_data.gd_type_id,
-                value.get_type(),
-            );
-            return true;
+        let value_type = value.get_type();
+        let property_type = property_data.gd_type_id;
+        'cancel_type_check: {
+            if value_type != property_type {
+                if
+                property_type == VariantType::Object
+                    && value_type == VariantType::Nil
+                { break 'cancel_type_check }
+
+                show_error!(
+                    "Failed to set property",
+                    "Expected type {:?}, but got type {:?}.",
+                    property_type,
+                    value_type,
+                );
+                return true;
+            }
         }
         
         fn set_param<T: FromGodot + ToGodot + Debug + Clone>(
@@ -180,48 +229,63 @@ impl _BaseGEComponent {
         ) {
             unsafe {
                 let param_ptr:*mut u8 = &mut (*data)[property_data.offset];
-                *(param_ptr as *mut T) = value.to::<T>().clone();
+                *(param_ptr as *mut T) = value.to::<T>();
+            }
+        }
+
+        fn set_param_variant(
+            data:*mut [u8],
+            value: Variant,
+            property_data: &ComponetProperty,
+        ) {
+            unsafe {
+                let param_ptr = (
+                    ( &mut (*data)[property_data.offset] ) as *mut u8
+                ).cast::<Variant>();
+                *param_ptr = value;
             }
         }
         
-        match property_data.gd_type_id {
-            VariantType::Bool => set_param::<bool>(self.data, value, property_data),
-            VariantType::Int => set_param::<i32>(self.data, value, property_data),
-            VariantType::Float => set_param::<f32>(self.data, value, property_data),
-            VariantType::String => set_param::<GString>(self.data, value, property_data),
-            VariantType::Vector2 => set_param::<Vector2>(self.data, value, property_data),
-            VariantType::Vector2i => set_param::<Vector2i>(self.data, value, property_data),
-            VariantType::Rect2 => set_param::<Rect2>(self.data, value, property_data),
-            VariantType::Rect2i => set_param::<Rect2i>(self.data, value, property_data),
-            VariantType::Vector3 => set_param::<Vector3>(self.data, value, property_data),
-            VariantType::Vector3i => set_param::<Vector3i>(self.data, value, property_data),
-            VariantType::Transform2D => set_param::<Transform2D>(self.data, value, property_data),
-            VariantType::Vector4 => set_param::<Vector4>(self.data, value, property_data),
-            VariantType::Vector4i => set_param::<Vector4i>(self.data, value, property_data),
-            VariantType::Plane => set_param::<Plane>(self.data, value, property_data),
-            VariantType::Quaternion => set_param::<Quaternion>(self.data, value, property_data),
-            VariantType::Aabb => set_param::<Aabb>(self.data, value, property_data),
-            VariantType::Basis => set_param::<Basis>(self.data, value, property_data),
-            VariantType::Transform3D => set_param::<Transform3D>(self.data, value, property_data),
-            VariantType::Projection => set_param::<Projection>(self.data, value, property_data),
-            VariantType::Color => set_param::<Color>(self.data, value, property_data),
-            VariantType::StringName => set_param::<StringName>(self.data, value, property_data),
-            VariantType::NodePath => set_param::<NodePath>(self.data, value, property_data),
-            VariantType::Rid => set_param::<Rid>(self.data, value, property_data),
-            VariantType::Object => todo!("Object doesn't support conversion to variant or copying"), /* set_param::<Object>(self.data, value, property_data), */
-            VariantType::Callable => set_param::<Callable>(self.data, value, property_data),
-            VariantType::Signal => set_param::<Signal>(self.data, value, property_data),
-            VariantType::Dictionary => set_param::<Dictionary>(self.data, value, property_data),
-            VariantType::Array => set_param::<Array<Variant>>(self.data, value, property_data),
-            VariantType::PackedByteArray => set_param::<PackedByteArray>(self.data, value, property_data),
-            VariantType::PackedInt32Array => set_param::<PackedInt32Array>(self.data, value, property_data),
-            VariantType::PackedInt64Array => set_param::<PackedInt64Array>(self.data, value, property_data),
-            VariantType::PackedFloat32Array => set_param::<PackedFloat32Array>(self.data, value, property_data),
-            VariantType::PackedFloat64Array => set_param::<PackedFloat64Array>(self.data, value, property_data),
-            VariantType::PackedStringArray => set_param::<PackedStringArray>(self.data, value, property_data),
-            VariantType::PackedVector2Array => set_param::<PackedVector2Array>(self.data, value, property_data),
-            VariantType::PackedVector3Array => set_param::<PackedVector3Array>(self.data, value, property_data),
-            VariantType::PackedColorArray => set_param::<PackedColorArray>(self.data, value, property_data),
+        let data = self.get_data();
+        match property_type {
+            VariantType::Nil => {},
+            VariantType::Bool => set_param::<bool>(data, value, property_data),
+            VariantType::Int => set_param::<i32>(data, value, property_data),
+            VariantType::Float => set_param::<f32>(data, value, property_data),
+            VariantType::String => set_param::<GString>(data, value, property_data),
+            VariantType::Vector2 => set_param::<Vector2>(data, value, property_data),
+            VariantType::Vector2i => set_param::<Vector2i>(data, value, property_data),
+            VariantType::Rect2 => set_param::<Rect2>(data, value, property_data),
+            VariantType::Rect2i => set_param::<Rect2i>(data, value, property_data),
+            VariantType::Vector3 => set_param::<Vector3>(data, value, property_data),
+            VariantType::Vector3i => set_param::<Vector3i>(data, value, property_data),
+            VariantType::Transform2D => set_param::<Transform2D>(data, value, property_data),
+            VariantType::Vector4 => set_param::<Vector4>(data, value, property_data),
+            VariantType::Vector4i => set_param::<Vector4i>(data, value, property_data),
+            VariantType::Plane => set_param::<Plane>(data, value, property_data),
+            VariantType::Quaternion => set_param::<Quaternion>(data, value, property_data),
+            VariantType::Aabb => set_param::<Aabb>(data, value, property_data),
+            VariantType::Basis => set_param::<Basis>(data, value, property_data),
+            VariantType::Transform3D => set_param::<Transform3D>(data, value, property_data),
+            VariantType::Projection => set_param::<Projection>(data, value, property_data),
+            VariantType::Color => set_param::<Color>(data, value, property_data),
+            VariantType::StringName => set_param::<StringName>(data, value, property_data),
+            VariantType::NodePath => set_param::<NodePath>(data, value, property_data),
+            VariantType::Rid => set_param::<Rid>(data, value, property_data),
+            VariantType::Object => set_param_variant(data, value, property_data),
+            VariantType::Callable => set_param::<Callable>(data, value, property_data),
+            VariantType::Signal => set_param::<Signal>(data, value, property_data),
+            VariantType::Dictionary => set_param_variant(data, value, property_data),
+            VariantType::Array => set_param_variant(data, value, property_data),
+            VariantType::PackedByteArray => set_param::<PackedByteArray>(data, value, property_data),
+            VariantType::PackedInt32Array => set_param::<PackedInt32Array>(data, value, property_data),
+            VariantType::PackedInt64Array => set_param::<PackedInt64Array>(data, value, property_data),
+            VariantType::PackedFloat32Array => set_param::<PackedFloat32Array>(data, value, property_data),
+            VariantType::PackedFloat64Array => set_param::<PackedFloat64Array>(data, value, property_data),
+            VariantType::PackedStringArray => set_param::<PackedStringArray>(data, value, property_data),
+            VariantType::PackedVector2Array => set_param::<PackedVector2Array>(data, value, property_data),
+            VariantType::PackedVector3Array => set_param::<PackedVector3Array>(data, value, property_data),
+            VariantType::PackedColorArray => set_param::<PackedColorArray>(data, value, property_data),
 
             _ => todo!(),
         }
@@ -246,6 +310,18 @@ impl _BaseGEComponent {
                 );
                 return false;
             };
+
+        let value_type = value.get_type();
+        let property_type = property_data.gd_type_id;
+        if value_type != property_type && value_type != VariantType::Nil{
+            show_error!(
+                "Failed to set property",
+                "Expected type {:?}, but got type {:?}.",
+                property_type,
+                value_type,
+            );
+            return true;
+        }
         
         fn init_param<T: FromGodot + ToGodot + Debug + Default + Clone>(
             data:*mut [u8],
@@ -260,13 +336,33 @@ impl _BaseGEComponent {
             unsafe {
                 let param_ptr:*mut u8 = &mut (*data)[property_data.offset];
                 let param_slice = std::slice::from_raw_parts_mut(param_ptr, size_of::<T>());
-                let value_ptr:*const T = &default_value.to::<T>().clone();
+                let value_ptr:*const T = &default_value.to::<T>();
                 let value_slice = std::slice::from_raw_parts(value_ptr as *const u8, size_of::<T>());
+                param_slice.copy_from_slice(value_slice);
+            }
+        }
+
+        fn init_param_variant(
+            data:*mut [u8],
+            value: Variant,
+            property_data: &ComponetProperty,
+        ) {
+            let default_value = if value != Variant::nil() {
+                value
+            } else {
+                Variant::default()
+            };
+            unsafe {
+                let param_ptr:*mut u8 = &mut (*data)[property_data.offset];
+                let param_slice = std::slice::from_raw_parts_mut(param_ptr, size_of::<Variant>());
+                let value_ptr:*const Variant = &default_value;
+                let value_slice = std::slice::from_raw_parts(value_ptr as *const u8, size_of::<Variant>());
                 param_slice.copy_from_slice(value_slice);
             }
         }
         
         match property_data.gd_type_id {
+            VariantType::Nil => {},
             VariantType::Bool => init_param::<bool>(data, value, property_data),
             VariantType::Int => init_param::<i32>(data, value, property_data),
             VariantType::Float => init_param::<f32>(data, value, property_data),
@@ -290,11 +386,11 @@ impl _BaseGEComponent {
             VariantType::StringName => init_param::<StringName>(data, value, property_data),
             VariantType::NodePath => init_param::<NodePath>(data, value, property_data),
             VariantType::Rid => todo!("Can't initialize RIDs with a sane default"),
-            VariantType::Object => todo!("Objects don't support conversion to variant or copying"), /* get_param::<Object>(data, property_data), */
+            VariantType::Object => init_param_variant(data, value, property_data),
             VariantType::Callable => todo!("Can't initialize callables with a sane default"),
             VariantType::Signal => todo!("Can't initialize signals with a sane default"),
-            VariantType::Dictionary => init_param::<Dictionary>(data, value, property_data),
-            VariantType::Array => init_param::<Array<Variant>>(data, value, property_data),
+            VariantType::Dictionary => init_param_variant(data, value, property_data),
+            VariantType::Array => init_param_variant(data, value, property_data),
             VariantType::PackedByteArray => init_param::<PackedByteArray>(data, value, property_data),
             VariantType::PackedInt32Array => init_param::<PackedInt32Array>(data, value, property_data),
             VariantType::PackedInt64Array => init_param::<PackedInt64Array>(data, value, property_data),

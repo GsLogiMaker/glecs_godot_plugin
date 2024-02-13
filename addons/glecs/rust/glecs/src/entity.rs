@@ -270,10 +270,14 @@ pub(crate) trait EntityLike: Debug {
             );
         }
 
+        let world_gd_clone = world_gd.clone();
         let mut comp = Gd::from_init_fn(|base| {
             let base_comp = _BaseGEComponent {
                 base,
-                data: component_data,
+                world: world_gd_clone,
+                get_data_fn_ptr: _BaseGEComponent::new_default_data_getter(
+                    self.get_flecs_id()
+                ),
                 component_definition,
             };
             base_comp
@@ -284,7 +288,7 @@ pub(crate) trait EntityLike: Debug {
     }
 
     fn get_component(&mut self, component:Gd<Script>) -> Option<Gd<_BaseGEComponent>> {
-        let mut world_gd = self.get_world();
+        let world_gd = self.get_world();
         let flecs_id = self.get_flecs_id();
         
         let world = world_gd.bind();
@@ -331,14 +335,17 @@ pub(crate) trait EntityLike: Debug {
             );
             return None;
         }
-        let component_data = entt.get_mut_dynamic(&component_symbol);
 
-        
+
+        let world_gd_clone = world_gd.clone();
         let mut comp = Gd::from_init_fn(|base| {
             let base_comp = _BaseGEComponent {
                 base,
-                data: component_data,
-                component_definition: component_definition.clone(),
+                world: world_gd_clone,
+                get_data_fn_ptr: _BaseGEComponent::new_default_data_getter(
+                    self.get_flecs_id()
+                ),
+                component_definition,
             };
             base_comp
         });

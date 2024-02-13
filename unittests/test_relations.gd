@@ -5,6 +5,7 @@ var world:GEWorldNode
 
 func before_all():
 	world = GEWorldNode.new()
+	add_child(world)
 
 func after_all():
 	world.free()
@@ -14,7 +15,7 @@ func after_all():
 func test_bools():
 	world.add_system(
 		[],
-		func():
+		func(_delta:float):
 			,
 	)
 	

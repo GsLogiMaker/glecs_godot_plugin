@@ -46,7 +46,6 @@ func test_pipelines():
 	world.new_pipeline(&"2")
 	
 	var entity:= world.new_entity("Test", [Bools, Ints])
-	var bools:Bools = entity.get_component(Bools)
 	var ints:Ints = entity.get_component(Ints)
 	
 	world.add_system(
@@ -144,6 +143,83 @@ func test_byte_arrays():
 	
 	assert_eq(entity.get_component(ByteArrays).a, PackedByteArray([7, 14, 12]))
 
+func test_textures():
+	world.add_system(
+		[Textures],
+		func(_delta:float, x:Textures):
+			x.a = x.b
+			,
+	)
+	
+	var entity:= world.new_entity("Test", [Textures])
+	entity.get_component(Textures).a = null
+	entity.get_component(Textures).b = load("res://icon.svg")
+	
+	# Assert that setting Object to null works
+	assert_eq(entity.get_component(Textures).b, load("res://icon.svg"))
+	entity.get_component(Textures).b = null
+	assert_eq(entity.get_component(Textures).b, null)
+	entity.get_component(Textures).b = load("res://icon.svg")
+	
+	world.run_pipeline(&"process", 0.0)
+	world.run_pipeline(&"process", 0.0)
+	world.run_pipeline(&"process", 0.0)
+	
+	assert_eq(entity.get_component(Textures).a, load("res://icon.svg"))
+	assert_eq(entity.get_component(Textures).b, load("res://icon.svg"))
+
+func test_ref_counts():
+	var rc:= RefCounted.new()
+	assert_eq(rc.get_reference_count(), 1)
+	
+	var entity:= world.new_entity("Test", [RefCounts])
+	
+	entity.get_component(RefCounts).a = rc
+	assert_eq(rc.get_reference_count(), 2)
+	
+	entity.get_component(RefCounts).a = null
+	assert_eq(rc.get_reference_count(), 1)
+
+func test_arrays():
+	world.add_system(
+		[Arrays],
+		func(_delta:float, x:Arrays):
+			for i in mini(x.a.size(), x.b.size()):
+				x.b[i] += x.a[i]
+			,
+	)
+	
+	var entity:= world.new_entity("Test", [Arrays])
+	entity.get_component(Arrays).a = [23, 4, 6]
+	entity.get_component(Arrays).b = [1, 2, 1]
+	
+	world.run_pipeline(&"process", 0.0)
+	world.run_pipeline(&"process", 0.0)
+	world.run_pipeline(&"process", 0.0)
+	
+	assert_eq(entity.get_component(Arrays).a, [23, 4, 6])
+	assert_eq(entity.get_component(Arrays).b, [70, 14, 19])
+
+
+func test_dicts():
+	world.add_system(
+		[Dicts],
+		func(_delta:float, x:Dicts):
+			x.b["value"] += x.a["add_by"]
+			,
+	)
+	
+	var entity:= world.new_entity("Test", [Dicts])
+	entity.get_component(Dicts).a = {"add_by": 5}
+	entity.get_component(Dicts).b = {"value": 2}
+	
+	world.run_pipeline(&"process", 0.0)
+	world.run_pipeline(&"process", 0.0)
+	world.run_pipeline(&"process", 0.0)
+	
+	assert_eq(entity.get_component(Dicts).a, {"add_by":5})
+	assert_eq(entity.get_component(Dicts).b, {"value":17})
+
 #endregion
 
 #region Components
@@ -205,6 +281,54 @@ class ByteArrays extends GEComponent:
 		get: return getc(&"a")
 		set(v): setc(&"a", v)
 	var b:PackedByteArray:
+		get: return getc(&"b")
+		set(v): setc(&"b", v)
+
+class Textures extends GEComponent:
+	const PROPS:= {
+		a = TYPE_OBJECT,
+		b = TYPE_OBJECT,
+	}
+	var a:Texture2D:
+		get: return getc(&"a")
+		set(v): setc(&"a", v)
+	var b:Texture2D:
+		get: return getc(&"b")
+		set(v): setc(&"b", v)
+
+class RefCounts extends GEComponent:
+	const PROPS:= {
+		a = TYPE_OBJECT,
+		b = TYPE_OBJECT,
+	}
+	var a:RefCounted:
+		get: return getc(&"a")
+		set(v): setc(&"a", v)
+	var b:RefCounted:
+		get: return getc(&"b")
+		set(v): setc(&"b", v)
+
+class Arrays extends GEComponent:
+	const PROPS:= {
+		a = TYPE_ARRAY,
+		b = TYPE_ARRAY,
+	}
+	var a:Array:
+		get: return getc(&"a")
+		set(v): setc(&"a", v)
+	var b:Array:
+		get: return getc(&"b")
+		set(v): setc(&"b", v)
+
+class Dicts extends GEComponent:
+	const PROPS:= {
+		a = TYPE_DICTIONARY,
+		b = TYPE_DICTIONARY,
+	}
+	var a:Dictionary:
+		get: return getc(&"a")
+		set(v): setc(&"a", v)
+	var b:Dictionary:
 		get: return getc(&"b")
 		set(v): setc(&"b", v)
 

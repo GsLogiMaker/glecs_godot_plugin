@@ -96,9 +96,7 @@ impl _BaseGEWorld {
             entity = entity.add_id(comp_def.flecs_id);
 
             let data = entity.get_mut_dynamic(&comp_def.name.to_string());
-
-            i += 1;
-
+            
             // Initialize component properties
             // TODO: Initialize properties in deterministic order
             for property_name in comp_def.parameters.keys() {
@@ -112,6 +110,8 @@ impl _BaseGEWorld {
                     default_value,
                 );
             }
+
+            i += 1;
         }
 
         let gd_entity = Gd::from_init_fn(|base| {
@@ -512,7 +512,9 @@ impl _BaseGEWorld {
 
 				context.term_accesses[field_i as usize]
 					.bind_mut()
-					.data = data;
+					.get_data_fn_ptr = Box::new(move |_self| {
+                        data
+                    });
 			}
 
 			let _result = context.callable.callv(
@@ -583,7 +585,10 @@ impl _BaseGEWorld {
 
 				context.term_accesses[field_i as usize]
 					.bind_mut()
-					.data = data;
+                    // TODO: Optimize away box allocation
+					.get_data_fn_ptr = Box::new(move |_self| {
+                        data
+                    });
 			}
 			
 			let _result = context.callable.callv(
@@ -734,16 +739,22 @@ pub(crate) struct ScriptSystemContext {
             if script_type != component_class_name {
                 continue
             }
-            let mut compopnent_access = Gd
-                ::<_BaseGEComponent>
-                ::from_init_fn(|base| {
-                    _BaseGEComponent {
-                        base,
-                        data: &mut [],
-                        component_definition: world
-                            .get_or_add_component(&term_script),
-                    }
-                });
+
+            let mut compopnent_access = Gd::from_init_fn(|base| {
+                let base_comp = _BaseGEComponent {
+                    base,
+                    world: world.to_gd(),
+                    get_data_fn_ptr: _BaseGEComponent::new_empty_data_getter(),
+                    component_definition: world
+                        .get_or_add_component(&term_script),
+                };
+                base_comp
+            });
+            compopnent_access
+                .bind_mut()
+                .base_mut()
+                .set_script(term_script.to_variant());
+
             compopnent_access.set_script(term_script.to_variant());
             args.push(compopnent_access.to_variant());
             tarm_accesses.push(compopnent_access);

@@ -39,11 +39,11 @@ const TYPE_SIZES:&'static [usize] = &[
     /* STRING_NAME */ size_of::<StringName>(),
     /* NODE_PATH */ size_of::<NodePath>(),
     /* RID */ size_of::<Rid>(),
-    /* OBJECT */ size_of::<Object>(),
+    /* OBJECT */ size_of::<Variant>(), // Objects are stored in components as Variant
     /* CALLABLE */ size_of::<Callable>(),
     /* SIGNAL */ size_of::<Signal>(),
-    /* DICTIONARY */ size_of::<Dictionary>(),
-    /* ARRAY */ size_of::<Array<()>>(),
+    /* DICTIONARY */ size_of::<Variant>(), // Dictionaries are stored in components as Variant
+    /* ARRAY */ size_of::<Variant>(), // Arrays are stored in components as Variant
     /* PACKED_BYTE_ARRAY */ size_of::<PackedByteArray>(),
     /* PACKED_INT32_ARRAY */ size_of::<PackedInt32Array>(),
     /* PACKED_INT64_ARRAY */ size_of::<PackedInt64Array>(),
