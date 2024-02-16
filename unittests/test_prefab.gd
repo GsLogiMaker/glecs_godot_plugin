@@ -14,17 +14,17 @@ func after_all():
 #region Tests
 
 func test_prefab():
-	world.add_system(
-		[Foo, Bar],
-		func(_delta:float, foo:Foo, bar:Bar):
+	world.new_system() \
+		.with(Foo) \
+		.with(Bar) \
+		.for_each(func(_delta:float, foo:Foo, bar:Bar):
 			foo.a = true
 			foo.b += 1
 			foo.c += 1.3
 			bar.a.x += foo.c
 			bar.a.y += foo.c * 2
 			bar.b = PI
-			,
-	)
+			)
 	var entity:= world.new_entity_with_prefab("Test", PrefabPck)
 	
 	world.run_pipeline(&"process", 0.0)

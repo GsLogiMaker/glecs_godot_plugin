@@ -1,12 +1,10 @@
 
 use std::fmt::Debug;
-use std::ptr;
 use std::rc::Rc;
 use std::mem::size_of;
 
 use flecs::EntityId;
 use godot::engine::notify::ObjectNotification;
-use godot::engine::Script;
 use godot::prelude::*;
 
 use crate::component_definitions::ComponetDefinition;
@@ -104,8 +102,7 @@ impl _BaseGEComponent {
 	) -> Variant {
         let Some(property_data) = self
             .component_definition
-            .parameters
-            .get(&property)
+            .get_property(&property)
             else {
                 show_error!(
                     "Failed to get property",
@@ -194,8 +191,7 @@ impl _BaseGEComponent {
 	) -> bool {
         let Some(property_data) = self
             .component_definition
-            .parameters
-            .get(&property) else {
+            .get_property(&property) else {
                 show_error!(
                     "Failed to set property",
                     "No property named \"{}\" in component of type \"{}\"",
@@ -303,8 +299,7 @@ impl _BaseGEComponent {
         value:Variant, // TODO: Utilize the initialization value
     ) -> bool {
         let Some(property_data) = description
-            .parameters
-            .get(&property) else {
+            .get_property(&property) else {
                 show_error!(
                     "Property initialization failed",
                     "Can't write to {} in {{component}}. Component has no property with that name",

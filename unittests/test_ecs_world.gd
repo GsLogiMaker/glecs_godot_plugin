@@ -39,12 +39,12 @@ func test_world_deletion():
 	assert_eq(is_instance_valid(foo), false)
 	
 func test_simple_system():
-	world.add_system(
-		[Foo],
-		func(_delta:float, foo:Foo):
+	world.new_system() \
+		.with(Foo) \
+		.for_each(func(_delta:float, foo:Foo):
 			foo.setc(&"vec", 2.67)
-			,
-	)
+			)
+			
 	var entity:= world.new_entity("Test", [Foo])
 	
 	world.run_pipeline("process", 1.0)

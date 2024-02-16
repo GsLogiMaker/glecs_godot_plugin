@@ -285,17 +285,15 @@ pub(crate) trait EntityLike: Debug {
 
         // Initialize component properties
         // TODO: Initialize properties in deterministic order
-        for (i, property_name) in
-            component_definition.parameters.keys().enumerate()
+        for (i, property) in
+            component_definition.parameters.iter().enumerate()
         {
-            
-
             let default_value = Variant::nil();
             _BaseGEComponent::_initialize_property(
                 component_data,
                 component_definition.as_ref(),
-                property_name.clone(),
-                value_from_initial_data(&with_data, i, property_name),
+                property.name.clone(),
+                value_from_initial_data(&with_data, i, &property.name),
             );
         }
 

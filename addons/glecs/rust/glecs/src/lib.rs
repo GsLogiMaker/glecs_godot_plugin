@@ -3,6 +3,7 @@ pub mod component;
 pub mod entity;
 pub mod event;
 pub mod prefab;
+pub mod queries;
 pub mod world;
 
 pub(crate) mod component_definitions;

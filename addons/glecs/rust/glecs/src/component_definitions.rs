@@ -18,7 +18,7 @@ const COMPONENT_PROPERTIES_DICT:&str = "PROPS";
 #[derive(Debug, Clone)]
 pub(crate) struct ComponetDefinition {
     pub(crate) name: StringName,
-    pub(crate) parameters: HashMap<StringName, ComponetProperty>,
+    pub(crate) parameters: Vec<ComponetProperty>,
     pub(crate) flecs_id: EntityId,
     pub(crate) script_id: InstanceId,
     pub(crate) layout: Layout,
@@ -50,7 +50,7 @@ pub(crate) struct ComponetDefinition {
                 Dictionary::default()
             });
         
-        let mut component_properties = HashMap::default();
+        let mut component_properties = Vec::default();
         let mut offset = 0;
         let mut i = 0;
         for (key, value) in script_properties.iter_shared() {
@@ -75,8 +75,7 @@ pub(crate) struct ComponetDefinition {
                 }
             };
 
-            component_properties.insert(
-                property_name.clone(),
+            component_properties.push(
                 ComponetProperty {
                     name: property_name,
                     gd_type_id: property_type,
@@ -101,6 +100,18 @@ pub(crate) struct ComponetDefinition {
             .component_dynamic(name, layout);
         
         script_component
+    }
+
+    pub(crate) fn get_property(
+        &self,
+        name:&StringName,
+    ) -> Option<&ComponetProperty> {
+        for p in self.parameters.iter() {
+            if &p.name == name {
+                return Some(&p)
+            }
+        }
+        None
     }
 }
 
@@ -202,6 +213,7 @@ pub(crate) struct ComponentDefinitions {
     pub(crate) name_map:HashMap<StringName, usize>,
     pub(crate) flecs_id_map:HashMap<EntityId, usize>,
     pub(crate) script_id_map:HashMap<InstanceId, usize>,
+    pub(crate) back_map:HashMap<EntityId, Gd<Script>>,
 } impl ComponentDefinitions {
     pub(crate) fn add_mapping(
         &mut self,
@@ -213,6 +225,7 @@ pub(crate) struct ComponentDefinitions {
         self.name_map.insert(name_map, index);
         self.flecs_id_map.insert(flecs_id_map, index);
         self.script_id_map.insert(script_id_map, index);
+        self.back_map.insert(flecs_id_map, Gd::from_instance_id(script_id_map));
     }
 
     pub(crate) fn insert(&mut self, element:ComponetDefinition) -> Rc<ComponetDefinition> {
@@ -234,6 +247,13 @@ pub(crate) struct ComponentDefinitions {
     ) -> Option<Rc<ComponetDefinition>> {
         let x = key.into();
         x.get_value(self)
+    }
+
+    pub(crate) fn get_script(
+        &self,
+        key:&EntityId,
+    ) -> Option<Gd<Script>> {
+        self.back_map.get(key).map(|x| x.clone())
     }
 
     pub(crate) fn has(&self, map:impl Into<ComponentDefinitionsMapKey>) -> bool{

@@ -10,6 +10,7 @@ use std::rc::Rc;
 
 use flecs::EntityId;
 use flecs::Iter;
+use flecs::SystemBuilder;
 use flecs::TermBuilder;
 use flecs::World as FlWorld;
 use godot::engine::notify::NodeNotification;
@@ -25,6 +26,9 @@ use crate::entity::EntityLike;
 use crate::entity::_BaseGEEntity;
 use crate::prefab::PrefabDefinition;
 use crate::prefab::PREFAB_COMPONENTS;
+use crate::queries;
+use crate::queries::BuildType;
+use crate::queries::_BaseSystemBuilder;
 use crate::show_error;
 use crate::TYPE_SIZES;
 
@@ -99,14 +103,14 @@ impl _BaseGEWorld {
             
             // Initialize component properties
             // TODO: Initialize properties in deterministic order
-            for property_name in comp_def.parameters.keys() {
+            for property in comp_def.parameters.iter() {
                 // TODO: Get default values of properties
                 let default_value = script
-                    .get_property_default_value(property_name.clone());
+                    .get_property_default_value(property.name.clone());
                 _BaseGEComponent::_initialize_property(
                     data,
                     comp_def.as_ref(),
-                    property_name.clone(),
+                    property.name.clone(),
                     default_value,
                 );
             }
@@ -159,51 +163,13 @@ impl _BaseGEWorld {
     fn _new_event_listener(
         &mut self,
         event: Variant,
-        components: Array<Gd<Script>>,
-        callable: Callable,
-    ) {
-        let mut events:[EntityId;8] = Default::default();
-        events[0] = self.get_or_add_tag_entity(event.clone());
-
-        // Make terms list
-        let terms = components
-            .iter_shared()
-            .map(|component|
-                self.get_or_add_component(&component).flecs_id
-            )
-            .collect::<Vec<EntityId>>();
-        
-        // Allocate context
-        let context = Box::new(ScriptSystemContext::new(
-            callable.clone(),
-            self,
-            components,
-            Default::default(),
-        ));
-
-        // Build filter
-        let mut filter_b = self.world.filter_builder();
-        for component_id in terms {
-            filter_b = filter_b.term_dynamic(component_id);
-        }
-
-        // Create observer definition
-        let observer_definition = flecs::ecs_observer_desc_t {
-            events,
-            filter: filter_b.take_filter_desc(),
-            callback: Some(Self::raw_system_iteration),
-            ctx: (
-                Box::leak(context) as *mut ScriptSystemContext
-            ).cast::<c_void>(),
-            ctx_free: Some(Self::raw_system_drop),
-            ..unsafe { MaybeUninit::zeroed().assume_init() }
-        };
-
-        // Initialize the observer
-        unsafe { flecs::ecs_observer_init(
-            self.world.raw(),
-            &observer_definition,
-        ) };
+    ) -> Gd<_BaseSystemBuilder>{
+        let builder = _BaseSystemBuilder::new(self.to_gd());
+        let mut builder_clone = builder.clone();
+        let mut builder_bind = builder_clone.bind_mut();
+        builder_bind.observing_events = vec![self.get_or_add_tag_entity(event)];
+        builder_bind.build_type = BuildType::Observer;
+        builder
     }
 
     #[func]
@@ -235,113 +201,11 @@ impl _BaseGEWorld {
         }
     }
 
-    // Defines a new system to be run in the world.
     #[func]
-    fn _add_system(
-        &mut self,
-        terms: Array<Gd<Script>>,
-        callable: Callable,
-        pipeline: Variant,
-    ) {
-        let nil_id = self.get_or_add_tag_entity(Variant::nil());
-
-        let Some(pipeline_def) = self.get_pipeline(pipeline.clone())
-            else {
-                show_error!(
-                    "Failed to add system",
-                    "Noo pipeline with identifer {} was defined.",
-                    pipeline,
-                );
-                return
-            };
-
-        // Create term list
-        let mut term_ids = vec![];
-        for i in 0..terms.len() {
-            let term_script = terms.get(i);
-
-            let flecs_id = self.get_id_of_script(term_script.clone())
-                .unwrap_or_else(
-                    || self.get_or_add_component(&term_script).flecs_id
-                );
-			
-            term_ids.push(flecs_id);
-        }
-
-        // Create value getters list
-        let mut additional_arg_getters = Vec::new();
-        for callable in pipeline_def.extra_parameters.iter_shared() {
-            additional_arg_getters.push(callable);
-        }
-        let value_getters = additional_arg_getters.into_boxed_slice();
-
-        let mut system_args = array![];
-        for _v in value_getters.iter() {
-            system_args.push(Variant::nil());
-        }
-
-        // Create contex
-        let context = Pin::new(Box::new(
-            ScriptSystemContext::new(
-                callable.clone(),
-                self,
-                terms,
-                value_getters,
-            )
-        ));
-        self.system_contexts.push_back(context);
-        let context_ptr:*mut Pin<Box<ScriptSystemContext>> = self
-            .system_contexts
-            .back_mut()
-            .unwrap();
-
-        // Create system
-        let mut sys = self.world
-            .system()
-            .context_ptr(context_ptr as *mut c_void);
-        for id in term_ids.iter() {
-            sys = sys.term_dynamic(*id);
-        }
-
-        // System body
-        let sys_id = sys.iter(
-            Self::system_iteration,
-            nil_id,
-        ).id();
-        unsafe { flecs::ecs_add_id(
-            self.world.raw(),
-            sys_id,
-            pipeline_def.flecs_id,
-        ) };
-    }
-
-    #[func]
-    fn _new_process_system(
-        &mut self,
-        terms: Array<Gd<Script>>,
-        callable: Callable,
-    ) {
-        let process_identifier = "process".to_variant();
-        
-        match
-            self.get_pipeline(process_identifier.clone())
-        {
-            Some(_) => {},
-            None => {
-                // Initialize process pipeline
-                let get_process_delta_time = Callable::from_object_method(
-                    &self.to_gd(),
-                    "get_process_delta_time",
-                );
-        
-                self.new_pipeline(
-                    StringName::from("process").to_variant(),
-                    Array::from(&[get_process_delta_time]),
-                );
-            },
-        };
-        
-        self._add_system(terms, callable, process_identifier);
+    fn _new_system(&self, pipeline: Variant) -> Gd<_BaseSystemBuilder> {
+        let mut builder = _BaseSystemBuilder::new(self.to_gd());
+        builder.bind_mut().pipeline = pipeline;
+        builder
     }
 
     #[func]
@@ -378,6 +242,44 @@ impl _BaseGEWorld {
         }
     }
 
+    pub(crate) fn new_observer_from_builder(
+        &mut self,
+        builder: &mut _BaseSystemBuilder,
+        callable: Callable,
+    ) {
+        // Create contex
+        let context = Box::new(ScriptSystemContext::new(
+            callable.clone(),
+            self,
+            &builder.description.filter,
+            std::mem::take(&mut builder.terms).into_boxed_slice(),
+            Box::default(),
+        ));
+
+        // Create observer
+        let mut observer_desc = flecs::ecs_observer_desc_t {
+            events: [0;8],
+            filter: builder.description.filter,
+            callback: Some(Self::raw_system_iteration),
+            ctx: Box::leak(context) as *mut ScriptSystemContext as *mut c_void,
+            ctx_free: Some(Self::raw_system_drop),
+            .. unsafe { MaybeUninit::zeroed().assume_init() }
+        };
+
+        // Set events to observe in observer
+        builder.observing_events.truncate(observer_desc.events.len());
+        for (i, event_id) in
+            builder.observing_events.iter().enumerate()
+        {
+            observer_desc.events[i] = *event_id;
+        }
+
+        // Initialize observer
+        let observer_id = unsafe { flecs::ecs_observer_init(
+            self.world.raw(),
+            &observer_desc,
+        ) };
+    }
 
     pub(crate) fn new_pipeline(
         &mut self,
@@ -435,6 +337,68 @@ impl _BaseGEWorld {
         self.prefabs.get(&script).unwrap().clone()
     }
 
+    pub(crate) fn new_system_from_builder(
+        &mut self,
+        builder: &mut _BaseSystemBuilder,
+        callable: Callable,
+    ) {
+        let Some(pipeline_def) = self
+            .get_pipeline(builder.pipeline.clone())
+            else {
+                show_error!(
+                    "Failed to add system",
+                    "Noo pipeline with identifer {} was defined.",
+                    builder.pipeline,
+                );
+                return
+            };
+
+        // Create value getters list
+        let mut additional_arg_getters = Vec::new();
+        for callable in pipeline_def.extra_parameters.iter_shared() {
+            additional_arg_getters.push(callable);
+        }
+        let value_getters = additional_arg_getters.into_boxed_slice();
+
+        let mut system_args = array![];
+        for _v in value_getters.iter() {
+            system_args.push(Variant::nil());
+        }
+
+        // Create contex
+        let context = Box::new(
+            ScriptSystemContext::new(
+                callable.clone(),
+                self,
+                &builder.description.filter,
+                std::mem::take(&mut builder.terms).into_boxed_slice(),
+                value_getters,
+            )
+        );
+
+        // Create system
+        let sys_desc = flecs::ecs_system_desc_t {
+            query: builder.description,
+            callback: Some(Self::raw_system_iteration),
+            ctx: Box::leak(context) as *mut ScriptSystemContext as *mut c_void,
+            ctx_free: Some(Self::raw_system_drop),
+            .. unsafe { MaybeUninit::zeroed().assume_init() }
+        };
+
+        // Initialize system
+        let sys_id = unsafe { flecs::ecs_system_init(
+            self.world.raw(),
+            &sys_desc,
+        ) };
+
+        // Set system pipeline
+        unsafe { flecs::ecs_add_id(
+            self.world.raw(),
+            sys_id,
+            pipeline_def.flecs_id,
+        ) };
+    }
+
     pub(crate) fn get_or_add_tag_entity(&mut self, key:Variant) -> EntityId {
         if let Ok(entity_gd) = key.try_to::<Gd<_BaseGEEntity>>() {
             return entity_gd.bind().get_flecs_id()
@@ -461,10 +425,10 @@ impl _BaseGEWorld {
     }
 
     pub(crate) fn layout_from_properties(
-        parameters: &HashMap<StringName, ComponetProperty>,
+        parameters: &Vec<ComponetProperty>,
     ) -> Layout {
         let mut size = 0;
-        for (_name, property) in parameters {
+        for (property) in parameters {
             size += TYPE_SIZES[property.gd_type_id as usize];
         }
         Layout::from_size_align(size, 8).unwrap()
@@ -494,43 +458,6 @@ impl _BaseGEWorld {
 		}
 	}
 
-	pub(crate) fn system_iteration(iter:&Iter) {
-		let context = unsafe {
-			(iter as *const Iter)
-				.cast_mut()
-				.as_mut()
-				.unwrap()
-				.get_context_mut::<Pin<Box<ScriptSystemContext>>>()
-		};
-
-        // Update extra variables
-        let mut system_args_ref = context.system_args.clone();
-        for (i, getter) in context.additional_arg_getters.iter().enumerate() {
-            system_args_ref.set(i, getter.callv(Array::default()));
-        }
-
-		for entity_index in 0..(iter.count() as usize) {
-			// Create components arguments
-			for field_i in 0i32..(iter.field_count()) {
-				let mut column = iter
-					.field_dynamic(field_i+1);
-				let data:*mut [u8] = column.get_mut(entity_index);
-
-				context.term_accesses[field_i as usize]
-					.bind_mut()
-					.get_data_fn_ptr = Box::new(move |_self| {
-                        data
-                    });
-			}
-
-			let _result = context.callable.callv(
-				context.system_args.clone()
-			);
-		}
-	}
-
-    
-
     pub(crate) fn new_prefab_def(
         &mut self,
         mut script:Gd<Script>,
@@ -558,7 +485,6 @@ impl _BaseGEWorld {
             flecs_id: prefab_entt.id(),
         })
     }
-
 
     extern "C" fn raw_system_iteration(iter:*mut flecs::ecs_iter_t) {
         let mut iter = Iter::new(iter);
@@ -712,9 +638,9 @@ impl INode for _BaseGEWorld {
 #[derive(Debug, Clone)]
 pub(crate) struct ScriptSystemContext {
     callable: Callable,
-    terms: Array<Gd<Script>>,
     /// The arguments passed to the system.
     system_args: Array<Variant>,
+    terms_buffer: Box<[flecs::ecs_term_t]>,
     /// Holds the accesses stored in `sysatem_args` for quicker access.
     term_accesses: Box<[Gd<_BaseGEComponent>]>,
     world: Gd<_BaseGEWorld>,
@@ -724,7 +650,8 @@ pub(crate) struct ScriptSystemContext {
     fn new(
         callable: Callable,
         world: &mut _BaseGEWorld,
-        terms: Array<Gd<Script>>,
+        filter: &flecs::ecs_filter_desc_t,
+        terms_buffer: Box<[flecs::ecs_term_t]>,
         additional_arg_getters: Box<[Callable]>,
     ) -> Self {
         let component_class_name = <_BaseGEComponent as GodotClass>
@@ -737,14 +664,31 @@ pub(crate) struct ScriptSystemContext {
             args.push(Variant::nil());
         }
 
+        let raw_terms = unsafe { std::slice::from_raw_parts(
+            filter.terms_buffer,
+            filter.terms_buffer_count as usize,
+        ) };
+
         // Create component accesses
         let mut tarm_accesses: Vec<Gd<_BaseGEComponent>> = vec![];
-        for term_i in 0..terms.len() as usize {
-            let term_script = terms.get(term_i);
-            let script_type = term_script.get_instance_base_type();
-            if script_type != component_class_name {
-                continue
+        for (term_i, term) in raw_terms.iter().enumerate() {
+            // TODO: Handle different term operations
+            match term.oper {
+                flecs::ecs_oper_kind_t_EcsAnd => {},
+                flecs::ecs_oper_kind_t_EcsOr => {
+                    todo!("Handle \"or\" case")
+                },
+                flecs::ecs_oper_kind_t_EcsNot => { continue },
+                flecs::ecs_oper_kind_t_EcsOptional => {
+                    todo!("Handle \"or\" case")
+                },
+                _ => continue,
             }
+
+            let term_script = world
+                .component_definitions
+                .get_script(&term.id)
+                .unwrap();
 
             let mut compopnent_access = Gd::from_init_fn(|base| {
                 let base_comp = _BaseGEComponent {
@@ -770,10 +714,10 @@ pub(crate) struct ScriptSystemContext {
 
         Self {
             callable: callable,
-            terms: terms,
             system_args: args,
             term_accesses: term_args_fast,
             world: world.to_gd(),
+            terms_buffer,
             additional_arg_getters,
         }
     }

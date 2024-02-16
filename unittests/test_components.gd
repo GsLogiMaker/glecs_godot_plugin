@@ -39,12 +39,12 @@ func test_world_deletion():
 	assert_eq(is_instance_valid(foo), false)
 	
 func test_simple_system():
-	world.new_process_system(
-		[Foo],
-		func(_delta:float, foo:Foo):
+	world.new_system() \
+		.with(Foo) \
+		.for_each(func(_delta:float, foo:Foo):
 			foo.set_value(Vector2(2, 5))
-			,
-	)
+			)
+			
 	var entity:= world.new_entity("Test", [Foo])
 	
 	await get_tree().process_frame # Skip this frame

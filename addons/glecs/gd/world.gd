@@ -1,12 +1,13 @@
 
 class_name GEWorldNode extends _BaseGEWorld
 
+const PIPELINE_PROCESS:= &"process"
+const PIPELINE_PHYSICS_PROCESS:= &"physics_process"
+
 func new_event_listener(
 	event:Variant,
-	terms:Array[Script],
-	callable:Callable,
-) -> void:
-	_new_event_listener(event, terms, callable)
+) -> SystemBuilder:
+	return _new_event_listener(event)
 
 func new_pipeline(
 	identifier:Variant,
@@ -14,19 +15,9 @@ func new_pipeline(
 ) -> void:
 	_new_pipeline(identifier, additional_parameters)
 
-func add_system(
-	terms:Array[Script],
-	callable:Callable,
-	pipeline:Variant="process",
-) -> void:
-	_add_system(terms, callable, pipeline)
+func new_system(pipeline: Variant = PIPELINE_PROCESS) -> SystemBuilder:
+	return _new_system(pipeline)
 
-func new_process_system(
-	terms:Array[Script],
-	callable:Callable,
-) -> void:
-	_new_process_system(terms, callable)
-
-func new_entity(name:String, with_components:Array[Script] = []) -> Entity:
+func new_entity(name:String, with_components:Array[Script]=[]) -> Entity:
 	return _new_entity(name, with_components)
 	

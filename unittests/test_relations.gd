@@ -13,11 +13,7 @@ func after_all():
 #region Tests
 
 func test_bools():
-	world.add_system(
-		[],
-		func(_delta:float):
-			,
-	)
+	world.new_system().for_each(func(_delta): pass)
 	
 	var man:= world.new_entity("Man", [])
 	var apple:= world.new_entity("Apple", [])

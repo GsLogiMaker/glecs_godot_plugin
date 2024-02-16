@@ -16,13 +16,11 @@ func after_all():
 func test_on_add_event():
 	i = 0
 	
-	world.new_event_listener(
-		"on_add",
-		[Ints],
-		func(_ints:Ints):
+	world.new_event_listener(&"on_add") \
+		.with(Ints) \
+		.for_each(func(_ints:Ints):
 			self.i += 1
-			,
-	)
+			)
 	
 	var e:= world.new_entity("WithInts", [Ints])
 	var e2:= world.new_entity("WithoutInts", [])
