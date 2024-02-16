@@ -26,6 +26,8 @@ pub struct _BaseGEComponent {
 }
 #[godot_api]
 impl _BaseGEComponent {
+    #[func]
+    fn _on_register(world:Gd<_BaseGEWorld>) {}
 
     /// Copies the data from the given component to this one.
     #[func]
@@ -323,15 +325,16 @@ impl _BaseGEComponent {
             return true;
         }
         
-        fn init_param<T: FromGodot + ToGodot + Debug + Default + Clone>(
+        fn init_param<T: FromGodot + ToGodot + Debug + Clone>(
             data:*mut [u8],
             value: Variant,
             property_data: &ComponetProperty,
+            default: &dyn Fn() -> Variant,
         ) {
              let default_value = if value != Variant::nil() {
                 value
             } else {
-                Variant::from(T::default())
+                (default)()
             };
             unsafe {
                 let param_ptr:*mut u8 = &mut (*data)[property_data.offset];
@@ -360,46 +363,46 @@ impl _BaseGEComponent {
                 param_slice.copy_from_slice(value_slice);
             }
         }
-        
+
         match property_data.gd_type_id {
             VariantType::Nil => {},
-            VariantType::Bool => init_param::<bool>(data, value, property_data),
-            VariantType::Int => init_param::<i32>(data, value, property_data),
-            VariantType::Float => init_param::<f32>(data, value, property_data),
-            VariantType::String => init_param::<GString>(data, value, property_data),
-            VariantType::Vector2 => init_param::<Vector2>(data, value, property_data),
-            VariantType::Vector2i => init_param::<Vector2i>(data, value, property_data),
-            VariantType::Rect2 => init_param::<Rect2>(data, value, property_data),
-            VariantType::Rect2i => init_param::<Rect2i>(data, value, property_data),
-            VariantType::Vector3 => init_param::<Vector3>(data, value, property_data),
-            VariantType::Vector3i => init_param::<Vector3i>(data, value, property_data),
-            VariantType::Transform2D => init_param::<Transform2D>(data, value, property_data),
-            VariantType::Vector4 => init_param::<Vector4>(data, value, property_data),
-            VariantType::Vector4i => init_param::<Vector4i>(data, value, property_data),
-            VariantType::Plane => todo!("Can't initialize planes with a sane default"),
-            VariantType::Quaternion => init_param::<Quaternion>(data, value, property_data),
-            VariantType::Aabb => init_param::<Aabb>(data, value, property_data),
-            VariantType::Basis => init_param::<Basis>(data, value, property_data),
-            VariantType::Transform3D => init_param::<Transform3D>(data, value, property_data),
-            VariantType::Projection => init_param::<Projection>(data, value, property_data),
-            VariantType::Color => init_param::<Color>(data, value, property_data),
-            VariantType::StringName => init_param::<StringName>(data, value, property_data),
-            VariantType::NodePath => init_param::<NodePath>(data, value, property_data),
-            VariantType::Rid => todo!("Can't initialize RIDs with a sane default"),
+            VariantType::Bool => init_param::<bool>(data, value, property_data, &|| bool::default().to_variant()),
+            VariantType::Int => init_param::<i32>(data, value, property_data, &|| i32::default().to_variant()),
+            VariantType::Float => init_param::<f32>(data, value, property_data, &|| f32::default().to_variant()),
+            VariantType::String => init_param::<GString>(data, value, property_data, &|| GString::default().to_variant()),
+            VariantType::Vector2 => init_param::<Vector2>(data, value, property_data, &|| Vector2::default().to_variant()),
+            VariantType::Vector2i => init_param::<Vector2i>(data, value, property_data, &|| Vector2i::default().to_variant()),
+            VariantType::Rect2 => init_param::<Rect2>(data, value, property_data, &|| Rect2::default().to_variant()),
+            VariantType::Rect2i => init_param::<Rect2i>(data, value, property_data, &|| Rect2i::default().to_variant()),
+            VariantType::Vector3 => init_param::<Vector3>(data, value, property_data, &|| Vector3::default().to_variant()),
+            VariantType::Vector3i => init_param::<Vector3i>(data, value, property_data, &|| Vector3i::default().to_variant()),
+            VariantType::Transform2D => init_param::<Transform2D>(data, value, property_data, &|| Transform2D::default().to_variant()),
+            VariantType::Vector4 => init_param::<Vector4>(data, value, property_data, &|| Vector4::default().to_variant()),
+            VariantType::Vector4i => init_param::<Vector4i>(data, value, property_data, &|| Vector4i::default().to_variant()),
+            VariantType::Plane => init_param::<Plane>(data, value, property_data, &|| Plane::invalid().to_variant()),
+            VariantType::Quaternion => init_param::<Quaternion>(data, value, property_data, &|| Quaternion::default().to_variant()),
+            VariantType::Aabb => init_param::<Aabb>(data, value, property_data, &|| Aabb::default().to_variant()),
+            VariantType::Basis => init_param::<Basis>(data, value, property_data, &|| Basis::default().to_variant()),
+            VariantType::Transform3D => init_param::<Transform3D>(data, value, property_data, &|| Transform3D::default().to_variant()),
+            VariantType::Projection => init_param::<Projection>(data, value, property_data, &|| Projection::default().to_variant()),
+            VariantType::Color => init_param::<Color>(data, value, property_data, &|| Color::default().to_variant()),
+            VariantType::StringName => init_param::<StringName>(data, value, property_data, &|| StringName::default().to_variant()),
+            VariantType::NodePath => init_param::<NodePath>(data, value, property_data, &|| NodePath::default().to_variant()),
+            VariantType::Rid => init_param::<Rid>(data, value, property_data, &|| Rid::new(0).to_variant()),
             VariantType::Object => init_param_variant(data, value, property_data),
-            VariantType::Callable => todo!("Can't initialize callables with a sane default"),
-            VariantType::Signal => todo!("Can't initialize signals with a sane default"),
+            VariantType::Callable => init_param::<Callable>(data, value, property_data, &|| Callable::from_fn("NullFn", |_|{Ok(Variant::nil())}).to_variant()),
+            VariantType::Signal => init_param::<Signal>(data, value, property_data, &|| Signal::invalid().to_variant()),
             VariantType::Dictionary => init_param_variant(data, value, property_data),
             VariantType::Array => init_param_variant(data, value, property_data),
-            VariantType::PackedByteArray => init_param::<PackedByteArray>(data, value, property_data),
-            VariantType::PackedInt32Array => init_param::<PackedInt32Array>(data, value, property_data),
-            VariantType::PackedInt64Array => init_param::<PackedInt64Array>(data, value, property_data),
-            VariantType::PackedFloat32Array => init_param::<PackedFloat32Array>(data, value, property_data),
-            VariantType::PackedFloat64Array => init_param::<PackedFloat64Array>(data, value, property_data),
-            VariantType::PackedStringArray => init_param::<PackedStringArray>(data, value, property_data),
-            VariantType::PackedVector2Array => init_param::<PackedVector2Array>(data, value, property_data),
-            VariantType::PackedVector3Array => init_param::<PackedVector3Array>(data, value, property_data),
-            VariantType::PackedColorArray => init_param::<PackedColorArray>(data, value, property_data),
+            VariantType::PackedByteArray => init_param::<PackedByteArray>(data, value, property_data, &|| PackedByteArray::default().to_variant()),
+            VariantType::PackedInt32Array => init_param::<PackedInt32Array>(data, value, property_data, &|| PackedInt32Array::default().to_variant()),
+            VariantType::PackedInt64Array => init_param::<PackedInt64Array>(data, value, property_data, &|| PackedInt64Array::default().to_variant()),
+            VariantType::PackedFloat32Array => init_param::<PackedFloat32Array>(data, value, property_data, &|| PackedFloat32Array::default().to_variant()),
+            VariantType::PackedFloat64Array => init_param::<PackedFloat64Array>(data, value, property_data, &|| PackedFloat64Array::default().to_variant()),
+            VariantType::PackedStringArray => init_param::<PackedStringArray>(data, value, property_data, &|| PackedStringArray::default().to_variant()),
+            VariantType::PackedVector2Array => init_param::<PackedVector2Array>(data, value, property_data, &|| PackedVector2Array::default().to_variant()),
+            VariantType::PackedVector3Array => init_param::<PackedVector3Array>(data, value, property_data, &|| PackedVector3Array::default().to_variant()),
+            VariantType::PackedColorArray => init_param::<PackedColorArray>(data, value, property_data, &|| PackedColorArray::default().to_variant()),
 
             _ => todo!(),
         }

@@ -23,9 +23,10 @@ impl _BaseGEPrefab {
 	#[func]
 	fn add_component(
 		&mut self,
-		component:Gd<Script>,
+		component: Gd<Script>,
+        data: Variant,
 	) -> Option<Gd<_BaseGEComponent>>{
-		EntityLike::add_component(self, component)
+		EntityLike::add_component(self, component, data)
 	}
 }
 impl EntityLike for _BaseGEPrefab {

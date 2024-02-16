@@ -120,10 +120,9 @@ func test_strings():
 			,
 	)
 	
-	var entity:= world.new_entity("Test", [Strings])
+	var entity:= world.new_entity("Test")
+	entity.add_component(Strings, ["", "po"])
 	var strings:Strings = entity.get_component(Strings)
-	strings.a = ""
-	strings.b = "po"
 	
 	world.run_pipeline(&"process", 0.0)
 	world.run_pipeline(&"process", 0.0)

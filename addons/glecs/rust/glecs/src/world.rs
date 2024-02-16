@@ -114,7 +114,7 @@ impl _BaseGEWorld {
             i += 1;
         }
 
-        let gd_entity = Gd::from_init_fn(|base| {
+        let mut gd_entity = Gd::from_init_fn(|base| {
             _BaseGEEntity {
                 base,
                 world: self.to_gd(),
@@ -123,6 +123,9 @@ impl _BaseGEWorld {
                 gd_components_map: Default::default(),
             }
         });
+        gd_entity.set_script(
+            load::<Script>("res://addons/glecs/gd/entity.gd").to_variant(),
+        );
         gd_entity.set_name_by_ref(name, self);
         self.gd_entity_map.insert(entity.id(), gd_entity.clone());
         
@@ -367,7 +370,10 @@ impl _BaseGEWorld {
                     key.clone(),
                     self,
                 );
-                self.component_definitions.insert(def)
+                let def = self.component_definitions.insert(def);
+                Callable::from_object_method(key, "_on_registered")
+                    .callv(Array::default());
+                def
             }
         }
     }
