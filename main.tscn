@@ -1,10 +1,27 @@
-[gd_scene load_steps=3 format=3 uid="uid://bmgtmjefq4coa"]
+[gd_scene load_steps=2 format=3 uid="uid://bmgtmjefq4coa"]
 
 [ext_resource type="Script" path="res://main.gd" id="1_280wi"]
-[ext_resource type="Script" path="res://addons/glecs/gd/world.gd" id="2_c0wdw"]
 
-[node name="Node2D" type="Node2D"]
+[node name="Node2D" type="MarginContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_280wi")
 
-[node name="GEWorldNode" type="_BaseGEWorld" parent="."]
-script = ExtResource("2_c0wdw")
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="RunTests" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Run unit tests"
+
+[node name="PlayAsteroids" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Play Asteroids example"
+
+[connection signal="pressed" from="VBoxContainer/RunTests" to="." method="_on_run_tests_pressed"]
+[connection signal="pressed" from="VBoxContainer/PlayAsteroids" to="." method="_on_play_asteroids_pressed"]

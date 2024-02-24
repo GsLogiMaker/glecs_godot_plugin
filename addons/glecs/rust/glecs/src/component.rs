@@ -54,13 +54,29 @@ impl _BaseGEComponent {
     /// Returns a property from the component data.
     #[func]
     fn getc(&self, property: StringName) -> Variant {
-        self._get_property(property)
+        let v = self._get_property(property.clone());
+        if v == Variant::nil() {
+            show_error!(
+                "Failed to get property",
+                "No property named \"{}\" in component of type \"{}\"",
+                property,
+                self.get_component_type_name(),
+            );
+        }
+        v
     }
 
     /// Sets a property in the component data.
     #[func]
     fn setc(&mut self, property: StringName, value:Variant) {
-        self._set_property(property.clone(), value.clone());
+        if !self._set_property(property.clone(), value.clone()) {
+            show_error!(
+                "Failed to set property",
+                "No property named \"{}\" in component of type \"{}\"",
+                property,
+                self.get_component_type_name(),
+            );
+        }
     }
 
     /// Prevent user from freeing a component.
@@ -104,12 +120,6 @@ impl _BaseGEComponent {
             .component_definition
             .get_property(&property)
             else {
-                show_error!(
-                    "Failed to get property",
-                    "No property named \"{}\" in component of type \"{}\"",
-                    property,
-                    self.get_component_type_name(),
-                );
                 return Variant::nil();
             };
         
@@ -192,12 +202,6 @@ impl _BaseGEComponent {
         let Some(property_data) = self
             .component_definition
             .get_property(&property) else {
-                show_error!(
-                    "Failed to set property",
-                    "No property named \"{}\" in component of type \"{}\"",
-                    property,
-                    self.get_component_type_name(),
-                );
                 return false;
             };
 

@@ -83,7 +83,9 @@ impl _BaseSystemBuilder {
         component: Gd<Script>,
         inout: flecs::ecs_inout_kind_t,
     ) -> Gd<_BaseSystemBuilder> {
-        self.with_oper(component, flecs::ecs_oper_kind_t_EcsOr);
+        self.terms.last_mut()
+            .map(|x| x.oper = flecs::ecs_oper_kind_t_EcsOr);
+        self.with_oper(component, flecs::ecs_oper_kind_t_EcsAnd);
         self.terms.last_mut().unwrap().inout = inout;
         self.to_gd()
     }

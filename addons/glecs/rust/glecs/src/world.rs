@@ -10,10 +10,9 @@ use std::rc::Rc;
 
 use flecs::EntityId;
 use flecs::Iter;
-use flecs::SystemBuilder;
-use flecs::TermBuilder;
 use flecs::World as FlWorld;
 use godot::engine::notify::NodeNotification;
+use godot::engine::object::ConnectFlags;
 use godot::engine::Script;
 use godot::prelude::*;
 
@@ -26,7 +25,6 @@ use crate::entity::EntityLike;
 use crate::entity::_BaseGEEntity;
 use crate::prefab::PrefabDefinition;
 use crate::prefab::PREFAB_COMPONENTS;
-use crate::queries;
 use crate::queries::BuildType;
 use crate::queries::_BaseSystemBuilder;
 use crate::show_error;
@@ -136,7 +134,7 @@ impl _BaseGEWorld {
         gd_entity
     }
 
-    /// Creates a new entity in the world.
+    /// Creates a new entity in the world. 
     #[func]
     fn new_entity_with_prefab(
         &mut self,
@@ -164,10 +162,12 @@ impl _BaseGEWorld {
         &mut self,
         event: Variant,
     ) -> Gd<_BaseSystemBuilder>{
-        let builder = _BaseSystemBuilder::new(self.to_gd());
+        let event = self.get_or_add_tag_entity(event);
+        let world_gd = self.to_gd();
+        let builder = _BaseSystemBuilder::new(world_gd);
         let mut builder_clone = builder.clone();
         let mut builder_bind = builder_clone.bind_mut();
-        builder_bind.observing_events = vec![self.get_or_add_tag_entity(event)];
+        builder_bind.observing_events = vec![event];
         builder_bind.build_type = BuildType::Observer;
         builder
     }
@@ -235,8 +235,8 @@ impl _BaseGEWorld {
                     self,
                 );
                 let def = self.component_definitions.insert(def);
-                Callable::from_object_method(key, "_on_registered")
-                    .callv(Array::default());
+                
+
                 def
             }
         }

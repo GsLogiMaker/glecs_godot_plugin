@@ -341,8 +341,7 @@ pub(crate) trait EntityLike: Debug {
         }
 
         // Get flecs entity
-        let component_symbol = component_definition.name.to_string();
-        let Some(mut entt) = world.world.find_entity(flecs_id)
+        let Some(entt) = world.world.find_entity(flecs_id)
             else {
                 show_error!(
                     "Failed to get component from entity",

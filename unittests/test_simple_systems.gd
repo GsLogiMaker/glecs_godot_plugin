@@ -6,31 +6,6 @@ var world:GEWorldNode
 func before_all():
 	world = GEWorldNode.new()
 	add_child(world)
-	
-	world.new_system() \
-		.with(Bools) \
-		.for_each(func(_delta, x:Bools):
-			x.b = x.a
-			x.a = not x.b
-			)
-	world.new_system() \
-		.with(Ints) \
-		.for_each(func(_delta, x:Ints):
-			x.b *= 2
-			x.a += x.b
-			)
-	world.new_system() \
-		.with(Floats) \
-		.for_each(func(_delta, x:Floats):
-			x.b *= 2
-			x.a += x.b
-			)
-	world.new_system() \
-		.with(ByteArrays) \
-		.for_each(func(_delta, x:ByteArrays):
-			for i in range(x.a.size()):
-				x.a[i] += x.b[i]
-			)
 
 func after_all():
 	world.free()
@@ -70,8 +45,17 @@ func test_pipelines():
 	world.run_pipeline(&"2", 0.0)
 	assert_eq(entity.get_component(Ints).a, 0)
 	assert_eq(entity.get_component(Ints).b, 50)
+	
+	entity.free()
 
 func test_bools():
+	world.new_system() \
+		.with(Bools) \
+		.for_each(func(_delta, x:Bools):
+			x.b = x.a
+			x.a = not x.b
+			)
+	
 	var entity:= world.new_entity("Test", [Bools])
 	
 	world.run_pipeline(&"process", 0.0)
@@ -84,6 +68,13 @@ func test_bools():
 	entity.free()
 
 func test_ints():
+	world.new_system() \
+		.with(Ints) \
+		.for_each(func(_delta, x:Ints):
+			x.b *= 2
+			x.a += x.b
+			)
+	
 	var entity:= world.new_entity("Test", [Ints])
 	entity.get_component(Ints).b = 1
 	
@@ -92,8 +83,17 @@ func test_ints():
 	world.run_pipeline(&"process", 0.0)
 	
 	assert_eq(entity.get_component(Ints).a, 14)
+	
+	entity.free()
 
 func test_floats():
+	world.new_system() \
+		.with(Floats) \
+		.for_each(func(_delta, x:Floats):
+			x.b *= 2
+			x.a += x.b
+			)
+			
 	var entity:= world.new_entity("Test", [Floats])
 	entity.get_component(Floats).b = 1.2
 	
@@ -102,6 +102,8 @@ func test_floats():
 	world.run_pipeline(&"process", 0.0)
 	
 	assert_almost_eq(entity.get_component(Floats).a, 16.8, 0.05)
+	
+	entity.free()
 
 func test_strings():
 	world.new_system() \
@@ -123,8 +125,17 @@ func test_strings():
 	
 	assert_eq(strings.a, "poempoemempoememem")
 	assert_eq(strings.b, "poememem")
+	
+	entity.free()
 
 func test_byte_arrays():
+	world.new_system() \
+		.with(ByteArrays) \
+		.for_each(func(_delta, x:ByteArrays):
+			for i in range(x.a.size()):
+				x.a[i] += x.b[i]
+			)
+			
 	var entity:= world.new_entity("Test", [ByteArrays])
 	entity.get_component(ByteArrays).a = PackedByteArray([1, 2, 3])
 	entity.get_component(ByteArrays).b = PackedByteArray([2, 4, 3])
@@ -134,6 +145,8 @@ func test_byte_arrays():
 	world.run_pipeline(&"process", 0.0)
 	
 	assert_eq(entity.get_component(ByteArrays).a, PackedByteArray([7, 14, 12]))
+	
+	entity.free()
 
 func test_textures():
 	world.new_system() \
@@ -158,6 +171,8 @@ func test_textures():
 	
 	assert_eq(entity.get_component(Textures).a, load("res://icon.svg"))
 	assert_eq(entity.get_component(Textures).b, load("res://icon.svg"))
+	
+	entity.free()
 
 func test_ref_counts():
 	var rc:= RefCounted.new()
@@ -170,6 +185,8 @@ func test_ref_counts():
 	
 	entity.get_component(RefCounts).a = null
 	assert_eq(rc.get_reference_count(), 1)
+	
+	entity.free()
 
 func test_arrays():
 	world.new_system() \
@@ -189,7 +206,8 @@ func test_arrays():
 	
 	assert_eq(entity.get_component(Arrays).a, [23, 4, 6])
 	assert_eq(entity.get_component(Arrays).b, [70, 14, 19])
-
+	
+	entity.free()
 
 func test_dicts():
 	world.new_system() \
@@ -208,6 +226,8 @@ func test_dicts():
 	
 	assert_eq(entity.get_component(Dicts).a, {"add_by":5})
 	assert_eq(entity.get_component(Dicts).b, {"value":17})
+	
+	entity.free()
 
 #endregion
 
