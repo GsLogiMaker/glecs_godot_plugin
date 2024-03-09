@@ -15,9 +15,9 @@ pub(crate) enum BuildType {
 }
 
 #[derive(GodotClass)]
-#[class(base=RefCounted)]
+#[class(base=RefCounted, no_init)]
 pub struct _BaseSystemBuilder {
-    #[base] pub(crate) base: Base<RefCounted>,
+    pub(crate) base: Base<RefCounted>,
     pub(crate) world: Gd<_BaseGEWorld>,
     pub(crate) pipeline: Variant,
     pub(crate) description: flecs::ecs_query_desc_t,
@@ -123,12 +123,13 @@ impl _BaseSystemBuilder {
     #[func]
     fn _for_each(&mut self, callable:Callable) {
         self.on_build();
-        let mut world_clone = self.world.clone();
-        let mut world = world_clone.bind_mut();
+        let world = self.world.clone();
 
         match self.build_type {
-            BuildType::System => world.new_system_from_builder(self, callable),
-            BuildType::Observer => world.new_observer_from_builder(self, callable),
+            BuildType::System => _BaseGEWorld
+                ::new_system_from_builder(world, self, callable),
+            BuildType::Observer => _BaseGEWorld
+                ::new_observer_from_builder(world, self, callable),
         }
         
     }
@@ -146,16 +147,14 @@ impl _BaseSystemBuilder {
 
     fn with_oper(&mut self, component:Gd<Script>, oper:flecs::ecs_oper_kind_t) {
         // TODO: Add checks that scripts are indeed derived from components
-        let comp_def = self.world
-            .bind_mut()
-            .get_or_add_component(&component);
+        let comp_def = _BaseGEWorld
+            ::get_or_add_component_gd(self.world.clone(), &component);
         
         let term = flecs::ecs_term_t {
             id: comp_def.flecs_id,
             oper: oper,
             ..unsafe { MaybeUninit::zeroed().assume_init() }
         };
-
         self.add_term_to_buffer(term);
     }
 

@@ -8,9 +8,9 @@ use crate::world::_BaseGEWorld;
 
 
 #[derive(GodotClass, Debug)]
-#[class(base=Object)]
+#[class(base=Object, no_init)]
 pub struct _BaseGEEvent {
-    #[base] pub(crate) base: Base<Object>,
+    pub(crate) base: Base<Object>,
     /// The world this entity is from.
     pub(crate) _world: Gd<_BaseGEWorld>,
     /// The ID of this entity.

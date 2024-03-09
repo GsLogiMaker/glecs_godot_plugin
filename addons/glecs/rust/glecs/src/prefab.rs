@@ -10,9 +10,9 @@ use crate::world::_BaseGEWorld;
 pub(crate) const PREFAB_COMPONENTS:&str = "COMPONENTS";
 
 #[derive(GodotClass, Debug)]
-#[class(base=RefCounted)]
+#[class(base=RefCounted, no_init)]
 pub struct _BaseGEPrefab {
-    #[base] pub(crate) base: Base<RefCounted>,
+    pub(crate) base: Base<RefCounted>,
     /// The world this entity is from.
     pub(crate) world: Gd<_BaseGEWorld>,
     /// The Flecs ID of this prefab.

@@ -15,9 +15,9 @@ use crate::world::_BaseGEWorld;
 
 /// An ECS component.
 #[derive(GodotClass)]
-#[class(base=Object)]
+#[class(base=Object, no_init)]
 pub struct _BaseGEComponent {
-    #[base] pub(crate) base: Base<Object>,
+    pub(crate) base: Base<Object>,
     pub(crate) component_definition: Rc<ComponetDefinition>,
     pub(crate) world: Gd<_BaseGEWorld>,
     pub(crate) get_data_fn_ptr: Box<dyn Fn(&Self) -> *mut [u8]>,

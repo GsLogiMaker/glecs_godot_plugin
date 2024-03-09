@@ -38,9 +38,9 @@ fn increment_name(name:&mut String) {
 }
 
 #[derive(GodotClass, Debug)]
-#[class(base=Object)]
+#[class(base=Object, no_init)]
 pub struct _BaseGEEntity {
-    #[base] pub(crate) base: Base<Object>,
+    pub(crate) base: Base<Object>,
     /// The world this entity is from.
     pub(crate) world: Gd<_BaseGEWorld>,
     /// The ID of this entity.
@@ -224,12 +224,11 @@ pub(crate) trait EntityLike: Debug {
         component: Gd<Script>,
         with_data: Variant,
     ) -> Option<Gd<_BaseGEComponent>> {
-        let mut world_gd = self.get_world();
+        let world_gd = self.get_world();
         let flecs_id = self.get_flecs_id();
 
-        let component_definition = world_gd
-            .bind_mut()
-            .get_or_add_component(&component);
+        let component_definition = _BaseGEWorld
+            ::get_or_add_component_gd(world_gd.clone(), &component);
 
         let world = world_gd.bind();
 

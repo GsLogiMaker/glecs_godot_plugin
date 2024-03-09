@@ -81,20 +81,20 @@ impl _BaseGEWorld {
 
 
     /// Creates a new entity in the world.
-    #[func]
+    #[func(gd_self)]
     fn _new_entity(
-        &mut self,
+        mut this: Gd<Self>,
         name: String,
         with_components:Array<Gd<Script>>,
     ) -> Gd<_BaseGEEntity> {
-        let mut entity = self.world.entity();
+        let mut entity = this.bind_mut().world.entity();
 
         let mut i = 0;
         while i != with_components.len() {
             let mut script = with_components.get(i);
 
-            let comp_def = self
-                .get_or_add_component(&script);
+            let comp_def = Self
+                ::get_or_add_component_gd(this.clone(), &script);
             entity = entity.add_id(comp_def.flecs_id);
 
             let data = entity.get_mut_dynamic(&comp_def.name.to_string());
@@ -116,20 +116,24 @@ impl _BaseGEWorld {
             i += 1;
         }
 
+        let this_clone = this.clone();
         let mut gd_entity = Gd::from_init_fn(|base| {
             _BaseGEEntity {
                 base,
-                world: self.to_gd(),
+                world: this_clone,
                 id: entity.id(),
 				world_deletion: false,
                 gd_components_map: Default::default(),
             }
         });
+
+        let mut bind = this.bind_mut();
+
         gd_entity.set_script(
             load::<Script>("res://addons/glecs/gd/entity.gd").to_variant(),
         );
-        gd_entity.set_name_by_ref(name, self);
-        self.gd_entity_map.insert(entity.id(), gd_entity.clone());
+        gd_entity.set_name_by_ref(name, &bind);
+        bind.gd_entity_map.insert(entity.id(), gd_entity.clone());
         
         gd_entity
     }
@@ -141,7 +145,7 @@ impl _BaseGEWorld {
         name:String,
         prefab:Gd<Script>,
     ) -> Gd<_BaseGEEntity> {
-        let gd_entity = self._new_entity(name, Array::default());
+        let gd_entity = Self::_new_entity(self.to_gd(), name, Array::default());
         let e_id = gd_entity.bind().get_flecs_id();
 
         let prefab_def = self
@@ -201,9 +205,9 @@ impl _BaseGEWorld {
         }
     }
 
-    #[func]
-    fn _new_system(&self, pipeline: Variant) -> Gd<_BaseSystemBuilder> {
-        let mut builder = _BaseSystemBuilder::new(self.to_gd());
+    #[func(gd_self)]
+    fn _new_system(this: Gd<Self>, pipeline: Variant) -> Gd<_BaseSystemBuilder> {
+        let mut builder = _BaseSystemBuilder::new(this);
         builder.bind_mut().pipeline = pipeline;
         builder
     }
@@ -224,33 +228,56 @@ impl _BaseGEWorld {
         &mut self,
         key: &Gd<Script>,
     ) -> Rc<ComponetDefinition> {
+        Self::get_or_add_component_gd(self.to_gd(), key)
+    }
+
+    pub(crate) fn get_or_add_component_gd(
+        mut this: Gd<Self>,
+        key: &Gd<Script>,
+    ) -> Rc<ComponetDefinition> {
+        let mut bind = this.bind_mut();
         let value = ComponentDefinitionsMapKey
             ::from(key)
-            .get_value(&self.component_definitions);
-        match value {
+            .get_value(&bind.component_definitions);
+        let def = match value {
             Some(value) => value,
             None => {
                 let def = ComponetDefinition::new(
                     key.clone(),
-                    self,
+                    &mut bind,
                 );
-                let def = self.component_definitions.insert(def);
+                let def = bind
+                    .component_definitions
+                    .insert(def);
+
+                drop(bind);
+
+                this.bind_mut();
                 
+                let mut args = VariantArray::new();
+                args.push(this.to_variant());
+                let callable = Callable
+                    ::from_object_method(key, "_on_registered");
+
+                callable.callv(args);
 
                 def
             }
-        }
+        };
+        
+
+        def
     }
 
     pub(crate) fn new_observer_from_builder(
-        &mut self,
+        this: Gd<Self>,
         builder: &mut _BaseSystemBuilder,
         callable: Callable,
     ) {
         // Create contex
         let context = Box::new(ScriptSystemContext::new(
             callable.clone(),
-            self,
+            this.clone(),
             &builder.description.filter,
             std::mem::take(&mut builder.terms).into_boxed_slice(),
             Box::default(),
@@ -276,7 +303,7 @@ impl _BaseGEWorld {
 
         // Initialize observer
         let observer_id = unsafe { flecs::ecs_observer_init(
-            self.world.raw(),
+            this.bind().world.raw(),
             &observer_desc,
         ) };
     }
@@ -338,11 +365,14 @@ impl _BaseGEWorld {
     }
 
     pub(crate) fn new_system_from_builder(
-        &mut self,
+        mut this: Gd<Self>,
         builder: &mut _BaseSystemBuilder,
         callable: Callable,
     ) {
-        let Some(pipeline_def) = self
+        let this_bound = this.bind();
+        let raw_world = this_bound.world.raw();
+
+        let Some(pipeline_def) = this_bound
             .get_pipeline(builder.pipeline.clone())
             else {
                 show_error!(
@@ -352,6 +382,8 @@ impl _BaseGEWorld {
                 );
                 return
             };
+        
+        drop(this_bound);
 
         // Create value getters list
         let mut additional_arg_getters = Vec::new();
@@ -369,7 +401,7 @@ impl _BaseGEWorld {
         let context = Box::new(
             ScriptSystemContext::new(
                 callable.clone(),
-                self,
+                this,
                 &builder.description.filter,
                 std::mem::take(&mut builder.terms).into_boxed_slice(),
                 value_getters,
@@ -387,13 +419,13 @@ impl _BaseGEWorld {
 
         // Initialize system
         let sys_id = unsafe { flecs::ecs_system_init(
-            self.world.raw(),
+            raw_world,
             &sys_desc,
         ) };
 
         // Set system pipeline
         unsafe { flecs::ecs_add_id(
-            self.world.raw(),
+            raw_world,
             sys_id,
             pipeline_def.flecs_id,
         ) };
@@ -649,7 +681,7 @@ pub(crate) struct ScriptSystemContext {
 } impl ScriptSystemContext {
     fn new(
         callable: Callable,
-        world: &mut _BaseGEWorld,
+        world: Gd<_BaseGEWorld>,
         filter: &flecs::ecs_filter_desc_t,
         terms_buffer: Box<[flecs::ecs_term_t]>,
         additional_arg_getters: Box<[Callable]>,
@@ -686,6 +718,7 @@ pub(crate) struct ScriptSystemContext {
             }
 
             let term_script = world
+                .bind()
                 .component_definitions
                 .get_script(&term.id)
                 .unwrap();
@@ -693,10 +726,12 @@ pub(crate) struct ScriptSystemContext {
             let mut compopnent_access = Gd::from_init_fn(|base| {
                 let base_comp = _BaseGEComponent {
                     base,
-                    world: world.to_gd(),
+                    world: world.clone(),
                     get_data_fn_ptr: _BaseGEComponent::new_empty_data_getter(),
-                    component_definition: world
-                        .get_or_add_component(&term_script),
+                    component_definition: _BaseGEWorld::get_or_add_component_gd(
+                        world.clone(),
+                        &term_script,
+                    ),
                 };
                 base_comp
             });
@@ -716,7 +751,7 @@ pub(crate) struct ScriptSystemContext {
             callable: callable,
             system_args: args,
             term_accesses: term_args_fast,
-            world: world.to_gd(),
+            world: world,
             terms_buffer,
             additional_arg_getters,
         }
