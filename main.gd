@@ -2,7 +2,7 @@ extends Control
 
 
 func _on_run_tests_pressed() -> void:
-	pass # Replace with function body.
+	get_tree().change_scene_to_file("res://addons/gut/gui/GutRunner.tscn")
 
 
 func _on_play_asteroids_pressed() -> void:
