@@ -7,15 +7,18 @@ func before_all():
 	world = GEWorldNode.new()
 	add_child(world, true)
 
+
 func after_all():
 	world.free()
+
 
 func test_add_entity():
 	var _entity:= world.new_entity("Test")
 	
 	# Can't assert, but should be fine as long as it doesn't crash
 	assert_null(null)
-	
+
+
 func test_world_deletion():
 	var w:= GEWorldNode.new()
 	var e:= w.new_entity("Test", [Foo])
@@ -55,7 +58,8 @@ func test_registeration():
 	assert_almost_eq(e.get_component(RegisterationB).get_result(), 33.0, .001)
 
 	w.queue_free()
-	
+
+
 func test_simple_system():
 	var a = world.new_system()
 	var b = a.with(Foo)
@@ -70,19 +74,24 @@ func test_simple_system():
 	
 	assert_eq(entity.get_component(Foo).get_value(), Vector2(2, 5))
 
+
+func test_default_values():
+	var w:= GEWorldNode.new()
+	var e:= w.new_entity("Test", [WithDefaults])
+	assert_eq(e.get_component(WithDefaults).get_int(), WithDefaults._VAR_int)
+	assert_eq(e.get_component(WithDefaults).get_string(), WithDefaults._VAR_string)
+	assert_eq(e.get_component(WithDefaults).get_script_2(), WithDefaults._VAR_script)
+
+	w.queue_free()
+
+
 func test_error_no_define():
 	var entity:= world.new_entity("Test", [NoDefine])
 	assert_ne(entity, null)
 
-func test_error_wrong_type_define():
-	var entity:= world.new_entity("Test", [WrongTypeDefine])
-	assert_ne(entity, null)
-
 
 class Foo extends GEComponent:
-	const PROPS:= {
-		value = TYPE_VECTOR2,
-	}
+	const _VAR_value:= Vector2.ZERO
 	
 	func get_value() -> Vector2:
 		return getc(&"value")
@@ -91,11 +100,23 @@ class Foo extends GEComponent:
 		setc(&"value", v)
 
 
+class WithDefaults extends GEComponent:
+	const _VAR_int:= 25
+	const _VAR_string:= "Hello world!"
+	const _VAR_script:= WithDefaults
+	
+	func get_int() -> int:
+		return getc(&"int")
+	func get_string() -> String:
+		return getc(&"string")
+	func get_script_2() -> Script:
+		return getc(&"script")
+
+
 class RegisterationA extends GEComponent:
-	const PROPS:= {
-		value = TYPE_FLOAT,
-		result = TYPE_FLOAT,
-	}
+	const _VAR_value:= 0.0
+	const _VAR_result:= 0.0
+	
 	func get_value() -> float:
 		return getc(&"value")
 	func set_value(v:float) -> void:
@@ -115,10 +136,9 @@ class RegisterationA extends GEComponent:
 
 
 class RegisterationB extends GEComponent:
-	const PROPS:= {
-		value = TYPE_FLOAT,
-		result = TYPE_FLOAT,
-	}
+	const _VAR_value:= 0.0
+	const _VAR_result:= 0.0
+	
 	func get_value() -> float:
 		return getc(&"value")
 	func set_value(v:float) -> void:
@@ -141,5 +161,3 @@ class NoDefine extends GEComponent:
 	pass
 
 
-class WrongTypeDefine extends GEComponent:
-	const PROPS:= ""

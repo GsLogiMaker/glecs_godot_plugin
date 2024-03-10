@@ -13,6 +13,7 @@ func after_all():
 #region Tests
 
 func test_bools():
+	# TODO: Query for relations
 	world.new_system().for_each(func(_delta): pass)
 	
 	var man:= world.new_entity("Man", [])
@@ -33,9 +34,7 @@ func test_bools():
 #region Components
 
 class Bools extends GEComponent:
-	const PROPS:= {
-		a = TYPE_BOOL,
-		b = TYPE_BOOL,
-	}
+	const _VAR_a:= false
+	const _VAR_b:= false
 
 #endregion

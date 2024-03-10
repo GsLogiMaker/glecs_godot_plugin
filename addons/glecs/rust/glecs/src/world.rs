@@ -33,10 +33,9 @@ use crate::TYPE_SIZES;
 #[derive(GodotClass)]
 #[class(base=Node)]
 pub struct _BaseGEWorld {
-    #[base] pub(crate) node: Base<Node>,
+    pub(crate) node: Base<Node>,
     pub(crate) world: FlWorld,
     component_definitions: ComponentDefinitions,
-    system_contexts: LinkedList<Pin<Box<ScriptSystemContext>>>,
     gd_entity_map: HashMap<EntityId, Gd<_BaseGEEntity>>,
     prefabs: HashMap<Gd<Script>, Rc<PrefabDefinition>>,
     /// Maps identifiers to entities that serve as tags, relations
@@ -91,7 +90,7 @@ impl _BaseGEWorld {
 
         let mut i = 0;
         while i != with_components.len() {
-            let mut script = with_components.get(i);
+            let script = with_components.get(i);
 
             let comp_def = Self
                 ::get_or_add_component_gd(this.clone(), &script);
@@ -103,8 +102,8 @@ impl _BaseGEWorld {
             // TODO: Initialize properties in deterministic order
             for property in comp_def.parameters.iter() {
                 // TODO: Get default values of properties
-                let default_value = script
-                    .get_property_default_value(property.name.clone());
+                let default_value = comp_def
+                    .get_property_default_value(&property.name.to_string());
                 _BaseGEComponent::_initialize_property(
                     data,
                     comp_def.as_ref(),
@@ -139,20 +138,24 @@ impl _BaseGEWorld {
     }
 
     /// Creates a new entity in the world. 
-    #[func]
+    #[func(gd_self)]
     fn new_entity_with_prefab(
-        &mut self,
+        mut this: Gd<Self>,
         name:String,
         prefab:Gd<Script>,
     ) -> Gd<_BaseGEEntity> {
-        let gd_entity = Self::_new_entity(self.to_gd(), name, Array::default());
+        let gd_entity = Self
+            ::_new_entity(this.clone(), name, Array::default());
         let e_id = gd_entity.bind().get_flecs_id();
 
-        let prefab_def = self
-            .get_or_add_prefab_definition(prefab);
+        let prefab_def = Self
+            ::get_or_add_prefab_definition(this.clone(), prefab);
+        let this_bind = this.bind_mut();
+        let raw_world = this_bind.world.raw();
+        drop(this_bind);
 
         unsafe { flecs::ecs_add_id(
-            self.world.raw(),
+            raw_world,
             e_id,
             flecs::ecs_pair(flecs::EcsIsA, prefab_def.flecs_id),
         ) };
@@ -235,22 +238,22 @@ impl _BaseGEWorld {
         mut this: Gd<Self>,
         key: &Gd<Script>,
     ) -> Rc<ComponetDefinition> {
-        let mut bind = this.bind_mut();
+        let mut world_bind = this.bind_mut();
         let value = ComponentDefinitionsMapKey
             ::from(key)
-            .get_value(&bind.component_definitions);
+            .get_value(&world_bind.component_definitions);
         let def = match value {
             Some(value) => value,
             None => {
                 let def = ComponetDefinition::new(
                     key.clone(),
-                    &mut bind,
+                    &mut world_bind,
                 );
-                let def = bind
+                let def = world_bind
                     .component_definitions
                     .insert(def);
 
-                drop(bind);
+                drop(world_bind);
 
                 this.bind_mut();
                 
@@ -279,7 +282,6 @@ impl _BaseGEWorld {
             callable.clone(),
             this.clone(),
             &builder.description.filter,
-            std::mem::take(&mut builder.terms).into_boxed_slice(),
             Box::default(),
         ));
 
@@ -354,18 +356,18 @@ impl _BaseGEWorld {
         self.pipelines.get(&key).map(|x| x.clone())
     }
 
-    fn get_or_add_prefab_definition(&mut self, script:Gd<Script>) -> Rc<PrefabDefinition> {
-        if let Some(prefab_def) = self.prefabs.get(&script) {
+    fn get_or_add_prefab_definition(mut this: Gd<Self>, script:Gd<Script>) -> Rc<PrefabDefinition> {
+        if let Some(prefab_def) = this.bind().prefabs.get(&script) {
             return prefab_def.clone()
         }
-        let prefab = self
-            .new_prefab_def(script.clone());
-        self.prefabs.insert(script.clone(), prefab);
-        self.prefabs.get(&script).unwrap().clone()
+        let prefab = Self
+            ::new_prefab_def(this.clone(), script.clone());
+        this.bind_mut().prefabs.insert(script.clone(), prefab);
+        this.bind().prefabs.get(&script).unwrap().clone()
     }
 
     pub(crate) fn new_system_from_builder(
-        mut this: Gd<Self>,
+        this: Gd<Self>,
         builder: &mut _BaseSystemBuilder,
         callable: Callable,
     ) {
@@ -403,7 +405,6 @@ impl _BaseGEWorld {
                 callable.clone(),
                 this,
                 &builder.description.filter,
-                std::mem::take(&mut builder.terms).into_boxed_slice(),
                 value_getters,
             )
         );
@@ -491,10 +492,10 @@ impl _BaseGEWorld {
 	}
 
     pub(crate) fn new_prefab_def(
-        &mut self,
+        this: Gd<Self>,
         mut script:Gd<Script>,
     ) -> Rc<PrefabDefinition> {
-        let prefab_entt = self.world
+        let prefab_entt = this.bind().world
             .prefab(&script.instance_id().to_string());
 
         let componets = script.get_script_constant_map()
@@ -508,7 +509,7 @@ impl _BaseGEWorld {
                 else {continue};
                 
             prefab_entt.add_id(
-                self.get_or_add_component(&component).flecs_id
+                Self::get_or_add_component_gd(this.clone(), &component).flecs_id
             );
         }
 
@@ -577,7 +578,6 @@ impl INode for _BaseGEWorld {
             node,
             world: world,
             component_definitions: Default::default(),
-            system_contexts: Default::default(),
             gd_entity_map: Default::default(),
             prefabs: Default::default(),
             tag_entities: Default::default(),
@@ -672,10 +672,8 @@ pub(crate) struct ScriptSystemContext {
     callable: Callable,
     /// The arguments passed to the system.
     system_args: Array<Variant>,
-    terms_buffer: Box<[flecs::ecs_term_t]>,
     /// Holds the accesses stored in `sysatem_args` for quicker access.
     term_accesses: Box<[Gd<_BaseGEComponent>]>,
-    world: Gd<_BaseGEWorld>,
     /// A list of getters for extra arguments in a pipeline.
     additional_arg_getters: Box<[Callable]>,
 } impl ScriptSystemContext {
@@ -683,13 +681,8 @@ pub(crate) struct ScriptSystemContext {
         callable: Callable,
         world: Gd<_BaseGEWorld>,
         filter: &flecs::ecs_filter_desc_t,
-        terms_buffer: Box<[flecs::ecs_term_t]>,
         additional_arg_getters: Box<[Callable]>,
     ) -> Self {
-        let component_class_name = <_BaseGEComponent as GodotClass>
-            ::class_name()
-            .to_string_name();
-
         // Make arguments list
         let mut args = array![];
         for _v in additional_arg_getters.iter() {
@@ -712,7 +705,7 @@ pub(crate) struct ScriptSystemContext {
                 },
                 flecs::ecs_oper_kind_t_EcsNot => { continue },
                 flecs::ecs_oper_kind_t_EcsOptional => {
-                    todo!("Handle \"or\" case")
+                    todo!("Handle \"optional\" case")
                 },
                 _ => continue,
             }
@@ -751,8 +744,6 @@ pub(crate) struct ScriptSystemContext {
             callable: callable,
             system_args: args,
             term_accesses: term_args_fast,
-            world: world,
-            terms_buffer,
             additional_arg_getters,
         }
     }

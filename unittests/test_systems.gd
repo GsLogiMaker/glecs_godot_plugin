@@ -39,10 +39,8 @@ func test_stuff():
 #region Components
 
 class Bools extends GEComponent:
-	const PROPS:= {
-		a = TYPE_BOOL,
-		b = TYPE_BOOL,
-	}
+	const _VAR_a:= false
+	const _VAR_b:= false
 	var a:bool:
 		get: return getc(&"a")
 		set(v): setc(&"a", v)

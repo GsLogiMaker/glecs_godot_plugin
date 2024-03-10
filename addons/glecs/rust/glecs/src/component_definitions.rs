@@ -2,6 +2,7 @@
 use core::panic;
 use std::alloc::Layout;
 use std::collections::HashMap;
+use std::mem::size_of;
 use std::rc::Rc;
 
 use flecs::EntityId;
@@ -9,10 +10,7 @@ use godot::engine::Script;
 use godot::prelude::*;
 
 use crate::world::_BaseGEWorld;
-use crate::show_error;
 use crate::TYPE_SIZES;
-
-const COMPONENT_PROPERTIES_DICT:&str = "PROPS";
 
 /// The metadata regarding a component's structure.
 #[derive(Debug, Clone)]
@@ -23,57 +21,35 @@ pub(crate) struct ComponetDefinition {
     pub(crate) script_id: InstanceId,
     pub(crate) layout: Layout,
 } impl ComponetDefinition {
+    pub const PROPERTY_PREFIX:&'static str = "_VAR_";
+
     pub(crate) fn new(
         mut component: Gd<Script>,
         world: &mut _BaseGEWorld,
     ) -> Self {
-        let script_properties = component
-            .get_script_constant_map()
-            .get(COMPONENT_PROPERTIES_DICT)
-            .unwrap_or_else(|| {
-                show_error!(
-                    "Incomplete component",
-                    "Component {} lacks constant dictionary named \"{}\", that maps component property names to Variant.Type IDs.",
-                    component,
-                    COMPONENT_PROPERTIES_DICT,
-                );
-                Dictionary::default().to_variant()
-            })
-            .try_to::<Dictionary>()
-            .unwrap_or_else(|_err| {
-                show_error!(
-                    "Error defining component",
-                    "Expected constant \"{}\" in {} to be a dictionary mapping component property names to Variant.Type IDs.",
-                    COMPONENT_PROPERTIES_DICT,
-                    component,
-                );
-                Dictionary::default()
-            });
-        
         let mut component_properties = Vec::default();
         let mut offset = 0;
-        let mut i = 0;
-        for (key, value) in script_properties.iter_shared() {
-            let property_type = value.to::<VariantType>();
+        for (key, value) in component.get_script_constant_map().iter_shared() {
+            let key = key.to::<GString>();
+            let mut key_string = key.to_string();
 
-            if property_type == VariantType::Nil {
-                i += 1;
-                continue;
+            if !(key_string.starts_with(Self::PROPERTY_PREFIX)) {
+                // Key is not a component variable definition
+                continue
             }
-            let property_name = match key.get_type() {
-                VariantType::String => StringName::from(key.to::<GString>()),
-                VariantType::StringName => key.to::<StringName>(),
-                _ => {
-                    show_error!(
-                        "Error defining component",
-                        "Expected all keys of constant \"{}\" in component \"{}\" to be of type String or StringName, but got {}.",
-                        COMPONENT_PROPERTIES_DICT,
-                        component,
-                        key,
-                    );
-                    continue;
-                }
-            };
+            if key.len() == Self::PROPERTY_PREFIX.len() {
+                // Key does not contain a variable name
+                continue
+            }            
+
+            let property_name = StringName::from(key_string.split_off(
+                Self::PROPERTY_PREFIX.len()
+            ));
+            let mut property_type = value.get_type();
+            if property_type == VariantType::Nil {
+                property_type = VariantType::Object;
+            }
+
 
             component_properties.push(
                 ComponetProperty {
@@ -83,8 +59,11 @@ pub(crate) struct ComponetDefinition {
                 },
             );
 
-            offset += TYPE_SIZES[property_type as usize];
-            i += 1;
+            if property_type == VariantType::Nil {
+                offset += size_of::<Variant>();
+            } else {
+                offset += TYPE_SIZES[property_type as usize];
+            }
         }
 
         let name = component.to_string();
@@ -112,6 +91,13 @@ pub(crate) struct ComponetDefinition {
             }
         }
         None
+    }
+
+    pub(crate) fn get_property_default_value(&self, property: &str) -> Variant {
+        let mut script = Gd::<Script>::from_instance_id(self.script_id);
+        script.get_script_constant_map()
+            .get(format!("{}{}", Self::PROPERTY_PREFIX, property))
+            .unwrap()
     }
 }
 

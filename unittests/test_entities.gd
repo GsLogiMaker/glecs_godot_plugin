@@ -47,18 +47,14 @@ func test_new_entity_with_unregistered_component():
 #region Classes
 
 class Foo extends GEComponent:
-	const PROPS:= {
-		value = TYPE_FLOAT,
-	}
+	const _VAR_value:= 0.0
 	var value:float:
 		get: return getc(&"value")
 		set(v): setc(&"value", v)
 
 class Stringy extends GEComponent:
-	const PROPS:= {
-		a = TYPE_STRING,
-		b = TYPE_STRING,
-	}
+	const _VAR_a:= ""
+	const _VAR_b:= ""
 	var a:String:
 		get: return getc(&"a")
 		set(v): setc(&"a", v)
@@ -67,17 +63,13 @@ class Stringy extends GEComponent:
 		set(v): setc(&"b", v)
 
 class Unadded extends GEComponent:
-	const PROPS:= {
-		value = TYPE_INT,
-	}
+	const _VAR_value:= 0
 	var value:int:
 		get: return getc(&"value")
 		set(v): setc(&"value", v)
 
 class Unregistered extends GEComponent:
-	const PROPS:= {
-		value = TYPE_INT,
-	}
+	const _VAR_value:= 0
 	var value:int:
 		get: return getc(&"value")
 		set(v): setc(&"value", v)

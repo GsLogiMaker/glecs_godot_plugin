@@ -44,17 +44,13 @@ func test_prefab():
 #region Components
 
 class Foo extends GEComponent:
-	const PROPS:= {
-		a = TYPE_BOOL,
-		b = TYPE_INT,
-		c = TYPE_FLOAT,
-	}
+	const _VAR_a:= false
+	const _VAR_b:= 0
+	const _VAR_c:= 0.0
 
 class Bar extends GEComponent:
-	const PROPS:= {
-		a = TYPE_VECTOR2,
-		b = TYPE_FLOAT,
-	}
+	const _VAR_a:= Vector2.ZERO
+	const _VAR_b:= 0.0
 	
 class PrefabPck extends _BaseGEPrefab:
 	const COMPONENTS:= [

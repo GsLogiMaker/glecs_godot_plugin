@@ -50,9 +50,9 @@ func test_new_entity_with_unregistered_component():
 #region Classes
 
 class Foo extends GEComponent:
-	var vec:= 0.0
+	const _VAR_vec:= 0.0
 
 class Unregistered extends GEComponent:
-	var vec:= 0.0
+	const _VAR_vec:= 0.0
 
 #endregion

@@ -264,21 +264,24 @@ pub(crate) trait EntityLike: Debug {
             &component_definition.name.to_string()
         );
 
-        fn value_from_initial_data(data:&Variant, index:usize, name:&StringName) -> Variant{
+        fn value_from_initial_data(
+            data:&Variant,
+            index:usize,
+            name:&StringName,
+        ) -> Option<Variant> {
             match data.get_type() {
                 VariantType::Array => {
                     let arr = data.to::<Array<Variant>>();
                     if index >= arr.len() {
-                        return Variant::nil()
+                        return None
                     }
-                    arr.get(index)
+                    Some(arr.get(index))
                 },
                 VariantType::Dictionary => {
                     let dict = data.to::<Dictionary>();
                     dict.get(name.clone())
-                        .unwrap_or_else(|| Variant::nil())
                 },
-                _ => Variant::nil(),
+                _ => None,
             }
         }
 
@@ -287,12 +290,15 @@ pub(crate) trait EntityLike: Debug {
         for (i, property) in
             component_definition.parameters.iter().enumerate()
         {
-            let default_value = Variant::nil();
+            let default_value = value_from_initial_data(&with_data, i, &property.name)
+                .unwrap_or_else(|| {
+                    component_definition.get_property_default_value(&property.name.to_string())
+                });
             _BaseGEComponent::_initialize_property(
                 component_data,
                 component_definition.as_ref(),
                 property.name.clone(),
-                value_from_initial_data(&with_data, i, &property.name),
+                default_value,
             );
         }
 

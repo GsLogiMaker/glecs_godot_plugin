@@ -1,5 +1,6 @@
 
 use std::fmt::Debug;
+use std::ptr::NonNull;
 use std::rc::Rc;
 use std::mem::size_of;
 
@@ -127,30 +128,32 @@ impl _BaseGEComponent {
             data:*mut [u8],
             property_data: &ComponetProperty
         ) -> Variant {
-            unsafe {
-                let param:*mut u8 = &mut (*data)[property_data.offset];
-                let value = param as *mut T;
-                let copied = (*value).clone();
-                let variant = Variant::from(copied);
-                return variant;
-            }
+            let param = unsafe {
+                NonNull::new_unchecked(&mut (*data)[property_data.offset])
+                    .cast::<T>()
+                    .as_ref()
+                    .clone()
+            };
+            let variant = Variant::from(param);
+            return variant;
         }
 
         fn get_param_variant(
             data:*mut [u8],
             property_data: &ComponetProperty
         ) -> Variant {
-            unsafe {
-                let param:*mut u8 = &mut (*data)[property_data.offset];
-                let value = param as *mut Variant;
-                let copied = (*value).clone();
-                return copied;
-            }
+            let variant = unsafe {
+                NonNull::new_unchecked(&mut (*data)[property_data.offset])
+                    .cast::<Variant>()
+                    .as_ref()
+                    .clone()
+            };
+            return variant;
         }
         
         let data = self.get_data();
         let value =  match property_data.gd_type_id {
-            VariantType::Nil => Variant::nil(),
+            VariantType::Nil => panic!("Can't get \"Nil\" type from component"),
             VariantType::Bool => get_param::<bool>(data, property_data),
             VariantType::Int => get_param::<i32>(data, property_data),
             VariantType::Float => get_param::<f32>(data, property_data),
@@ -188,8 +191,6 @@ impl _BaseGEComponent {
             VariantType::PackedVector2Array => get_param::<PackedVector2Array>(data, property_data),
             VariantType::PackedVector3Array => get_param::<PackedVector3Array>(data, property_data),
             VariantType::PackedColorArray => get_param::<PackedColorArray>(data, property_data),
-
-            _ => todo!(),
         };
         value
     }
@@ -208,10 +209,13 @@ impl _BaseGEComponent {
         let value_type = value.get_type();
         let property_type = property_data.gd_type_id;
         'cancel_type_check: {
+            if property_type == VariantType::Nil {
+                break 'cancel_type_check
+            }
             if value_type != property_type {
                 if
-                property_type == VariantType::Object
-                    && value_type == VariantType::Nil
+                    property_type == VariantType::Object
+                        && value_type == VariantType::Nil
                 { break 'cancel_type_check }
 
                 show_error!(
@@ -229,10 +233,12 @@ impl _BaseGEComponent {
             value: Variant,
             property_data: &ComponetProperty,
         ) {
-            unsafe {
-                let param_ptr:*mut u8 = &mut (*data)[property_data.offset];
-                *(param_ptr as *mut T) = value.to::<T>();
-            }
+            let param_ref = unsafe {
+                NonNull::new_unchecked(&mut (*data)[property_data.offset])
+                    .cast::<T>()
+                    .as_mut()
+            };
+            *param_ref = value.to::<T>();
         }
 
         fn set_param_variant(
@@ -240,17 +246,17 @@ impl _BaseGEComponent {
             value: Variant,
             property_data: &ComponetProperty,
         ) {
-            unsafe {
-                let param_ptr = (
-                    ( &mut (*data)[property_data.offset] ) as *mut u8
-                ).cast::<Variant>();
-                *param_ptr = value;
-            }
+            let param_ref = unsafe {
+                NonNull::new_unchecked(&mut (*data)[property_data.offset])
+                    .cast::<Variant>()
+                    .as_mut()
+            };
+            *param_ref = value;
         }
         
         let data = self.get_data();
         match property_type {
-            VariantType::Nil => {},
+            VariantType::Nil => panic!("Can't set \"Nil\" type in component"),
             VariantType::Bool => set_param::<bool>(data, value, property_data),
             VariantType::Int => set_param::<i32>(data, value, property_data),
             VariantType::Float => set_param::<f32>(data, value, property_data),
@@ -288,8 +294,6 @@ impl _BaseGEComponent {
             VariantType::PackedVector2Array => set_param::<PackedVector2Array>(data, value, property_data),
             VariantType::PackedVector3Array => set_param::<PackedVector3Array>(data, value, property_data),
             VariantType::PackedColorArray => set_param::<PackedColorArray>(data, value, property_data),
-
-            _ => todo!(),
         }
 
         return true;
@@ -300,7 +304,7 @@ impl _BaseGEComponent {
         data:&mut [u8],
         description:&ComponetDefinition,
         property:StringName,
-        value:Variant, // TODO: Utilize the initialization value
+        value:Variant,
     ) -> bool {
         let Some(property_data) = description
             .get_property(&property) else {
@@ -314,14 +318,16 @@ impl _BaseGEComponent {
 
         let value_type = value.get_type();
         let property_type = property_data.gd_type_id;
-        if value_type != property_type && value_type != VariantType::Nil{
-            show_error!(
-                "Failed to set property",
-                "Expected type {:?}, but got type {:?}.",
-                property_type,
-                value_type,
-            );
-            return true;
+        if property_type != VariantType::Nil {
+            if value_type != property_type && value_type != VariantType::Nil {
+                show_error!(
+                    "Failed to set property",
+                    "Expected type {:?}, but got type {:?}.",
+                    property_type,
+                    value_type,
+                );
+                return true;
+            }
         }
         
         fn init_param<T: FromGodot + ToGodot + Debug + Clone>(
@@ -364,7 +370,7 @@ impl _BaseGEComponent {
         }
 
         match property_data.gd_type_id {
-            VariantType::Nil => {},
+            VariantType::Nil => panic!("Can't init \"Nil\" type in component"),
             VariantType::Bool => init_param::<bool>(data, value, property_data, &|| bool::default().to_variant()),
             VariantType::Int => init_param::<i32>(data, value, property_data, &|| i32::default().to_variant()),
             VariantType::Float => init_param::<f32>(data, value, property_data, &|| f32::default().to_variant()),
@@ -402,8 +408,6 @@ impl _BaseGEComponent {
             VariantType::PackedVector2Array => init_param::<PackedVector2Array>(data, value, property_data, &|| PackedVector2Array::default().to_variant()),
             VariantType::PackedVector3Array => init_param::<PackedVector3Array>(data, value, property_data, &|| PackedVector3Array::default().to_variant()),
             VariantType::PackedColorArray => init_param::<PackedColorArray>(data, value, property_data, &|| PackedColorArray::default().to_variant()),
-
-            _ => todo!(),
         }
 
         return true;

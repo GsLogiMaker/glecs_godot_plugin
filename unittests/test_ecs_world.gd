@@ -52,6 +52,4 @@ func test_simple_system():
 	assert_almost_eq(entity.get_component(Foo).getc(&"vec"), 2.67, 0.01)
 
 class Foo extends GEComponent:
-	const PROPS:= {
-		vec = TYPE_FLOAT
-	}
+	const _VAR_vec:= 0.0
