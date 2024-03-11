@@ -36,19 +36,18 @@ func test_on_add_event():
 	e3.free()
 	e4.free()
 
+
+func test_on_add_with_registration():
+	var world:= GEWorldNode.new()
+	
+	var e:= world.new_entity("Test")
+	e.add_component(OnAddComponent, [load("res://icon.png")])
+	
+	world.queue_free()
+
 #endregion
 
 #region Components
-
-class Bools extends GEComponent:
-	const _VAR_a:= false
-	const _VAR_b:= false
-	var a:bool:
-		get: return getc(&"a")
-		set(v): setc(&"a", v)
-	var b:bool:
-		get: return getc(&"b")
-		set(v): setc(&"b", v)
 
 class Ints extends GEComponent:
 	const _VAR_a:= 0
@@ -60,34 +59,19 @@ class Ints extends GEComponent:
 		get: return getc(&"b")
 		set(v): setc(&"b", v)
 
-class Floats extends GEComponent:
-	const _VAR_a:= 0.0
-	const _VAR_b:= 0.0
-	var a:float:
+class OnAddComponent extends GEComponent:
+	const _VAR_a:Texture2D = null
+	var a:Texture2D:
 		get: return getc(&"a")
 		set(v): setc(&"a", v)
-	var b:float:
-		get: return getc(&"b")
-		set(v): setc(&"b", v)
-
-class Strings extends GEComponent:
-	const _VAR_a:= ""
-	const _VAR_b:= ""
-	var a:String:
-		get: return getc(&"a")
-		set(v): setc(&"a", v)
-	var b:String:
-		get: return getc(&"b")
-		set(v): setc(&"b", v)
-
-class ByteArrays extends GEComponent:
-	const _VAR_a:PackedByteArray = []
-	const _VAR_b:PackedByteArray = []
-	var a:PackedByteArray:
-		get: return getc(&"a")
-		set(v): setc(&"a", v)
-	var b:PackedByteArray:
-		get: return getc(&"b")
-		set(v): setc(&"b", v)
+	
+	static func _on_registered(world):
+		pass
+		# TODO: Get this working...
+		#world.new_event_listener(world.EVENT_ON_ADD) \
+			#.with(OnAddComponent) \
+			#.for_each(func(textures:OnAddComponent):
+				#prints("textures.a", textures.a)
+				#)
 
 #endregion

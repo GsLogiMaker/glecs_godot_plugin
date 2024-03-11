@@ -1,18 +1,16 @@
 
 use std::alloc::Layout;
 use std::collections::HashMap;
-use std::collections::LinkedList;
 use std::ffi::c_void;
 use std::hash::Hash;
 use std::mem::MaybeUninit;
-use std::pin::Pin;
+use std::ptr::NonNull;
 use std::rc::Rc;
 
 use flecs::EntityId;
 use flecs::Iter;
 use flecs::World as FlWorld;
 use godot::engine::notify::NodeNotification;
-use godot::engine::object::ConnectFlags;
 use godot::engine::Script;
 use godot::prelude::*;
 
@@ -86,35 +84,18 @@ impl _BaseGEWorld {
         name: String,
         with_components:Array<Gd<Script>>,
     ) -> Gd<_BaseGEEntity> {
-        let mut entity = this.bind_mut().world.entity();
+        let entity = this.bind_mut().world.entity();
 
-        let mut i = 0;
-        while i != with_components.len() {
-            let script = with_components.get(i);
-
-            let comp_def = Self
-                ::get_or_add_component_gd(this.clone(), &script);
-            entity = entity.add_id(comp_def.flecs_id);
-
-            let data = entity.get_mut_dynamic(&comp_def.name.to_string());
-            
-            // Initialize component properties
-            // TODO: Initialize properties in deterministic order
-            for property in comp_def.parameters.iter() {
-                // TODO: Get default values of properties
-                let default_value = comp_def
-                    .get_property_default_value(&property.name.to_string());
-                _BaseGEComponent::_initialize_property(
-                    data,
-                    comp_def.as_ref(),
-                    property.name.clone(),
-                    default_value,
-                );
-            }
-
-            i += 1;
+        for component in with_components.iter_shared() {
+            _BaseGEEntity::add_component_raw(
+                this.clone(),
+                entity.id(),
+                component,
+                Variant::nil(),
+            );
         }
 
+        // Create Godot wrapper
         let this_clone = this.clone();
         let mut gd_entity = Gd::from_init_fn(|base| {
             _BaseGEEntity {
@@ -125,9 +106,7 @@ impl _BaseGEWorld {
                 gd_components_map: Default::default(),
             }
         });
-
         let mut bind = this.bind_mut();
-
         gd_entity.set_script(
             load::<Script>("res://addons/glecs/gd/entity.gd").to_variant(),
         );
@@ -546,7 +525,9 @@ impl _BaseGEWorld {
 			for field_i in 0i32..(iter.field_count()) {
 				let mut column = iter
 					.field_dynamic(field_i+1);
-				let data:*mut [u8] = column.get_mut(entity_index);
+				let data = unsafe { NonNull
+                    ::new_unchecked(column.get_mut(entity_index))
+                };
 
 				context.term_accesses[field_i as usize]
 					.bind_mut()
@@ -562,10 +543,10 @@ impl _BaseGEWorld {
 		}
 	}
 
-    extern "C" fn raw_system_drop(void_ptr:*mut c_void) {
-        let ptr = void_ptr
-            .cast::<ScriptSystemContext>();
-        let boxed = unsafe { Box::from_raw(ptr) };
+    extern "C" fn raw_system_drop(context_ptr:*mut c_void) {
+        let boxed = unsafe { Box::from_raw(
+            context_ptr.cast::<ScriptSystemContext>()
+        ) };
         drop(boxed)
 	}
 }

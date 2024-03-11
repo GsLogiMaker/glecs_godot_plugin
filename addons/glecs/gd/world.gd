@@ -2,6 +2,7 @@
 class_name GEWorldNode extends _BaseGEWorld
 
 const EVENT_ON_ADD:= &"on_add"
+const EVENT_ON_SET:= &"on_set"
 
 const PIPELINE_PROCESS:= &"process"
 const PIPELINE_PHYSICS_PROCESS:= &"physics_process"

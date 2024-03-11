@@ -10,10 +10,7 @@ pub(crate) mod component_definitions;
 
 use std::mem::size_of;
 
-use flecs::EntityId;
 use godot::prelude::*;
-use godot::engine::Object;
-use world::_BaseGEWorld;
 
 const TYPE_SIZES:&'static [usize] = &[
     /* NIL */ 0,

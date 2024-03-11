@@ -59,11 +59,7 @@ pub(crate) struct ComponetDefinition {
                 },
             );
 
-            if property_type == VariantType::Nil {
-                offset += size_of::<Variant>();
-            } else {
-                offset += TYPE_SIZES[property_type as usize];
-            }
+            offset += TYPE_SIZES[property_type as usize];
         }
 
         let name = component.to_string();

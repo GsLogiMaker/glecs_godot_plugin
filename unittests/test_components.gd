@@ -64,8 +64,8 @@ func test_simple_system():
 	var a = world.new_system()
 	var b = a.with(Foo)
 	b.for_each(func(_delta:float, foo:Foo):
-			foo.set_value(Vector2(2, 5))
-			)
+		foo.set_value(Vector2(2, 5))
+		)
 			
 	var entity:= world.new_entity("Test", [Foo])
 	

@@ -1,5 +1,6 @@
 
 use std::collections::HashMap;
+use std::ffi::c_void;
 use std::fmt::Debug;
 
 use flecs::EntityId;
@@ -230,83 +231,18 @@ pub(crate) trait EntityLike: Debug {
         let component_definition = _BaseGEWorld
             ::get_or_add_component_gd(world_gd.clone(), &component);
 
-        let world = world_gd.bind();
-
-        unsafe {
-            flecs::ecs_add_id(
-                world.world.raw(),
-                flecs_id,
-                component_definition.flecs_id,
-            )
-        };
-
-        // Get component data
-        let Some(mut entt) = world.world.find_entity(flecs_id)
-            else { 
-                show_error!(
-                    "Failed to get component from entity",
-                    "Entity {:?} was freed.",
-                    self,
-                );
-                unreachable!();
-                return None;
-            };
-        if !entt.has_id(component_definition.flecs_id) {
-            show_error!(
-                "Failed to get component from entity",
-                "Component {} has not been added to entity {:?}.",
-                    component,
-                    self,
-            );
-            return None;
-        }
-        let component_data = entt.get_mut_dynamic(
-            &component_definition.name.to_string()
+        Self::add_component_raw(
+            world_gd.clone(),
+            flecs_id,
+            component.clone(),
+            with_data,
         );
 
-        fn value_from_initial_data(
-            data:&Variant,
-            index:usize,
-            name:&StringName,
-        ) -> Option<Variant> {
-            match data.get_type() {
-                VariantType::Array => {
-                    let arr = data.to::<Array<Variant>>();
-                    if index >= arr.len() {
-                        return None
-                    }
-                    Some(arr.get(index))
-                },
-                VariantType::Dictionary => {
-                    let dict = data.to::<Dictionary>();
-                    dict.get(name.clone())
-                },
-                _ => None,
-            }
-        }
-
-        // Initialize component properties
-        // TODO: Initialize properties in deterministic order
-        for (i, property) in
-            component_definition.parameters.iter().enumerate()
-        {
-            let default_value = value_from_initial_data(&with_data, i, &property.name)
-                .unwrap_or_else(|| {
-                    component_definition.get_property_default_value(&property.name.to_string())
-                });
-            _BaseGEComponent::_initialize_property(
-                component_data,
-                component_definition.as_ref(),
-                property.name.clone(),
-                default_value,
-            );
-        }
-
-        let world_gd_clone = world_gd.clone();
+        // Create Godot wrapper
         let mut comp = Gd::from_init_fn(|base| {
             let base_comp = _BaseGEComponent {
                 base,
-                world: world_gd_clone,
+                world: world_gd,
                 get_data_fn_ptr: _BaseGEComponent::new_default_data_getter(
                     self.get_flecs_id()
                 ),
@@ -317,6 +253,29 @@ pub(crate) trait EntityLike: Debug {
         comp.bind_mut().base_mut().set_script(component.to_variant());
 
         Some(comp)
+    }
+
+    fn add_component_raw(
+        world_gd: Gd<_BaseGEWorld>,
+        raw_entity: EntityId,
+        component: Gd<Script>,
+        with_data: Variant,
+    ) {
+        let component_definition = _BaseGEWorld
+            ::get_or_add_component_gd(world_gd.clone(), &component);
+        let world_raw = world_gd.bind().world.raw();
+        let initial_data = _BaseGEComponent
+            ::create_initial_data(&component_definition, with_data);
+
+        // Add component to entity
+        // TODO: Fix zero sized components
+        unsafe { flecs::ecs_set_id(
+            world_raw,
+            raw_entity,
+            component_definition.flecs_id,
+            initial_data.len(),
+            initial_data.as_ptr().cast::<c_void>(),
+        ) };
     }
 
     fn get_component(&mut self, component:Gd<Script>) -> Option<Gd<_BaseGEComponent>> {

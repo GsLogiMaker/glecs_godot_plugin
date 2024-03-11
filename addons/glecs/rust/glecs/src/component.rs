@@ -21,7 +21,7 @@ pub struct _BaseGEComponent {
     pub(crate) base: Base<Object>,
     pub(crate) component_definition: Rc<ComponetDefinition>,
     pub(crate) world: Gd<_BaseGEWorld>,
-    pub(crate) get_data_fn_ptr: Box<dyn Fn(&Self) -> *mut [u8]>,
+    pub(crate) get_data_fn_ptr: Box<dyn Fn(&Self) -> NonNull<[u8]>>,
 }
 #[godot_api]
 impl _BaseGEComponent {
@@ -40,8 +40,8 @@ impl _BaseGEComponent {
             )
         }
         unsafe {
-            self.get_data().as_mut().unwrap().copy_from_slice(
-                from_component.bind().get_data().as_ref().unwrap(),
+            self.get_data().as_mut().copy_from_slice(
+                from_component.bind().get_data().as_ref(),
             );
         }
     }
@@ -56,14 +56,6 @@ impl _BaseGEComponent {
     #[func]
     fn getc(&self, property: StringName) -> Variant {
         let v = self._get_property(property.clone());
-        if v == Variant::nil() {
-            show_error!(
-                "Failed to get property",
-                "No property named \"{}\" in component of type \"{}\"",
-                property,
-                self.get_component_type_name(),
-            );
-        }
         v
     }
 
@@ -86,25 +78,309 @@ impl _BaseGEComponent {
         return;
     }
 
-    pub(crate) fn new_default_data_getter(entity:EntityId) -> Box<dyn Fn(&Self) -> *mut [u8]> {
+    pub(crate) fn create_initial_data(def: &ComponetDefinition, parameters:Variant) -> Box<[u8]> {
+        let mut data = Vec::<u8>::new();
+        data.resize(def.layout.size(), 0);
+        
+        match parameters.get_type() {
+            VariantType::Array => {
+                let parameters = parameters.to::<VariantArray>();
+                for
+                    (i, property_meta)
+                in def.parameters.iter().enumerate() {
+                    let prop_value = if i < parameters.len() {
+                        // Get value from passed parameters
+                        let parameter = parameters.get(i);
+                        let value = if
+                            parameter.get_type() == property_meta.gd_type_id
+                        {
+                            parameter
+                        } else {
+                            // Parameter is wrong type, get value
+                            // from component's default
+                            def.get_property_default_value(
+                                &property_meta.name.to_string(),
+                            )
+                        };
+                        value
+                    } else {
+                        // Get value from component's default
+                        def.get_property_default_value(
+                            &property_meta.name.to_string(),
+                        )
+                    };
+
+                    Self::init_data_property(&mut data, prop_value, &property_meta)
+                }
+            },
+            VariantType::Nil => {
+                for property_meta in def.parameters.iter() {
+                    let default = def.get_property_default_value(
+                        &property_meta.name.to_string(),
+                    );
+                    Self::init_data_property(&mut data, default, &property_meta)
+                }
+            },
+            _ => todo!(),
+        }
+    
+        data.into_boxed_slice()
+    }
+    
+    pub(crate) fn get_data_property(
+        data: &mut [u8],
+        property_data: &ComponetProperty,
+    ) -> Variant{
+        match property_data.gd_type_id {
+            VariantType::Nil => panic!("Can't set \"Nil\" type in component"),
+            VariantType::Bool => Self::get_data_property_raw::<bool>(data, property_data.offset).to_variant(),
+            VariantType::Int => Self::get_data_property_raw::<i32>(data, property_data.offset).to_variant(),
+            VariantType::Float => Self::get_data_property_raw::<f32>(data, property_data.offset).to_variant(),
+            VariantType::String => Self::get_data_property_raw::<GString>(data, property_data.offset).to_variant(),
+            VariantType::Vector2 => Self::get_data_property_raw::<Vector2>(data, property_data.offset).to_variant(),
+            VariantType::Vector2i => Self::get_data_property_raw::<Vector2i>(data, property_data.offset).to_variant(),
+            VariantType::Rect2 => Self::get_data_property_raw::<Rect2>(data, property_data.offset).to_variant(),
+            VariantType::Rect2i => Self::get_data_property_raw::<Rect2i>(data, property_data.offset).to_variant(),
+            VariantType::Vector3 => Self::get_data_property_raw::<Vector3>(data, property_data.offset).to_variant(),
+            VariantType::Vector3i => Self::get_data_property_raw::<Vector3i>(data, property_data.offset).to_variant(),
+            VariantType::Transform2D => Self::get_data_property_raw::<Transform2D>(data, property_data.offset).to_variant(),
+            VariantType::Vector4 => Self::get_data_property_raw::<Vector4>(data, property_data.offset).to_variant(),
+            VariantType::Vector4i => Self::get_data_property_raw::<Vector4i>(data, property_data.offset).to_variant(),
+            VariantType::Plane => Self::get_data_property_raw::<Plane>(data, property_data.offset).to_variant(),
+            VariantType::Quaternion => Self::get_data_property_raw::<Quaternion>(data, property_data.offset).to_variant(),
+            VariantType::Aabb => Self::get_data_property_raw::<Aabb>(data, property_data.offset).to_variant(),
+            VariantType::Basis => Self::get_data_property_raw::<Basis>(data, property_data.offset).to_variant(),
+            VariantType::Transform3D => Self::get_data_property_raw::<Transform3D>(data, property_data.offset).to_variant(),
+            VariantType::Projection => Self::get_data_property_raw::<Projection>(data, property_data.offset).to_variant(),
+            VariantType::Color => Self::get_data_property_raw::<Color>(data, property_data.offset).to_variant(),
+            VariantType::StringName => Self::get_data_property_raw::<StringName>(data, property_data.offset).to_variant(),
+            VariantType::NodePath => Self::get_data_property_raw::<NodePath>(data, property_data.offset).to_variant(),
+            VariantType::Rid => Self::get_data_property_raw::<Rid>(data, property_data.offset).to_variant(),
+            VariantType::Object => Self::get_data_property_raw_variant(data, property_data.offset).to_variant(),
+            VariantType::Callable => Self::get_data_property_raw::<Callable>(data, property_data.offset).to_variant(),
+            VariantType::Signal => Self::get_data_property_raw::<Signal>(data, property_data.offset).to_variant(),
+            VariantType::Dictionary => Self::get_data_property_raw_variant(data, property_data.offset).to_variant(),
+            VariantType::Array => Self::get_data_property_raw_variant(data, property_data.offset).to_variant(),
+            VariantType::PackedByteArray => Self::get_data_property_raw::<PackedByteArray>(data, property_data.offset).to_variant(),
+            VariantType::PackedInt32Array => Self::get_data_property_raw::<PackedInt32Array>(data, property_data.offset).to_variant(),
+            VariantType::PackedInt64Array => Self::get_data_property_raw::<PackedInt64Array>(data, property_data.offset).to_variant(),
+            VariantType::PackedFloat32Array => Self::get_data_property_raw::<PackedFloat32Array>(data, property_data.offset).to_variant(),
+            VariantType::PackedFloat64Array => Self::get_data_property_raw::<PackedFloat64Array>(data, property_data.offset).to_variant(),
+            VariantType::PackedStringArray => Self::get_data_property_raw::<PackedStringArray>(data, property_data.offset).to_variant(),
+            VariantType::PackedVector2Array => Self::get_data_property_raw::<PackedVector2Array>(data, property_data.offset).to_variant(),
+            VariantType::PackedVector3Array => Self::get_data_property_raw::<PackedVector3Array>(data, property_data.offset).to_variant(),
+            VariantType::PackedColorArray => Self::get_data_property_raw::<PackedColorArray>(data, property_data.offset).to_variant(),
+        }
+    }
+    
+    pub(crate) fn get_data_property_raw<T: ToGodot + Clone + Debug>(
+        data: &mut [u8],
+        offset: usize,
+    ) -> T {
+        let param = unsafe {
+            NonNull::new_unchecked(&mut (data)[offset])
+                .cast::<T>()
+                .as_ref()
+                .clone()
+        };
+        return param;
+    }
+    
+    fn get_data_property_raw_variant(
+        data: &mut [u8],
+        offset: usize,
+    ) -> Variant {
+        let variant = unsafe { NonNull::new_unchecked(&mut (*data)[offset]) };
+        let variant = variant.cast::<Variant>();
+        let variant = unsafe { variant.as_ref() };
+        let variant = variant.clone();
+        return variant;
+    }
+
+    pub(crate) fn init_data_property(
+        data: &mut [u8],
+        value: Variant,
+        property_data: &ComponetProperty,
+    ) {
+        match property_data.gd_type_id {
+            VariantType::Nil => panic!("Can't init \"Nil\" type in component"),
+            VariantType::Bool => Self::init_data_property_raw::<bool>(data, value, property_data, &|| bool::default().to_variant()),
+            VariantType::Int => Self::init_data_property_raw::<i32>(data, value, property_data, &|| i32::default().to_variant()),
+            VariantType::Float => Self::init_data_property_raw::<f32>(data, value, property_data, &|| f32::default().to_variant()),
+            VariantType::String => Self::init_data_property_raw::<GString>(data, value, property_data, &|| GString::default().to_variant()),
+            VariantType::Vector2 => Self::init_data_property_raw::<Vector2>(data, value, property_data, &|| Vector2::default().to_variant()),
+            VariantType::Vector2i => Self::init_data_property_raw::<Vector2i>(data, value, property_data, &|| Vector2i::default().to_variant()),
+            VariantType::Rect2 => Self::init_data_property_raw::<Rect2>(data, value, property_data, &|| Rect2::default().to_variant()),
+            VariantType::Rect2i => Self::init_data_property_raw::<Rect2i>(data, value, property_data, &|| Rect2i::default().to_variant()),
+            VariantType::Vector3 => Self::init_data_property_raw::<Vector3>(data, value, property_data, &|| Vector3::default().to_variant()),
+            VariantType::Vector3i => Self::init_data_property_raw::<Vector3i>(data, value, property_data, &|| Vector3i::default().to_variant()),
+            VariantType::Transform2D => Self::init_data_property_raw::<Transform2D>(data, value, property_data, &|| Transform2D::default().to_variant()),
+            VariantType::Vector4 => Self::init_data_property_raw::<Vector4>(data, value, property_data, &|| Vector4::default().to_variant()),
+            VariantType::Vector4i => Self::init_data_property_raw::<Vector4i>(data, value, property_data, &|| Vector4i::default().to_variant()),
+            VariantType::Plane => Self::init_data_property_raw::<Plane>(data, value, property_data, &|| Plane::invalid().to_variant()),
+            VariantType::Quaternion => Self::init_data_property_raw::<Quaternion>(data, value, property_data, &|| Quaternion::default().to_variant()),
+            VariantType::Aabb => Self::init_data_property_raw::<Aabb>(data, value, property_data, &|| Aabb::default().to_variant()),
+            VariantType::Basis => Self::init_data_property_raw::<Basis>(data, value, property_data, &|| Basis::default().to_variant()),
+            VariantType::Transform3D => Self::init_data_property_raw::<Transform3D>(data, value, property_data, &|| Transform3D::default().to_variant()),
+            VariantType::Projection => Self::init_data_property_raw::<Projection>(data, value, property_data, &|| Projection::default().to_variant()),
+            VariantType::Color => Self::init_data_property_raw::<Color>(data, value, property_data, &|| Color::default().to_variant()),
+            VariantType::StringName => Self::init_data_property_raw::<StringName>(data, value, property_data, &|| StringName::default().to_variant()),
+            VariantType::NodePath => Self::init_data_property_raw::<NodePath>(data, value, property_data, &|| NodePath::default().to_variant()),
+            VariantType::Rid => Self::init_data_property_raw::<Rid>(data, value, property_data, &|| Rid::new(0).to_variant()),
+            VariantType::Object => Self::init_data_property_raw_variant(data, value, property_data),
+            VariantType::Callable => Self::init_data_property_raw::<Callable>(data, value, property_data, &|| Callable::from_fn("NullFn", |_|{Ok(Variant::nil())}).to_variant()),
+            VariantType::Signal => Self::init_data_property_raw::<Signal>(data, value, property_data, &|| Signal::invalid().to_variant()),
+            VariantType::Dictionary => Self::init_data_property_raw_variant(data, value, property_data),
+            VariantType::Array => Self::init_data_property_raw_variant(data, value, property_data),
+            VariantType::PackedByteArray => Self::init_data_property_raw::<PackedByteArray>(data, value, property_data, &|| PackedByteArray::default().to_variant()),
+            VariantType::PackedInt32Array => Self::init_data_property_raw::<PackedInt32Array>(data, value, property_data, &|| PackedInt32Array::default().to_variant()),
+            VariantType::PackedInt64Array => Self::init_data_property_raw::<PackedInt64Array>(data, value, property_data, &|| PackedInt64Array::default().to_variant()),
+            VariantType::PackedFloat32Array => Self::init_data_property_raw::<PackedFloat32Array>(data, value, property_data, &|| PackedFloat32Array::default().to_variant()),
+            VariantType::PackedFloat64Array => Self::init_data_property_raw::<PackedFloat64Array>(data, value, property_data, &|| PackedFloat64Array::default().to_variant()),
+            VariantType::PackedStringArray => Self::init_data_property_raw::<PackedStringArray>(data, value, property_data, &|| PackedStringArray::default().to_variant()),
+            VariantType::PackedVector2Array => Self::init_data_property_raw::<PackedVector2Array>(data, value, property_data, &|| PackedVector2Array::default().to_variant()),
+            VariantType::PackedVector3Array => Self::init_data_property_raw::<PackedVector3Array>(data, value, property_data, &|| PackedVector3Array::default().to_variant()),
+            VariantType::PackedColorArray => Self::init_data_property_raw::<PackedColorArray>(data, value, property_data, &|| PackedColorArray::default().to_variant()),
+        }
+    }
+
+    fn init_data_property_raw<T: FromGodot + ToGodot + Debug + Clone>(
+        data: &mut [u8],
+        value: Variant,
+        property_data: &ComponetProperty,
+        default: &dyn Fn() -> Variant,
+    ) {
+         let default_value = if value != Variant::nil() {
+            value
+        } else {
+            (default)()
+        };
+        unsafe {
+            let param_ptr:*mut u8 = &mut (*data)[property_data.offset];
+            let param_slice = std::slice::from_raw_parts_mut(param_ptr, size_of::<T>());
+            let value_ptr:*const T = &default_value.to::<T>();
+            let value_slice = std::slice::from_raw_parts(value_ptr as *const u8, size_of::<T>());
+            param_slice.copy_from_slice(value_slice);
+        }
+    }
+
+    fn init_data_property_raw_variant(
+        data: &mut [u8],
+        value: Variant,
+        property_data: &ComponetProperty,
+    ) {
+        let default_value = if value != Variant::nil() {
+            value
+        } else {
+            Variant::default()
+        };
+        unsafe {
+            let param_ptr:*mut u8 = &mut (*data)[property_data.offset];
+            let param_slice = std::slice::from_raw_parts_mut(param_ptr, size_of::<Variant>());
+            let value_ptr:*const Variant = &default_value;
+            let value_slice = std::slice::from_raw_parts(value_ptr as *const u8, size_of::<Variant>());
+            param_slice.copy_from_slice(value_slice);
+        }
+    }
+    
+    pub(crate) fn set_data_property_raw<T: FromGodot + ToGodot + Debug + Clone>(
+        data: &mut [u8],
+        value: Variant,
+        offset: usize,
+    ) {
+        let param_ref = unsafe {
+            NonNull::new_unchecked(&mut (*data)[offset])
+                .cast::<T>()
+                .as_mut()
+        };
+        *param_ref = value.to::<T>();
+    }
+    
+    // Sets the property of the given data to it's type from a variant
+    pub(crate) fn set_data_property(
+        data: &mut [u8],
+        value: Variant,
+        property_data: &ComponetProperty,
+    ) {
+        match property_data.gd_type_id {
+            VariantType::Nil => panic!("Can't set \"Nil\" type in component"),
+            VariantType::Bool => Self::set_data_property_raw::<bool>(data, value, property_data.offset),
+            VariantType::Int => Self::set_data_property_raw::<i32>(data, value, property_data.offset),
+            VariantType::Float => Self::set_data_property_raw::<f32>(data, value, property_data.offset),
+            VariantType::String => Self::set_data_property_raw::<GString>(data, value, property_data.offset),
+            VariantType::Vector2 => Self::set_data_property_raw::<Vector2>(data, value, property_data.offset),
+            VariantType::Vector2i => Self::set_data_property_raw::<Vector2i>(data, value, property_data.offset),
+            VariantType::Rect2 => Self::set_data_property_raw::<Rect2>(data, value, property_data.offset),
+            VariantType::Rect2i => Self::set_data_property_raw::<Rect2i>(data, value, property_data.offset),
+            VariantType::Vector3 => Self::set_data_property_raw::<Vector3>(data, value, property_data.offset),
+            VariantType::Vector3i => Self::set_data_property_raw::<Vector3i>(data, value, property_data.offset),
+            VariantType::Transform2D => Self::set_data_property_raw::<Transform2D>(data, value, property_data.offset),
+            VariantType::Vector4 => Self::set_data_property_raw::<Vector4>(data, value, property_data.offset),
+            VariantType::Vector4i => Self::set_data_property_raw::<Vector4i>(data, value, property_data.offset),
+            VariantType::Plane => Self::set_data_property_raw::<Plane>(data, value, property_data.offset),
+            VariantType::Quaternion => Self::set_data_property_raw::<Quaternion>(data, value, property_data.offset),
+            VariantType::Aabb => Self::set_data_property_raw::<Aabb>(data, value, property_data.offset),
+            VariantType::Basis => Self::set_data_property_raw::<Basis>(data, value, property_data.offset),
+            VariantType::Transform3D => Self::set_data_property_raw::<Transform3D>(data, value, property_data.offset),
+            VariantType::Projection => Self::set_data_property_raw::<Projection>(data, value, property_data.offset),
+            VariantType::Color => Self::set_data_property_raw::<Color>(data, value, property_data.offset),
+            VariantType::StringName => Self::set_data_property_raw::<StringName>(data, value, property_data.offset),
+            VariantType::NodePath => Self::set_data_property_raw::<NodePath>(data, value, property_data.offset),
+            VariantType::Rid => Self::set_data_property_raw::<Rid>(data, value, property_data.offset),
+            VariantType::Object => Self::set_data_property_raw_variant(data, value, property_data.offset),
+            VariantType::Callable => Self::set_data_property_raw::<Callable>(data, value, property_data.offset),
+            VariantType::Signal => Self::set_data_property_raw::<Signal>(data, value, property_data.offset),
+            VariantType::Dictionary => Self::set_data_property_raw_variant(data, value, property_data.offset),
+            VariantType::Array => Self::set_data_property_raw_variant(data, value, property_data.offset),
+            VariantType::PackedByteArray => Self::set_data_property_raw::<PackedByteArray>(data, value, property_data.offset),
+            VariantType::PackedInt32Array => Self::set_data_property_raw::<PackedInt32Array>(data, value, property_data.offset),
+            VariantType::PackedInt64Array => Self::set_data_property_raw::<PackedInt64Array>(data, value, property_data.offset),
+            VariantType::PackedFloat32Array => Self::set_data_property_raw::<PackedFloat32Array>(data, value, property_data.offset),
+            VariantType::PackedFloat64Array => Self::set_data_property_raw::<PackedFloat64Array>(data, value, property_data.offset),
+            VariantType::PackedStringArray => Self::set_data_property_raw::<PackedStringArray>(data, value, property_data.offset),
+            VariantType::PackedVector2Array => Self::set_data_property_raw::<PackedVector2Array>(data, value, property_data.offset),
+            VariantType::PackedVector3Array => Self::set_data_property_raw::<PackedVector3Array>(data, value, property_data.offset),
+            VariantType::PackedColorArray => Self::set_data_property_raw::<PackedColorArray>(data, value, property_data.offset),
+        }
+    }
+    
+    /// Sets the property of the given data to variant
+    fn set_data_property_raw_variant(
+        data: &mut [u8],
+        value: Variant,
+        offset: usize,
+    ) {
+        let param_ref = unsafe {
+            NonNull::new_unchecked(&mut (*data)[offset])
+                .cast::<Variant>()
+                .as_mut()
+        };
+        *param_ref = value;
+    }
+
+    pub(crate) fn new_default_data_getter(entity:EntityId) -> Box<dyn Fn(&Self) -> NonNull<[u8]>> {
         Box::new(move |this| {
             let value = unsafe { flecs::ecs_get_mut_id(
                 this.world.bind().world.raw(),
                 entity,
                 this.get_flecs_id(),
             ) };
-            unsafe { std::slice::from_raw_parts_mut(
-                value as *mut u8,
-                this.component_definition.layout.size(),
+            unsafe { NonNull::new_unchecked(
+                std::slice::from_raw_parts_mut(
+                    value as *mut u8,
+                    this.component_definition.layout.size(),
+                ) 
             ) }
         })
     }
 
-    pub(crate) fn new_empty_data_getter() -> Box<dyn Fn(&Self) -> *mut [u8]> {
-        Box::new(|_this| { &mut [] })
+    pub(crate) fn new_empty_data_getter() -> Box<dyn Fn(&Self) -> NonNull<[u8]>> {
+        Box::new(|_this| { unsafe { 
+            NonNull::new_unchecked(&mut [])}
+        })
     }
 
-    fn get_data(&self) -> *mut [u8] {
+    fn get_data(&self) -> NonNull<[u8]> {
         ( &(*self.get_data_fn_ptr) )(self)
     }
 
@@ -117,81 +393,28 @@ impl _BaseGEComponent {
 		&self,
 		property:StringName,
 	) -> Variant {
-        let Some(property_data) = self
+        let Some(property_meta) = self
             .component_definition
             .get_property(&property)
             else {
                 return Variant::nil();
             };
         
-        fn get_param<T: ToGodot + Clone + Debug>(
-            data:*mut [u8],
-            property_data: &ComponetProperty
-        ) -> Variant {
-            let param = unsafe {
-                NonNull::new_unchecked(&mut (*data)[property_data.offset])
-                    .cast::<T>()
-                    .as_ref()
-                    .clone()
-            };
-            let variant = Variant::from(param);
-            return variant;
+        let data = unsafe { self.get_data().as_mut() };
+        let value = Self::get_data_property(data, &property_meta);
+
+        if
+            value == Variant::nil()
+            && property_meta.gd_type_id != VariantType::Object
+        {
+            show_error!(
+                "Failed to get property",
+                "No property named \"{}\" in component of type \"{}\"",
+                property,
+                self.get_component_type_name(),
+            );
         }
 
-        fn get_param_variant(
-            data:*mut [u8],
-            property_data: &ComponetProperty
-        ) -> Variant {
-            let variant = unsafe {
-                NonNull::new_unchecked(&mut (*data)[property_data.offset])
-                    .cast::<Variant>()
-                    .as_ref()
-                    .clone()
-            };
-            return variant;
-        }
-        
-        let data = self.get_data();
-        let value =  match property_data.gd_type_id {
-            VariantType::Nil => panic!("Can't get \"Nil\" type from component"),
-            VariantType::Bool => get_param::<bool>(data, property_data),
-            VariantType::Int => get_param::<i32>(data, property_data),
-            VariantType::Float => get_param::<f32>(data, property_data),
-            VariantType::String => get_param::<GString>(data, property_data),
-            VariantType::Vector2 => get_param::<Vector2>(data, property_data),
-            VariantType::Vector2i => get_param::<Vector2i>(data, property_data),
-            VariantType::Rect2 => get_param::<Rect2>(data, property_data),
-            VariantType::Rect2i => get_param::<Rect2i>(data, property_data),
-            VariantType::Vector3 => get_param::<Vector3>(data, property_data),
-            VariantType::Vector3i => get_param::<Vector3i>(data, property_data),
-            VariantType::Transform2D => get_param::<Transform2D>(data, property_data),
-            VariantType::Vector4 => get_param::<Vector4>(data, property_data),
-            VariantType::Vector4i => get_param::<Vector4i>(data, property_data),
-            VariantType::Plane => get_param::<Plane>(data, property_data),
-            VariantType::Quaternion => get_param::<Quaternion>(data, property_data),
-            VariantType::Aabb => get_param::<Aabb>(data, property_data),
-            VariantType::Basis => get_param::<Basis>(data, property_data),
-            VariantType::Transform3D => get_param::<Transform3D>(data, property_data),
-            VariantType::Projection => get_param::<Projection>(data, property_data),
-            VariantType::Color => get_param::<Color>(data, property_data),
-            VariantType::StringName => get_param::<StringName>(data, property_data),
-            VariantType::NodePath => get_param::<NodePath>(data, property_data),
-            VariantType::Rid => get_param::<Rid>(data, property_data),
-            VariantType::Object => get_param_variant(data, property_data),
-            VariantType::Callable => get_param::<Callable>(data, property_data),
-            VariantType::Signal => get_param::<Signal>(data, property_data),
-            VariantType::Dictionary => get_param_variant(data, property_data),
-            VariantType::Array => get_param_variant(data, property_data),
-            VariantType::PackedByteArray => get_param::<PackedByteArray>(data, property_data),
-            VariantType::PackedInt32Array => get_param::<PackedInt32Array>(data, property_data),
-            VariantType::PackedInt64Array => get_param::<PackedInt64Array>(data, property_data),
-            VariantType::PackedFloat32Array => get_param::<PackedFloat32Array>(data, property_data),
-            VariantType::PackedFloat64Array => get_param::<PackedFloat64Array>(data, property_data),
-            VariantType::PackedStringArray => get_param::<PackedStringArray>(data, property_data),
-            VariantType::PackedVector2Array => get_param::<PackedVector2Array>(data, property_data),
-            VariantType::PackedVector3Array => get_param::<PackedVector3Array>(data, property_data),
-            VariantType::PackedColorArray => get_param::<PackedColorArray>(data, property_data),
-        };
         value
     }
 
@@ -200,14 +423,14 @@ impl _BaseGEComponent {
 		property:StringName,
 		value:Variant,
 	) -> bool {
-        let Some(property_data) = self
+        let Some(property_meta) = self
             .component_definition
             .get_property(&property) else {
                 return false;
             };
 
         let value_type = value.get_type();
-        let property_type = property_data.gd_type_id;
+        let property_type = property_meta.gd_type_id;
         'cancel_type_check: {
             if property_type == VariantType::Nil {
                 break 'cancel_type_check
@@ -228,73 +451,8 @@ impl _BaseGEComponent {
             }
         }
         
-        fn set_param<T: FromGodot + ToGodot + Debug + Clone>(
-            data:*mut [u8],
-            value: Variant,
-            property_data: &ComponetProperty,
-        ) {
-            let param_ref = unsafe {
-                NonNull::new_unchecked(&mut (*data)[property_data.offset])
-                    .cast::<T>()
-                    .as_mut()
-            };
-            *param_ref = value.to::<T>();
-        }
-
-        fn set_param_variant(
-            data:*mut [u8],
-            value: Variant,
-            property_data: &ComponetProperty,
-        ) {
-            let param_ref = unsafe {
-                NonNull::new_unchecked(&mut (*data)[property_data.offset])
-                    .cast::<Variant>()
-                    .as_mut()
-            };
-            *param_ref = value;
-        }
-        
-        let data = self.get_data();
-        match property_type {
-            VariantType::Nil => panic!("Can't set \"Nil\" type in component"),
-            VariantType::Bool => set_param::<bool>(data, value, property_data),
-            VariantType::Int => set_param::<i32>(data, value, property_data),
-            VariantType::Float => set_param::<f32>(data, value, property_data),
-            VariantType::String => set_param::<GString>(data, value, property_data),
-            VariantType::Vector2 => set_param::<Vector2>(data, value, property_data),
-            VariantType::Vector2i => set_param::<Vector2i>(data, value, property_data),
-            VariantType::Rect2 => set_param::<Rect2>(data, value, property_data),
-            VariantType::Rect2i => set_param::<Rect2i>(data, value, property_data),
-            VariantType::Vector3 => set_param::<Vector3>(data, value, property_data),
-            VariantType::Vector3i => set_param::<Vector3i>(data, value, property_data),
-            VariantType::Transform2D => set_param::<Transform2D>(data, value, property_data),
-            VariantType::Vector4 => set_param::<Vector4>(data, value, property_data),
-            VariantType::Vector4i => set_param::<Vector4i>(data, value, property_data),
-            VariantType::Plane => set_param::<Plane>(data, value, property_data),
-            VariantType::Quaternion => set_param::<Quaternion>(data, value, property_data),
-            VariantType::Aabb => set_param::<Aabb>(data, value, property_data),
-            VariantType::Basis => set_param::<Basis>(data, value, property_data),
-            VariantType::Transform3D => set_param::<Transform3D>(data, value, property_data),
-            VariantType::Projection => set_param::<Projection>(data, value, property_data),
-            VariantType::Color => set_param::<Color>(data, value, property_data),
-            VariantType::StringName => set_param::<StringName>(data, value, property_data),
-            VariantType::NodePath => set_param::<NodePath>(data, value, property_data),
-            VariantType::Rid => set_param::<Rid>(data, value, property_data),
-            VariantType::Object => set_param_variant(data, value, property_data),
-            VariantType::Callable => set_param::<Callable>(data, value, property_data),
-            VariantType::Signal => set_param::<Signal>(data, value, property_data),
-            VariantType::Dictionary => set_param_variant(data, value, property_data),
-            VariantType::Array => set_param_variant(data, value, property_data),
-            VariantType::PackedByteArray => set_param::<PackedByteArray>(data, value, property_data),
-            VariantType::PackedInt32Array => set_param::<PackedInt32Array>(data, value, property_data),
-            VariantType::PackedInt64Array => set_param::<PackedInt64Array>(data, value, property_data),
-            VariantType::PackedFloat32Array => set_param::<PackedFloat32Array>(data, value, property_data),
-            VariantType::PackedFloat64Array => set_param::<PackedFloat64Array>(data, value, property_data),
-            VariantType::PackedStringArray => set_param::<PackedStringArray>(data, value, property_data),
-            VariantType::PackedVector2Array => set_param::<PackedVector2Array>(data, value, property_data),
-            VariantType::PackedVector3Array => set_param::<PackedVector3Array>(data, value, property_data),
-            VariantType::PackedColorArray => set_param::<PackedColorArray>(data, value, property_data),
-        }
+        let data = unsafe { self.get_data().as_mut() };
+        Self::init_data_property(data, value, &property_meta);
 
         return true;
     }
@@ -329,86 +487,8 @@ impl _BaseGEComponent {
                 return true;
             }
         }
-        
-        fn init_param<T: FromGodot + ToGodot + Debug + Clone>(
-            data:*mut [u8],
-            value: Variant,
-            property_data: &ComponetProperty,
-            default: &dyn Fn() -> Variant,
-        ) {
-             let default_value = if value != Variant::nil() {
-                value
-            } else {
-                (default)()
-            };
-            unsafe {
-                let param_ptr:*mut u8 = &mut (*data)[property_data.offset];
-                let param_slice = std::slice::from_raw_parts_mut(param_ptr, size_of::<T>());
-                let value_ptr:*const T = &default_value.to::<T>();
-                let value_slice = std::slice::from_raw_parts(value_ptr as *const u8, size_of::<T>());
-                param_slice.copy_from_slice(value_slice);
-            }
-        }
 
-        fn init_param_variant(
-            data:*mut [u8],
-            value: Variant,
-            property_data: &ComponetProperty,
-        ) {
-            let default_value = if value != Variant::nil() {
-                value
-            } else {
-                Variant::default()
-            };
-            unsafe {
-                let param_ptr:*mut u8 = &mut (*data)[property_data.offset];
-                let param_slice = std::slice::from_raw_parts_mut(param_ptr, size_of::<Variant>());
-                let value_ptr:*const Variant = &default_value;
-                let value_slice = std::slice::from_raw_parts(value_ptr as *const u8, size_of::<Variant>());
-                param_slice.copy_from_slice(value_slice);
-            }
-        }
-
-        match property_data.gd_type_id {
-            VariantType::Nil => panic!("Can't init \"Nil\" type in component"),
-            VariantType::Bool => init_param::<bool>(data, value, property_data, &|| bool::default().to_variant()),
-            VariantType::Int => init_param::<i32>(data, value, property_data, &|| i32::default().to_variant()),
-            VariantType::Float => init_param::<f32>(data, value, property_data, &|| f32::default().to_variant()),
-            VariantType::String => init_param::<GString>(data, value, property_data, &|| GString::default().to_variant()),
-            VariantType::Vector2 => init_param::<Vector2>(data, value, property_data, &|| Vector2::default().to_variant()),
-            VariantType::Vector2i => init_param::<Vector2i>(data, value, property_data, &|| Vector2i::default().to_variant()),
-            VariantType::Rect2 => init_param::<Rect2>(data, value, property_data, &|| Rect2::default().to_variant()),
-            VariantType::Rect2i => init_param::<Rect2i>(data, value, property_data, &|| Rect2i::default().to_variant()),
-            VariantType::Vector3 => init_param::<Vector3>(data, value, property_data, &|| Vector3::default().to_variant()),
-            VariantType::Vector3i => init_param::<Vector3i>(data, value, property_data, &|| Vector3i::default().to_variant()),
-            VariantType::Transform2D => init_param::<Transform2D>(data, value, property_data, &|| Transform2D::default().to_variant()),
-            VariantType::Vector4 => init_param::<Vector4>(data, value, property_data, &|| Vector4::default().to_variant()),
-            VariantType::Vector4i => init_param::<Vector4i>(data, value, property_data, &|| Vector4i::default().to_variant()),
-            VariantType::Plane => init_param::<Plane>(data, value, property_data, &|| Plane::invalid().to_variant()),
-            VariantType::Quaternion => init_param::<Quaternion>(data, value, property_data, &|| Quaternion::default().to_variant()),
-            VariantType::Aabb => init_param::<Aabb>(data, value, property_data, &|| Aabb::default().to_variant()),
-            VariantType::Basis => init_param::<Basis>(data, value, property_data, &|| Basis::default().to_variant()),
-            VariantType::Transform3D => init_param::<Transform3D>(data, value, property_data, &|| Transform3D::default().to_variant()),
-            VariantType::Projection => init_param::<Projection>(data, value, property_data, &|| Projection::default().to_variant()),
-            VariantType::Color => init_param::<Color>(data, value, property_data, &|| Color::default().to_variant()),
-            VariantType::StringName => init_param::<StringName>(data, value, property_data, &|| StringName::default().to_variant()),
-            VariantType::NodePath => init_param::<NodePath>(data, value, property_data, &|| NodePath::default().to_variant()),
-            VariantType::Rid => init_param::<Rid>(data, value, property_data, &|| Rid::new(0).to_variant()),
-            VariantType::Object => init_param_variant(data, value, property_data),
-            VariantType::Callable => init_param::<Callable>(data, value, property_data, &|| Callable::from_fn("NullFn", |_|{Ok(Variant::nil())}).to_variant()),
-            VariantType::Signal => init_param::<Signal>(data, value, property_data, &|| Signal::invalid().to_variant()),
-            VariantType::Dictionary => init_param_variant(data, value, property_data),
-            VariantType::Array => init_param_variant(data, value, property_data),
-            VariantType::PackedByteArray => init_param::<PackedByteArray>(data, value, property_data, &|| PackedByteArray::default().to_variant()),
-            VariantType::PackedInt32Array => init_param::<PackedInt32Array>(data, value, property_data, &|| PackedInt32Array::default().to_variant()),
-            VariantType::PackedInt64Array => init_param::<PackedInt64Array>(data, value, property_data, &|| PackedInt64Array::default().to_variant()),
-            VariantType::PackedFloat32Array => init_param::<PackedFloat32Array>(data, value, property_data, &|| PackedFloat32Array::default().to_variant()),
-            VariantType::PackedFloat64Array => init_param::<PackedFloat64Array>(data, value, property_data, &|| PackedFloat64Array::default().to_variant()),
-            VariantType::PackedStringArray => init_param::<PackedStringArray>(data, value, property_data, &|| PackedStringArray::default().to_variant()),
-            VariantType::PackedVector2Array => init_param::<PackedVector2Array>(data, value, property_data, &|| PackedVector2Array::default().to_variant()),
-            VariantType::PackedVector3Array => init_param::<PackedVector3Array>(data, value, property_data, &|| PackedVector3Array::default().to_variant()),
-            VariantType::PackedColorArray => init_param::<PackedColorArray>(data, value, property_data, &|| PackedColorArray::default().to_variant()),
-        }
+        Self::init_data_property(data, value, property_data);
 
         return true;
     }
