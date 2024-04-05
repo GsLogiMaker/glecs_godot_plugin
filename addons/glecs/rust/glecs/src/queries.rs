@@ -36,7 +36,7 @@ impl _BaseSystemBuilder {
                 base,
                 pipeline: Variant::nil(),
                 world,
-                description: unsafe { MaybeUninit::zeroed().assume_init() },
+                description: Default::default(),
                 terms: Default::default(),
                 build_type: Default::default(),
                 observing_events: Default::default(),
@@ -153,7 +153,7 @@ impl _BaseSystemBuilder {
         let term = flecs::ecs_term_t {
             id: comp_def.flecs_id,
             oper: oper,
-            ..unsafe { MaybeUninit::zeroed().assume_init() }
+            ..Default::default()
         };
         self.add_term_to_buffer(term);
     }
@@ -166,7 +166,7 @@ impl _BaseSystemBuilder {
         let term = flecs::ecs_term_t {
             id: entity_id,
             oper: oper,
-            ..unsafe { MaybeUninit::zeroed().assume_init() }
+            ..Default::default()
         };
 
         self.add_term_to_buffer(term);

@@ -452,7 +452,7 @@ impl _BaseGEComponent {
         }
         
         let data = unsafe { self.get_data().as_mut() };
-        Self::init_data_property(data, value, &property_meta);
+        Self::set_data_property(data, value, &property_meta);
 
         return true;
     }

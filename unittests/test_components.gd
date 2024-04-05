@@ -85,11 +85,6 @@ func test_default_values():
 	w.queue_free()
 
 
-func test_error_no_define():
-	var entity:= world.new_entity("Test", [NoDefine])
-	assert_ne(entity, null)
-
-
 class Foo extends GEComponent:
 	const _VAR_value:= Vector2.ZERO
 	

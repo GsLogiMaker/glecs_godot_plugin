@@ -394,7 +394,7 @@ impl _BaseGEWorld {
             callback: Some(Self::raw_system_iteration),
             ctx: Box::leak(context) as *mut ScriptSystemContext as *mut c_void,
             ctx_free: Some(Self::raw_system_drop),
-            .. unsafe { MaybeUninit::zeroed().assume_init() }
+            .. Default::default()
         };
 
         // Initialize system
