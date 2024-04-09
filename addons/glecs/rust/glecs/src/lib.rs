@@ -66,3 +66,7 @@ macro_rules! show_error {
         }
     };
 }
+
+#[cfg(test)]
+mod test {
+}

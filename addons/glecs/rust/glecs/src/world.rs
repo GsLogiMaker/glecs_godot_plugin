@@ -3,6 +3,7 @@ use std::alloc::Layout;
 use std::collections::HashMap;
 use std::ffi::c_void;
 use std::hash::Hash;
+use std::mem::size_of;
 use std::mem::MaybeUninit;
 use std::ptr::NonNull;
 use std::rc::Rc;
@@ -498,14 +499,13 @@ impl _BaseGEWorld {
         })
     }
 
-    extern "C" fn raw_system_iteration(iter:*mut flecs::ecs_iter_t) {
-        let mut iter = Iter::new(iter);
-
+    extern "C" fn raw_system_iteration(iter_ptr:*mut flecs::ecs_iter_t) {
 		let context = unsafe {
             // Here we decouple the mutable reference of the context
             // from the rest of Iter.
 			(
-                iter.get_context_mut::<ScriptSystemContext>()
+                Iter::new(iter_ptr)
+                    .get_context_mut::<ScriptSystemContext>()
                     as *mut ScriptSystemContext
             )
                 .as_mut()
@@ -520,21 +520,29 @@ impl _BaseGEWorld {
             system_args_ref.set(i, getter.callv(Array::default()));
         }
 
-		for entity_index in 0..(iter.count() as usize) {
+        let entity_count = unsafe {*iter_ptr}.count;
+		for _entity_index in 0..entity_count {
 			// Create components arguments
-			for field_i in 0i32..(iter.field_count()) {
-				let mut column = iter
-					.field_dynamic(field_i+1);
-				let data = unsafe { NonNull
-                    ::new_unchecked(column.get_mut(entity_index))
-                };
+            let field_count = unsafe {*iter_ptr}.field_count;
+			for field_i in 0i32..(field_count) {
+                let mut term_bind = context
+                    .term_accesses[field_i as usize]
+                    .bind_mut();
+                let component_size = term_bind
+                    .component_definition
+                    .layout
+                    .size();
+                let data = unsafe { NonNull::new_unchecked(
+                    std::slice::from_raw_parts_mut(
+                        flecs::ecs_field_w_size(iter_ptr, component_size, field_i+1) as *mut u8,
+                        component_size,
+                    )
+                ) };
 
-				context.term_accesses[field_i as usize]
-					.bind_mut()
-                    // TODO: Optimize away box allocation
-					.get_data_fn_ptr = Box::new(move |_self| {
-                        data
-                    });
+                // TODO: Optimize away box allocation
+				term_bind.get_data_fn_ptr = Box::new(move |_self| {
+                    data
+                });
 			}
 			
 			let _result = context.callable.callv(

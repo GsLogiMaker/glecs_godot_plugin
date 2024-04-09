@@ -1,7 +1,10 @@
 
 class_name GEWorldNode extends _BaseGEWorld
 
+## Emitted when a component is added to an entity, before the entity gets set.
+## TODO: Handle component parameters being unitialized when accessed through an OnAdd observer
 const EVENT_ON_ADD:= &"on_add"
+## Emitted after a component's value changed.
 const EVENT_ON_SET:= &"on_set"
 
 const PIPELINE_PROCESS:= &"process"
