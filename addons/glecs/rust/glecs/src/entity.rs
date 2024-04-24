@@ -5,7 +5,6 @@ use std::fmt::Debug;
 
 use flecs::EntityId;
 use godot::engine::notify::ObjectNotification;
-use godot::engine::Script;
 use godot::prelude::*;
 
 use crate::component::_BaseGEComponent;
@@ -38,6 +37,7 @@ fn increment_name(name:&mut String) {
 
 }
 
+
 #[derive(GodotClass, Debug)]
 #[class(base=Object, no_init)]
 pub struct _BaseGEEntity {
@@ -54,11 +54,10 @@ pub struct _BaseGEEntity {
 #[godot_api]
 impl _BaseGEEntity {
     
-    /// Attaches the component of the given class to this entity.
     #[func]
     fn _add_component(
         &mut self,
-        component:Gd<Script>,
+        component: Variant,
         data:Variant,
     ) -> Option<Gd<_BaseGEComponent>> {
         EntityLike::add_component(self, component, data)
@@ -66,13 +65,13 @@ impl _BaseGEEntity {
 
     /// Returns a componently previously attached to this entity.
     #[func]
-    fn _get_component(&mut self, component:Gd<Script>) -> Option<Gd<_BaseGEComponent>> {
+    fn _get_component(&mut self, component: Variant) -> Option<Gd<_BaseGEComponent>> {
         EntityLike::get_component(self, component)
     }
 
     /// Removes the given component from this entity.
     #[func]
-    fn _remove_component(&mut self, component:Gd<Script>) {
+    fn _remove_component(&mut self, component: Variant) {
         EntityLike::remove_component(self, component);
     }
 
@@ -92,10 +91,10 @@ impl _BaseGEEntity {
     #[func]
     fn _add_relation(
         &mut self,
-        relation:Variant,
-        mut with_entity:Gd<_BaseGEEntity>,
+        relation: Variant,
+        target: Variant,
     ) {
-        EntityLike::add_relation(self, relation, &mut with_entity)
+        EntityLike::add_relation(self, relation, target)
     }
 
     /// Removes a previously initiated relationship.
@@ -103,13 +102,9 @@ impl _BaseGEEntity {
     fn _remove_relation(
         &mut self,
         relation: Variant,
-        mut with_entity: Gd<_BaseGEEntity>,
+        target: Variant,
     ) {
-        EntityLike::remove_relation(self, relation, &mut with_entity)
-    }
-
-    fn get_owned_component(&self, flecs_id:EntityId) -> Option<Gd<_BaseGEComponent>> {
-        return None;
+        EntityLike::remove_relation(self, relation, target)
     }
 
     pub(crate) fn free_component(&self, mut component:Gd<_BaseGEComponent>) {
@@ -165,7 +160,7 @@ impl EntityLike for _BaseGEEntity {
         self.id
     }
 
-    fn add_component_to_owned(
+    fn add_component_to_cache(
         &mut self,
         component_gd:Gd<_BaseGEComponent>,
     ) {
@@ -179,7 +174,7 @@ impl EntityLike for _BaseGEEntity {
         );
     }
     
-    fn get_owned_component(&self, flecs_id:EntityId) -> Option<Gd<_BaseGEComponent>> {
+    fn get_cached_component(&self, flecs_id:EntityId) -> Option<Gd<_BaseGEComponent>> {
         self.gd_components_map
             .get(&flecs_id)
             .map(|x| {(*x).clone()})
@@ -194,15 +189,15 @@ impl EntityLike for _BaseGEEntity {
         self.bind().get_flecs_id()
     }
 
-    fn add_component_to_owned(
+    fn add_component_to_cache(
         &mut self,
         component_gd:Gd<_BaseGEComponent>,
     ) {
-        self.bind_mut().add_component_to_owned(component_gd)
+        self.bind_mut().add_component_to_cache(component_gd)
     }
     
-    fn get_owned_component(&self, flecs_id:EntityId) -> Option<Gd<_BaseGEComponent>> {
-        self.bind().get_owned_component(flecs_id)
+    fn get_cached_component(&self, flecs_id:EntityId) -> Option<Gd<_BaseGEComponent>> {
+        self.bind().get_cached_component(flecs_id)
     }
 }
 
@@ -210,43 +205,47 @@ pub(crate) trait EntityLike: Debug {
     fn get_world(&self) -> Gd<_BaseGEWorld>;
     fn get_flecs_id(&self) -> EntityId;
 
-    fn add_component_to_owned(
+    fn add_component_to_cache(
         &mut self,
-        component_gd:Gd<_BaseGEComponent>,
+        _component_gd:Gd<_BaseGEComponent>,
     ) {
     }
 
-    fn get_owned_component(&self, flecs_id:EntityId) -> Option<Gd<_BaseGEComponent>> {
+    fn get_cached_component(&self, _flecs_id:EntityId) -> Option<Gd<_BaseGEComponent>> {
         return None;
     }
 
     fn add_component(
         &mut self,
-        component: Gd<Script>,
+        component: Variant,
         with_data: Variant,
     ) -> Option<Gd<_BaseGEComponent>> {
         let world_gd = self.get_world();
         let flecs_id = self.get_flecs_id();
 
-        let component_definition = _BaseGEWorld
-            ::get_or_add_component_gd(world_gd.clone(), &component);
-
+        
         Self::add_component_raw(
             world_gd.clone(),
             flecs_id,
             component.clone(),
             with_data,
         );
-
+        
+        let component_id = _BaseGEWorld::variant_to_entity_id(
+            world_gd.clone(),
+            component.clone(),
+        );
         // Create Godot wrapper
         let mut comp = Gd::from_init_fn(|base| {
             let base_comp = _BaseGEComponent {
                 base,
-                world: world_gd,
+                world: world_gd.clone(),
                 get_data_fn_ptr: _BaseGEComponent::new_default_data_getter(
                     self.get_flecs_id()
                 ),
-                component_definition,
+                component_definition: world_gd.bind()
+                    .get_component_description(component_id)
+                    .unwrap(),
             };
             base_comp
         });
@@ -258,35 +257,47 @@ pub(crate) trait EntityLike: Debug {
     fn add_component_raw(
         world_gd: Gd<_BaseGEWorld>,
         raw_entity: EntityId,
-        component: Gd<Script>,
+        component: Variant,
         with_data: Variant,
     ) {
-        let component_definition = _BaseGEWorld
-            ::get_or_add_component_gd(world_gd.clone(), &component);
+        let component_id = _BaseGEWorld
+            ::variant_to_entity_id(world_gd.clone(), component);
+
         let world_raw = world_gd.bind().world.raw();
         let initial_data = _BaseGEComponent
-            ::create_initial_data(&component_definition, with_data);
+            ::create_initial_data(
+                &world_gd.bind()
+                    .get_component_description(component_id)
+                    .unwrap(),
+                with_data,
+            );
 
         // Add component to entity
         // TODO: Fix zero sized components
         unsafe { flecs::ecs_set_id(
             world_raw,
             raw_entity,
-            component_definition.flecs_id,
+            component_id,
             initial_data.len(),
             initial_data.as_ptr().cast::<c_void>(),
         ) };
     }
 
-    fn get_component(&mut self, component:Gd<Script>) -> Option<Gd<_BaseGEComponent>> {
+    fn get_component(&mut self, component: Variant) -> Option<Gd<_BaseGEComponent>> {
         let world_gd = self.get_world();
         let flecs_id = self.get_flecs_id();
+        
+        // Get component ID
+        let c_id = _BaseGEWorld::variant_to_entity_id(
+            world_gd.clone(),
+            component.clone(),
+        );
         
         let world = world_gd.bind();
 
         // Get component description
         let Some(component_definition) = world
-            .get_component_description(&component)
+            .get_component_description(c_id)
             else {
                 show_error!(
                     "Failed to get component from entity",
@@ -299,7 +310,7 @@ pub(crate) trait EntityLike: Debug {
 
         // Return early if the component object is cached
         if let Some(component) =
-            self.get_owned_component(component_definition.flecs_id)
+            self.get_cached_component(component_definition.flecs_id)
         {
             return Some(component.clone());
         }
@@ -342,11 +353,29 @@ pub(crate) trait EntityLike: Debug {
         comp.bind_mut().base_mut().set_script(component.to_variant());
 
         // Add to cache
-        self.add_component_to_owned(
+        self.add_component_to_cache(
             comp.clone(),
         );
 
         Some(comp)
+    }
+
+    fn remove_component(&mut self, component: Variant) {
+        let world_gd = self.get_world();
+        let flecs_id = self.get_flecs_id();
+
+        let component_id = _BaseGEWorld::variant_to_entity_id(
+            world_gd.clone(),
+            component,
+        );
+
+        let world = world_gd.bind();
+
+        unsafe { flecs::ecs_remove_id(
+            world.world.raw(),
+            flecs_id,
+            component_id,
+        ) };
     }
 
     fn get_name(&self) -> String {
@@ -374,42 +403,26 @@ pub(crate) trait EntityLike: Debug {
         entt.named(&value);
     }
 
-    fn remove_component(&mut self, component:Gd<Script>) {
-        let mut world_gd = self.get_world();
-        let flecs_id = self.get_flecs_id();
-
-        let component_definition = world_gd
-            .bind_mut()
-            .get_or_add_component(&component);
-
-        let world = world_gd.bind();
-
-        unsafe { flecs::ecs_remove_id(
-            world.world.raw(),
-            flecs_id,
-            component_definition.flecs_id,
-        ) };
-    }
-
-
-    fn add_relation(&mut self, relation:Variant, with_entity:&impl EntityLike) {
+    fn add_relation(&mut self, relation:Variant, target:Variant) {
         let self_id = self.get_flecs_id();
+        let world = self.get_world();
 
-        let raw_world = self.get_world().bind_mut().world.raw();
+        let raw_world = world.bind().world.raw();
         let pair = unsafe { flecs::ecs_make_pair(
-            self.get_world().bind_mut().get_or_add_tag_entity(relation),
-            with_entity.get_flecs_id()
+            _BaseGEWorld::variant_to_entity_id(world.clone(), relation),
+            _BaseGEWorld::variant_to_entity_id(world, target),
         ) };
         unsafe { flecs::ecs_add_id(raw_world, self_id, pair) };
     }
 
-    fn remove_relation(&mut self, relation: Variant, with_entity:&impl EntityLike) {
+    fn remove_relation(&mut self, relation: Variant, target:Variant) {
         let self_id = self.get_flecs_id();
+        let world = self.get_world();
 
-        let raw_world = self.get_world().bind_mut().world.raw();
+        let raw_world = world.bind().world.raw();
         let pair = unsafe { flecs::ecs_make_pair(
-            self.get_world().bind_mut().get_or_add_tag_entity(relation),
-            with_entity.get_flecs_id()
+            _BaseGEWorld::variant_to_entity_id(world.clone(), relation),
+            _BaseGEWorld::variant_to_entity_id(world, target),
         ) };
         unsafe { flecs::ecs_remove_id(raw_world, self_id, pair) };
     }

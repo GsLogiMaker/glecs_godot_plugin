@@ -23,7 +23,7 @@ impl _BaseGEPrefab {
 	#[func]
 	fn add_component(
 		&mut self,
-		component: Gd<Script>,
+		component: Variant,
         data: Variant,
 	) -> Option<Gd<_BaseGEComponent>>{
 		EntityLike::add_component(self, component, data)
@@ -59,12 +59,11 @@ pub(crate) struct PrefabDefinition {
             .unwrap_or_default();
 
         for component in componets.iter_shared() {
-            let Ok(component) = component.try_to::<Gd<Script>>()
+            let Ok(component_script) = component
+                .try_to::<Gd<Script>>()
                 else {continue};
                 
-            prefab_entt.add_id(
-                world.get_or_add_component(&component).flecs_id
-            );
+            prefab_entt.add_id(world.get_or_add_component(component_script));
         }
 
         PrefabDefinition {

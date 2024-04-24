@@ -36,15 +36,6 @@ func test_on_add_event():
 	e3.free()
 	e4.free()
 
-
-func test_on_add_with_registration():
-	var world:= GEWorldNode.new()
-	
-	var e:= world.new_entity("Test")
-	e.add_component(OnAddComponent, [load("res://icon.png")])
-	
-	world.queue_free()
-
 #endregion
 
 #region Components
@@ -58,20 +49,5 @@ class Ints extends GEComponent:
 	var b:int = 25:
 		get: return getc(&"b")
 		set(v): setc(&"b", v)
-
-class OnAddComponent extends GEComponent:
-	const _VAR_a:Texture2D = null
-	var a:Texture2D:
-		get: return getc(&"a")
-		set(v): setc(&"a", v)
-	
-	static func _on_registered(world):
-		pass
-		# TODO: Get this working...
-		#world.new_event_listener(world.EVENT_ON_ADD) \
-			#.with(OnAddComponent) \
-			#.for_each(func(textures:OnAddComponent):
-				#prints("textures.a", textures.a)
-				#)
 
 #endregion

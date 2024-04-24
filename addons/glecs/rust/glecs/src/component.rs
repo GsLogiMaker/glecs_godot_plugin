@@ -25,9 +25,6 @@ pub struct _BaseGEComponent {
 }
 #[godot_api]
 impl _BaseGEComponent {
-    #[func]
-    fn _on_register(world:Gd<_BaseGEWorld>) {}
-
     /// Copies the data from the given component to this one.
     #[func]
     fn copy_from_component(&mut self, from_component:Gd<_BaseGEComponent>) {

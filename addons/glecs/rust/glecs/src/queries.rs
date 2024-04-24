@@ -1,6 +1,4 @@
 
-use std::mem::MaybeUninit;
-
 use flecs::EntityId;
 use godot::engine::Script;
 use godot::prelude::*;
@@ -63,8 +61,8 @@ impl _BaseSystemBuilder {
     #[func]
     fn _with(
         &mut self,
-        component:Gd<Script>,
-        inout:flecs::ecs_inout_kind_t,
+        component: Variant,
+        inout: flecs::ecs_inout_kind_t,
     ) -> Gd<_BaseSystemBuilder> {
         self.with_oper(component, flecs::ecs_oper_kind_t_EcsAnd);
         self.terms.last_mut().unwrap().inout = inout;
@@ -72,7 +70,7 @@ impl _BaseSystemBuilder {
     }
 
     #[func]
-    fn _without(&mut self, component:Gd<Script>) -> Gd<_BaseSystemBuilder> {
+    fn _without(&mut self, component: Variant) -> Gd<_BaseSystemBuilder> {
         self.with_oper(component, flecs::ecs_oper_kind_t_EcsNot);
         self.to_gd()
     }
@@ -80,12 +78,10 @@ impl _BaseSystemBuilder {
     #[func]
     fn _or_with(
         &mut self,
-        component: Gd<Script>,
+        component: Variant,
         inout: flecs::ecs_inout_kind_t,
     ) -> Gd<_BaseSystemBuilder> {
-        self.terms.last_mut()
-            .map(|x| x.oper = flecs::ecs_oper_kind_t_EcsOr);
-        self.with_oper(component, flecs::ecs_oper_kind_t_EcsAnd);
+        self.with_oper(component, flecs::ecs_oper_kind_t_EcsOr);
         self.terms.last_mut().unwrap().inout = inout;
         self.to_gd()
     }
@@ -93,29 +89,29 @@ impl _BaseSystemBuilder {
     #[func]
     fn _maybe_with(
         &mut self,
-        component: Gd<Script>,
-        inout: flecs::ecs_inout_kind_t,
+        _component: Variant,
+        _inout: flecs::ecs_inout_kind_t,
     ) -> Gd<_BaseSystemBuilder> {
         todo!("Get optional terms working with system iterator first");
-        self.with_oper(component, flecs::ecs_oper_kind_t_EcsOptional);
-        self.terms.last_mut().unwrap().inout = inout;
-        self.to_gd()
+        // self.with_oper(component, flecs::ecs_oper_kind_t_EcsOptional);
+        // self.terms.last_mut().unwrap().inout = inout;
+        // self.to_gd()
     }
 
     #[func]
-    fn _all_from(&mut self, entity:Variant) -> Gd<_BaseSystemBuilder> {
+    fn _all_from(&mut self, entity: Variant) -> Gd<_BaseSystemBuilder> {
         self.from_oper(entity, flecs::ecs_oper_kind_t_EcsAndFrom);
         self.to_gd()
     }
 
     #[func]
-    fn _any_from(&mut self, entity:Variant) -> Gd<_BaseSystemBuilder> {
+    fn _any_from(&mut self, entity: Variant) -> Gd<_BaseSystemBuilder> {
         self.from_oper(entity, flecs::ecs_oper_kind_t_EcsOrFrom);
         self.to_gd()
     }
 
     #[func]
-    fn _none_from(&mut self, entity:Variant) -> Gd<_BaseSystemBuilder> {
+    fn _none_from(&mut self, entity: Variant) -> Gd<_BaseSystemBuilder> {
         self.from_oper(entity, flecs::ecs_oper_kind_t_EcsNotFrom);
         self.to_gd()
     }
@@ -145,20 +141,20 @@ impl _BaseSystemBuilder {
         self.terms.push(term);
     }
 
-    fn with_oper(&mut self, component:Gd<Script>, oper:flecs::ecs_oper_kind_t) {
+    fn with_oper(&mut self, component: Variant, oper:flecs::ecs_oper_kind_t) {
         // TODO: Add checks that scripts are indeed derived from components
-        let comp_def = _BaseGEWorld
-            ::get_or_add_component_gd(self.world.clone(), &component);
+        let comp_id = _BaseGEWorld
+            ::variant_to_entity_id(self.world.clone(), component);
         
         let term = flecs::ecs_term_t {
-            id: comp_def.flecs_id,
+            id: comp_id,
             oper: oper,
             ..Default::default()
         };
         self.add_term_to_buffer(term);
     }
 
-    fn from_oper(&mut self, entity:Variant, oper:flecs::ecs_oper_kind_t) {
+    fn from_oper(&mut self, entity: Variant, oper:flecs::ecs_oper_kind_t) {
         let entity_id = self.world
             .bind_mut()
             .get_or_add_tag_entity(entity);

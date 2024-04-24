@@ -3,7 +3,6 @@ use std::alloc::Layout;
 use std::collections::HashMap;
 use std::ffi::c_void;
 use std::hash::Hash;
-use std::mem::size_of;
 use std::mem::MaybeUninit;
 use std::ptr::NonNull;
 use std::rc::Rc;
@@ -16,17 +15,16 @@ use godot::engine::Script;
 use godot::prelude::*;
 
 use crate::component::_BaseGEComponent;
-use crate::component_definitions::ComponentDefinitions;
-use crate::component_definitions::ComponentDefinitionsMapKey;
 use crate::component_definitions::ComponetDefinition;
 use crate::component_definitions::ComponetProperty;
 use crate::entity::EntityLike;
 use crate::entity::_BaseGEEntity;
+use crate::event::_BaseGEEvent;
 use crate::prefab::PrefabDefinition;
+use crate::prefab::_BaseGEPrefab;
 use crate::prefab::PREFAB_COMPONENTS;
 use crate::queries::BuildType;
 use crate::queries::_BaseSystemBuilder;
-use crate::show_error;
 use crate::TYPE_SIZES;
 
 #[derive(GodotClass)]
@@ -34,31 +32,27 @@ use crate::TYPE_SIZES;
 pub struct _BaseGEWorld {
     pub(crate) node: Base<Node>,
     pub(crate) world: FlWorld,
-    component_definitions: ComponentDefinitions,
     gd_entity_map: HashMap<EntityId, Gd<_BaseGEEntity>>,
     prefabs: HashMap<Gd<Script>, Rc<PrefabDefinition>>,
-    /// Maps identifiers to entities that serve as tags, relations
-    /// or other things.
-    tag_entities: HashMap<VariantKey, EntityId>,
-    pipelines: HashMap<VariantKey, Rc<PipelineDefinition>>,
+    /// Maps Variant identifiers to entity IDs
+    mapped_entities: HashMap<VariantKey, EntityId>,
+    pipelines: HashMap<EntityId, Rc<PipelineDefinition>>,
+    components: HashMap<EntityId, Rc<ComponetDefinition>>,
 	deleting:bool
 }
 #[godot_api]
 impl _BaseGEWorld {
     /// Returns the name of the Script that was registered with the world.
     #[func]
-    fn get_script_component_name(
-        &self,
+    fn get_component_name(
+        &mut self,
         script: Gd<Script>,
     ) -> StringName {
-        self.component_definitions.get(&script.instance_id())
-            .ok_or_else(|| { format!(
-                "Can't find component '{}' in entity. That component hasn't been registered with the world.",
-                script,
-            )})
-            .unwrap()
-            .name
-            .clone()
+        let c_id = self.get_or_add_component(script);
+        let c_desc = self.get_component_description(c_id)
+            .unwrap();
+
+        c_desc.name.clone()
     }
 
     #[func]
@@ -83,7 +77,7 @@ impl _BaseGEWorld {
     fn _new_entity(
         mut this: Gd<Self>,
         name: String,
-        with_components:Array<Gd<Script>>,
+        with_components:Array<Variant>,
     ) -> Gd<_BaseGEEntity> {
         let entity = this.bind_mut().world.entity();
 
@@ -121,15 +115,17 @@ impl _BaseGEWorld {
     #[func(gd_self)]
     fn new_entity_with_prefab(
         mut this: Gd<Self>,
-        name:String,
-        prefab:Gd<Script>,
+        name: String,
+        prefab: Gd<Script>,
     ) -> Gd<_BaseGEEntity> {
         let gd_entity = Self
             ::_new_entity(this.clone(), name, Array::default());
         let e_id = gd_entity.bind().get_flecs_id();
-
+        
+        // let prefab_id = this.bind_mut().entity_from_variant(prefab);
         let prefab_def = Self
             ::get_or_add_prefab_definition(this.clone(), prefab);
+
         let this_bind = this.bind_mut();
         let raw_world = this_bind.world.raw();
         drop(this_bind);
@@ -144,14 +140,13 @@ impl _BaseGEWorld {
     }
 
 
-    #[func]
+    #[func(gd_self)]
     fn _new_event_listener(
-        &mut self,
+        this: Gd<Self>,
         event: Variant,
     ) -> Gd<_BaseSystemBuilder>{
-        let event = self.get_or_add_tag_entity(event);
-        let world_gd = self.to_gd();
-        let builder = _BaseSystemBuilder::new(world_gd);
+        let event = Self::variant_to_entity_id(this.clone(), event);
+        let builder = _BaseSystemBuilder::new(this);
         let mut builder_clone = builder.clone();
         let mut builder_bind = builder_clone.bind_mut();
         builder_bind.observing_events = vec![event];
@@ -171,19 +166,11 @@ impl _BaseGEWorld {
     /// Runs all processess associated with the given pipeline.
     #[func]
     fn run_pipeline(&self, pipeline:Variant, delta:f32) {
+        let pipeline_id = self.get_pipeline(pipeline);
+    
         let raw_world = self.world.raw();
-        let Some(pipeline_id) = self
-            .get_pipeline(pipeline.clone())
-            else {
-                show_error!(
-                    "Failed to run pipeline",
-                    "No pipeline with identifier {} was defined.",
-                    pipeline,
-                );
-                return;
-            };
         unsafe {
-            flecs::ecs_set_pipeline(raw_world, pipeline_id.flecs_id);
+            flecs::ecs_set_pipeline(raw_world, pipeline_id);
             flecs::ecs_progress(raw_world, delta);
         }
     }
@@ -195,61 +182,139 @@ impl _BaseGEWorld {
         builder
     }
 
-    #[func]
-    fn update_frame(&self) {
-        self.world.progress(1.0);
+    #[func(gd_self)]
+    fn pair(this: Gd<Self>, relation:Variant, target:Variant) -> i64 {
+        let left = Self::variant_to_entity_id(this.clone(), relation);
+        let right = Self::variant_to_entity_id(this, target);
+        flecs::ecs_pair(left, right) as i64
     }
 
-    pub(crate) fn get_component_description(
-        &self,
-        key:impl Into<ComponentDefinitionsMapKey>,
-    ) -> Option<Rc<ComponetDefinition>> {
-        self.component_definitions.get(key)
+    #[func(gd_self)]
+    /// Converts a [`Variant`] value to an EntityId in the most suitable way
+    /// for the given [`Variant`] type.
+    pub(crate) fn variant_to_entity_id(
+        mut this: Gd<Self>,
+        from:Variant,
+    ) -> EntityId {
+        use VariantType::Object as VTObject;
+        use VariantType::Vector2 as VTVector2;
+        use VariantType::Vector2i as VTVector2i;
+        use VariantType::Int as VTInt;
+        use VariantType::Float as VTFloat;
+        use VariantType::String as VTString;
+        use VariantType::StringName as VTStringName;
+        use VariantType::Nil as VTNil;
+        match from.get_type() {
+            VTObject => {
+                if let Ok(e) =
+                    from.try_to::<Gd<_BaseGEEntity>>()
+                {
+                    return e.bind().id
+                }
+                if let Ok(e) =
+                    from.try_to::<Gd<_BaseGEComponent>>()
+                {
+                    return e.bind().component_definition.flecs_id
+                }
+                if let Ok(e) =
+                    from.try_to::<Gd<_BaseGEEvent>>()
+                {
+                    return e.bind()._id
+                }
+                if let Ok(e) =
+                    from.try_to::<Gd<_BaseGEPrefab>>()
+                {
+                    return e.bind().flecs_id
+                }
+                if let Ok(e) = from.try_to::<Gd<Script>>() {
+                    return Self::get_or_add_component_gd(this, e)
+                }
+                
+                panic!("Object is not an Entity")
+            },
+            VTVector2 => {
+                let veci = from.to::<Vector2>();
+                let (x, y) = (veci.x as EntityId, veci.y as EntityId);
+                flecs::ecs_pair(x, y)
+            },
+            VTVector2i => {
+                let veci = from.to::<Vector2i>();
+                let (x, y) = (veci.x as EntityId, veci.y as EntityId);
+                flecs::ecs_pair(x, y)
+            },
+            VTInt => from.to::<i64>() as EntityId,
+            VTFloat => from.to::<f64>() as EntityId,
+            VTString => this.bind_mut().get_or_add_tag_entity(from),
+            VTStringName => this.bind_mut().get_or_add_tag_entity(from),
+            VTNil => panic!("Null is not an Entity"),
+            _ => panic!("Variant is not an Entity"),
+        }
+    }
+
+    
+
+    pub(crate) fn get_component(
+        &mut self,
+        key: Gd<Script>,
+    ) -> Option<EntityId> {
+        let Some(id) = self.get_tag_entity(key.to_variant())
+            else { return None };
+        let is_component = unsafe{ flecs::ecs_has_id(
+            self.world.raw(),
+            id,
+            flecs::FLECS_IDEcsComponentID_,
+        ) };
+        assert!(is_component);
+        Some(id)
     }
 
     pub(crate) fn get_or_add_component(
         &mut self,
-        key: &Gd<Script>,
-    ) -> Rc<ComponetDefinition> {
+        key: Gd<Script>,
+    ) -> EntityId {
         Self::get_or_add_component_gd(self.to_gd(), key)
     }
 
     pub(crate) fn get_or_add_component_gd(
         mut this: Gd<Self>,
-        key: &Gd<Script>,
-    ) -> Rc<ComponetDefinition> {
+        key: Gd<Script>,
+    ) -> EntityId {
         let mut world_bind = this.bind_mut();
-        let value = ComponentDefinitionsMapKey
-            ::from(key)
-            .get_value(&world_bind.component_definitions);
-        let def = match value {
-            Some(value) => value,
-            None => {
-                let def = ComponetDefinition::new(
-                    key.clone(),
-                    &mut world_bind,
-                );
-                let def = world_bind
-                    .component_definitions
-                    .insert(def);
 
-                drop(world_bind);
+        if let Some(id) = world_bind.get_component(key.clone()) {
+            // Component with script already exists
+            return id
+        }
 
-                this.bind_mut();
-                
-                let mut args = VariantArray::new();
-                args.push(this.to_variant());
-                let callable = Callable
-                    ::from_object_method(key, "_on_registered");
+        // Create component and definition
+        // (ComponetDefinition::new() creates the component)
+        let def = Rc::new(ComponetDefinition::new(
+            key.clone(),
+            &mut world_bind,
+        ));
+        world_bind.components.insert(def.flecs_id, def.clone());
 
-                callable.callv(args);
+        drop(world_bind);
 
-                def
-            }
-        };
+        this.bind_mut();
         
+        // Call _on_registerd
+        {
+            let mut args = VariantArray::new();
+            args.push(this.to_variant());
+            let callable = Callable
+                ::from_object_method(&key, "_on_registered");
+            callable.callv(args);
+        }
 
-        def
+        def.flecs_id
+    }
+
+    pub(crate) fn get_component_description(
+        &self,
+        key: EntityId,
+    ) -> Option<Rc<ComponetDefinition>> {
+        self.components.get(&key).map(|x| x.clone())
     }
 
     pub(crate) fn new_observer_from_builder(
@@ -284,25 +349,44 @@ impl _BaseGEWorld {
         }
 
         // Initialize observer
-        let observer_id = unsafe { flecs::ecs_observer_init(
+        unsafe { flecs::ecs_observer_init(
             this.bind().world.raw(),
             &observer_desc,
         ) };
     }
+    
+    pub(crate) fn get_pipeline(
+        &self,
+        identifier:Variant,
+    ) -> EntityId {
+        let entity_id = self.get_tag_entity(identifier.clone())
+            .expect(&format!(
+                "{} is not an entity",
+                identifier,
+            ));
+        assert!(self.is_id_pipeline(entity_id));
+        entity_id
+    }
+
+    pub(crate) fn is_id_pipeline(&self, id: EntityId) -> bool {
+        unsafe { flecs::ecs_has_id(
+            self.world.raw(),
+            id,
+            flecs::FLECS_IDEcsPipelineID_,
+        ) }
+    }
 
     pub(crate) fn new_pipeline(
         &mut self,
-        identifier:Variant,
+        identifier: Variant,
         extra_parameters: Array<Callable>,
     ) -> Rc<PipelineDefinition> {
-        let key = VariantKey {variant: identifier};
-        if let Some(def) = self.pipelines.get(&key) {
+        // Get or initialize pipeline
+        let pipeline_id = self.get_or_add_tag_entity(identifier);
+        if let Some(def) = self.pipelines.get(&pipeline_id) {
             return def.clone()
         }
-
-        // Initialize pipeline
-        let pipeline_id = unsafe { flecs::ecs_new_id(self.world.raw()) };
-            
+        
         let mut system_query = flecs::ecs_query_desc_t{
             ..unsafe { MaybeUninit::zeroed().assume_init() }
         };
@@ -323,18 +407,19 @@ impl _BaseGEWorld {
             extra_parameters,
             flecs_id: pipeline_id,
         };
-        self.pipelines.insert(key.clone(), Rc::new(def));
 
-        self.pipelines.get(&key).unwrap().clone()
+        let pipeline_def = Rc::new(def);
+        self.pipelines.insert(pipeline_id, pipeline_def.clone());
+        pipeline_def
     }
 
-    pub(crate) fn get_pipeline(
+    pub(crate) fn get_pipeline_definition(
         &self,
-        identifier:Variant,
-    ) -> Option<Rc<PipelineDefinition>> {
-        let key = VariantKey {variant: identifier};
-        self.pipelines.get(&key).map(|x| x.clone())
+        pipeline_id: EntityId,
+    ) -> &Rc<PipelineDefinition> {
+        self.pipelines.get(&pipeline_id).expect("Could not find pipeline")
     }
+
 
     fn get_or_add_prefab_definition(mut this: Gd<Self>, script:Gd<Script>) -> Rc<PrefabDefinition> {
         if let Some(prefab_def) = this.bind().prefabs.get(&script) {
@@ -354,25 +439,19 @@ impl _BaseGEWorld {
         let this_bound = this.bind();
         let raw_world = this_bound.world.raw();
 
-        let Some(pipeline_def) = this_bound
-            .get_pipeline(builder.pipeline.clone())
-            else {
-                show_error!(
-                    "Failed to add system",
-                    "Noo pipeline with identifer {} was defined.",
-                    builder.pipeline,
-                );
-                return
-            };
+        let pipeline_id = this_bound
+            .get_pipeline(builder.pipeline.clone());
+        let pipeline_def = this_bound
+            .get_pipeline_definition(pipeline_id);
         
-        drop(this_bound);
-
         // Create value getters list
         let mut additional_arg_getters = Vec::new();
         for callable in pipeline_def.extra_parameters.iter_shared() {
             additional_arg_getters.push(callable);
         }
         let value_getters = additional_arg_getters.into_boxed_slice();
+        
+        drop(this_bound);
 
         let mut system_args = array![];
         for _v in value_getters.iter() {
@@ -408,52 +487,33 @@ impl _BaseGEWorld {
         unsafe { flecs::ecs_add_id(
             raw_world,
             sys_id,
-            pipeline_def.flecs_id,
+            pipeline_id,
         ) };
     }
 
-    pub(crate) fn get_or_add_tag_entity(&mut self, key:Variant) -> EntityId {
-        if let Ok(entity_gd) = key.try_to::<Gd<_BaseGEEntity>>() {
-            return entity_gd.bind().get_flecs_id()
-        }
+    pub(crate) fn get_tag_entity(&self, key:Variant) -> Option<EntityId> {
+        self.mapped_entities.get(&VariantKey::new(key)).map(|x| *x)
+    }
 
-        let key = VariantKey {variant: key};
-        
-        self.tag_entities.get(&key)
+    pub(crate) fn get_or_add_tag_entity(&mut self, key:Variant) -> EntityId {
+        let key = VariantKey::new(key);
+        self.mapped_entities.get(&key)
             .map(|x| *x)
             .unwrap_or_else(|| {
                 let id = self.world.entity().id();
-                self.tag_entities.insert(key, id);
+                self.mapped_entities.insert(key, id);
                 id
             })
-    }
-
-    pub(crate) fn has_tag_entity(&mut self, key:Variant) -> bool {
-        if let Ok(entity_gd) = key.try_to::<Gd<_BaseGEEntity>>() {
-            return true
-        }
-
-        let key = VariantKey {variant: key};
-        self.tag_entities.contains_key(&key)
     }
 
     pub(crate) fn layout_from_properties(
         parameters: &Vec<ComponetProperty>,
     ) -> Layout {
         let mut size = 0;
-        for (property) in parameters {
+        for property in parameters {
             size += TYPE_SIZES[property.gd_type_id as usize];
         }
         Layout::from_size_align(size, 8).unwrap()
-    }
-
-    fn get_id_of_script(&self, mut script: Gd<Script>) -> Option<EntityId> {
-        let Some(x) = self.component_definitions
-            .get(&script) 
-            else {
-                return None
-            };
-        Some(x.flecs_id)
     }
 
 	pub(crate) fn on_entity_freed(&mut self, entity_id:EntityId) {
@@ -485,12 +545,14 @@ impl _BaseGEWorld {
             .unwrap_or_default();
 
         for component in componets.iter_shared() {
-            let Ok(component) = component.try_to::<Gd<Script>>()
-                else {continue};
+            let Ok(component_script) = component
+                .try_to::<Gd<Script>>()
+                else { continue };
                 
-            prefab_entt.add_id(
-                Self::get_or_add_component_gd(this.clone(), &component).flecs_id
-            );
+            prefab_entt.add_id(Self::get_or_add_component_gd(
+                this.clone(),
+                component_script,
+            ));
         }
 
         Rc::new(PrefabDefinition {
@@ -566,51 +628,51 @@ impl INode for _BaseGEWorld {
         let mut gd_world = Self {
             node,
             world: world,
-            component_definitions: Default::default(),
+            components: Default::default(),
             gd_entity_map: Default::default(),
             prefabs: Default::default(),
-            tag_entities: Default::default(),
+            mapped_entities: Default::default(),
             pipelines: Default::default(),
 			deleting: false,
         };
 
-        gd_world.tag_entities.insert(
+        gd_world.mapped_entities.insert(
             StringName::from("on_add").to_variant().into(),
             unsafe { flecs::EcsOnAdd },
         );
-        gd_world.tag_entities.insert(
+        gd_world.mapped_entities.insert(
             StringName::from("on_remove").to_variant().into(),
             unsafe { flecs::EcsOnRemove },
         );
-        gd_world.tag_entities.insert(
+        gd_world.mapped_entities.insert(
             StringName::from("on_set").to_variant().into(),
             unsafe { flecs::EcsOnSet },
         );
-        gd_world.tag_entities.insert(
+        gd_world.mapped_entities.insert(
             StringName::from("on_unset").to_variant().into(),
             unsafe { flecs::EcsUnSet },
         );
-        gd_world.tag_entities.insert(
+        gd_world.mapped_entities.insert(
             StringName::from("on_monitor").to_variant().into(),
             unsafe { flecs::EcsMonitor },
         );
-        gd_world.tag_entities.insert(
+        gd_world.mapped_entities.insert(
             StringName::from("on_delete").to_variant().into(),
             unsafe { flecs::EcsOnDelete },
         );
-        gd_world.tag_entities.insert(
+        gd_world.mapped_entities.insert(
             StringName::from("on_table_create").to_variant().into(),
             unsafe { flecs::EcsOnTableCreate },
         );
-        gd_world.tag_entities.insert(
+        gd_world.mapped_entities.insert(
             StringName::from("on_table_delete").to_variant().into(),
             unsafe { flecs::EcsOnTableDelete },
         );
-        gd_world.tag_entities.insert(
+        gd_world.mapped_entities.insert(
             StringName::from("on_table_empty").to_variant().into(),
             unsafe { flecs::EcsOnTableEmpty },
         );
-        gd_world.tag_entities.insert(
+        gd_world.mapped_entities.insert(
             StringName::from("on_table_fill").to_variant().into(),
             unsafe { flecs::EcsOnTableFill },
         );
@@ -685,7 +747,7 @@ pub(crate) struct ScriptSystemContext {
 
         // Create component accesses
         let mut tarm_accesses: Vec<Gd<_BaseGEComponent>> = vec![];
-        for (term_i, term) in raw_terms.iter().enumerate() {
+        for term in raw_terms.iter() {
             // TODO: Handle different term operations
             match term.oper {
                 flecs::ecs_oper_kind_t_EcsAnd => {},
@@ -699,21 +761,19 @@ pub(crate) struct ScriptSystemContext {
                 _ => continue,
             }
 
-            let term_script = world
+            let term_description = world
                 .bind()
-                .component_definitions
-                .get_script(&term.id)
+                .get_component_description(term.id)
                 .unwrap();
+            let term_script = Gd::<Script>
+                ::from_instance_id(term_description.script_id);
 
             let mut compopnent_access = Gd::from_init_fn(|base| {
                 let base_comp = _BaseGEComponent {
                     base,
                     world: world.clone(),
                     get_data_fn_ptr: _BaseGEComponent::new_empty_data_getter(),
-                    component_definition: _BaseGEWorld::get_or_add_component_gd(
-                        world.clone(),
-                        &term_script,
-                    ),
+                    component_definition: term_description.clone(),
                 };
                 base_comp
             });
@@ -747,6 +807,11 @@ pub(crate) struct PipelineDefinition {
 #[derive(Debug, Default, Clone, PartialEq)]
 struct VariantKey {
     variant: Variant
+} impl VariantKey {
+    fn new(v: Variant) -> Self {
+        assert_eq!(v.is_nil(), false);
+        Self { variant:v }
+    }
 } impl Eq for VariantKey {
 } impl Hash for VariantKey {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
@@ -754,6 +819,6 @@ struct VariantKey {
     }
 } impl From<Variant> for VariantKey {
     fn from(value: Variant) -> Self {
-        VariantKey { variant: value }
+        VariantKey::new(value)
     }
 }
