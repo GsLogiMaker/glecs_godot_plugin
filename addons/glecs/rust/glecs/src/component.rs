@@ -648,16 +648,17 @@ impl _BaseGEComponent {
 
     // --- Hooks ---
 
-    pub(crate) fn set_hooks_in_component(world: Gd<_BaseGEWorld>, componnet: EntityId) {
-        let world_ptr = world.bind().world.raw();
+    pub(crate) fn set_hooks_in_component(world: &_BaseGEWorld, componnet: EntityId) {
+        let world_ptr = world.world.raw();
         unsafe { flecs::ecs_set_hooks_id(
             world_ptr,
             componnet,
             &flecs::ecs_type_hooks_t {
-                ctor: Some(_BaseGEComponent::ctor_hook),
-                dtor: Some(_BaseGEComponent::dtor_hook),
-                move_: Some(_BaseGEComponent::move_hook),
-                binding_ctx: HookContext::new(world, componnet)
+                ctor: Some(Self::ctor_hook),
+                dtor: Some(Self::dtor_hook),
+                move_: Some(Self::move_hook),
+                ctor_move_dtor: Some(Self::ctor_move_dtor_hook),
+                binding_ctx: HookContext::new(world.to_gd(), componnet)
                     .to_leaked() as *mut c_void,
                 binding_ctx_free: Some(HookContext::binding_ctx_free),
                 ..Default::default()
@@ -682,7 +683,6 @@ impl _BaseGEComponent {
             let counted_ptr = unsafe {
                 ptr.add(i * comp_desc.layout.size())
             };
-            dbg!(counted_ptr);
 
             // Write sane defaults to data
             let data = unsafe {
@@ -712,7 +712,6 @@ impl _BaseGEComponent {
             let counted_ptr = unsafe {
                 ptr.add(i * comp_desc.layout.size())
             };
-            dbg!(counted_ptr);
 
             // Call destructor for each property
             let data = unsafe {
@@ -754,8 +753,6 @@ impl _BaseGEComponent {
                     comp_desc.layout.size(),
                 )
             };
-            dbg!(src.as_ptr());
-            dbg!(dst.as_ptr());
 
             // Move contents
             dst.copy_from_slice(src);
@@ -766,6 +763,41 @@ impl _BaseGEComponent {
                 unsafe { NonNull::new_unchecked(src.as_mut_ptr()) },
                 &comp_desc,
             );
+        }
+    }
+
+    pub(crate) extern "C" fn ctor_move_dtor_hook(
+		dst_ptr: *mut c_void,
+		src_ptr: *mut c_void,
+		count: i32,
+		type_info: *const flecs::ecs_type_info_t,
+	) {
+        let count = count as usize;
+        let hook_context = HookContext::ref_leaked(
+            unsafe { &*type_info }.hooks.binding_ctx
+        );
+        let comp_desc = hook_context.world.bind()
+            .get_component_description(hook_context.component_id)
+            .unwrap();
+
+        for i in 0..count {
+            let src = unsafe {
+                std::slice::from_raw_parts_mut(
+                    src_ptr.add(i * comp_desc.layout.size())
+                        as *mut u8,
+                    comp_desc.layout.size(),
+                )
+            };
+            let dst = unsafe {
+                std::slice::from_raw_parts_mut(
+                    dst_ptr.add(i * comp_desc.layout.size())
+                        as *mut u8,
+                    comp_desc.layout.size(),
+                )
+            };
+
+            // Move contents
+            dst.copy_from_slice(src);
         }
     }
 }

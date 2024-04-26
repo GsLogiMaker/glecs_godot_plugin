@@ -74,7 +74,7 @@ pub(crate) struct ComponetDefinition {
 
         // Settup hooks
         _BaseGEComponent::set_hooks_in_component(
-            world.to_gd(),
+            world,
             comp_id,
         );
 
