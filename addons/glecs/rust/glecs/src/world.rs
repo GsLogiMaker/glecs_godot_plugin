@@ -85,7 +85,7 @@ impl _BaseGEWorld {
             _BaseGEEntity::add_component_raw(
                 this.clone(),
                 entity.id(),
-                component,
+                component.clone(),
                 Variant::nil(),
             );
         }
@@ -101,11 +101,13 @@ impl _BaseGEWorld {
                 gd_components_map: Default::default(),
             }
         });
+        
+        gd_entity.set_name(name);
+
         let mut bind = this.bind_mut();
         gd_entity.set_script(
             load::<Script>("res://addons/glecs/gd/entity.gd").to_variant(),
         );
-        gd_entity.set_name_by_ref(name, &bind);
         bind.gd_entity_map.insert(entity.id(), gd_entity.clone());
         
         gd_entity
@@ -264,7 +266,9 @@ impl _BaseGEWorld {
             id,
             flecs::FLECS_IDEcsComponentID_,
         ) };
-        assert!(is_component);
+        if !is_component {
+            return None;
+        }
         Some(id)
     }
 
@@ -280,12 +284,12 @@ impl _BaseGEWorld {
         key: Gd<Script>,
     ) -> EntityId {
         let mut world_bind = this.bind_mut();
-
+        
         if let Some(id) = world_bind.get_component(key.clone()) {
             // Component with script already exists
             return id
         }
-
+        
         // Create component and definition
         // (ComponetDefinition::new() creates the component)
         let def = Rc::new(ComponetDefinition::new(
@@ -293,6 +297,7 @@ impl _BaseGEWorld {
             &mut world_bind,
         ));
         world_bind.components.insert(def.flecs_id, def.clone());
+        world_bind.add_tag_entity(key.to_variant(), def.flecs_id);
 
         drop(world_bind);
 
@@ -491,19 +496,23 @@ impl _BaseGEWorld {
         ) };
     }
 
+    pub(crate) fn add_tag_entity(&mut self, key: Variant, id: EntityId) -> EntityId {
+        let key = VariantKey::new(key);
+        self.mapped_entities.insert(key, id);
+        id
+    }
+
     pub(crate) fn get_tag_entity(&self, key:Variant) -> Option<EntityId> {
         self.mapped_entities.get(&VariantKey::new(key)).map(|x| *x)
     }
 
     pub(crate) fn get_or_add_tag_entity(&mut self, key:Variant) -> EntityId {
-        let key = VariantKey::new(key);
-        self.mapped_entities.get(&key)
+        let variant_key = VariantKey::new(key.clone());
+        self.mapped_entities.get(&variant_key)
             .map(|x| *x)
-            .unwrap_or_else(|| {
-                let id = self.world.entity().id();
-                self.mapped_entities.insert(key, id);
-                id
-            })
+            .unwrap_or_else(||
+                self.add_tag_entity(key, self.world.entity().id())
+            )
     }
 
     pub(crate) fn layout_from_properties(
@@ -595,10 +604,8 @@ impl _BaseGEWorld {
                     .layout
                     .size();
                 let data = unsafe { NonNull::new_unchecked(
-                    std::slice::from_raw_parts_mut(
-                        flecs::ecs_field_w_size(iter_ptr, component_size, field_i+1) as *mut u8,
-                        component_size,
-                    )
+                    flecs::ecs_field_w_size(iter_ptr, component_size, field_i+1)
+                        as *mut u8,
                 ) };
 
                 // TODO: Optimize away box allocation
@@ -805,7 +812,7 @@ pub(crate) struct PipelineDefinition {
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
-struct VariantKey {
+pub(crate) struct VariantKey {
     variant: Variant
 } impl VariantKey {
     fn new(v: Variant) -> Self {

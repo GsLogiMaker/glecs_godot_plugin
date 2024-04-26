@@ -5,6 +5,7 @@ use flecs::EntityId;
 use godot::engine::Script;
 use godot::prelude::*;
 
+use crate::component::_BaseGEComponent;
 use crate::world::_BaseGEWorld;
 use crate::TYPE_SIZES;
 
@@ -61,15 +62,21 @@ pub(crate) struct ComponetDefinition {
         // Assemble definition
         let name = component.to_string();
         let layout = _BaseGEWorld::layout_from_properties(&component_properties);
-        let mut component_def = Self {
-            name: name.clone().into(),
+        let comp_id = world.world
+            .component_dynamic(name.clone(), layout);
+        let component_def = Self {
+            name: name.into(),
             parameters: component_properties,
-            flecs_id: 0,
+            flecs_id: comp_id,
             script_id: component.instance_id(),
             layout,
         };
-        component_def.flecs_id = world.world
-            .component_dynamic(name, layout);
+
+        // Settup hooks
+        _BaseGEComponent::set_hooks_in_component(
+            world.to_gd(),
+            comp_id,
+        );
 
         component_def
     }
@@ -92,6 +99,7 @@ pub(crate) struct ComponetDefinition {
             .get(format!("{}{}", Self::PROPERTY_PREFIX, property))
             .unwrap()
     }
+
 }
 
 /// The definition for one property in a component's definition.
@@ -109,3 +117,4 @@ pub(crate) struct ComponetProperty {
         }
     }
 }
+

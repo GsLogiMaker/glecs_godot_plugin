@@ -387,17 +387,15 @@ pub(crate) trait EntityLike: Debug {
         entt.name().into()
     }
 
-    fn set_name(&self, value:String) {
-        self.set_name_by_ref(value, &self.get_world().bind());
-    }
-
-    fn set_name_by_ref(&self, mut value:String, world:&_BaseGEWorld) {
+    fn set_name(&self, mut value: String) {
+        let world = self.get_world();
         let entt = world
+            .bind()
             .world
             .find_entity(self.get_flecs_id())
             .unwrap();
 
-        while world.world.lookup(&value).is_some() {
+        while world.bind().world.lookup(&value).is_some() {
             increment_name(&mut value);
         }
         entt.named(&value);

@@ -2,19 +2,19 @@
 class_name SystemBuilder extends _BaseSystemBuilder
 
 
-func with(component:Script, inout:=INOUT_MODE_DEFAULT) -> SystemBuilder:
+func with(component: Variant, inout:=INOUT_MODE_DEFAULT) -> SystemBuilder:
 	return _with(component, inout)
 
 
-func without(component:Script) -> SystemBuilder:
+func without(component:Variant) -> SystemBuilder:
 	return _without(component)
 
 
-func or_with(component: Script, inout:=INOUT_MODE_DEFAULT) -> SystemBuilder:
+func or_with(component: Variant, inout:=INOUT_MODE_DEFAULT) -> SystemBuilder:
 	return _or_with(component, inout)
 
 
-func maybe_with(component: Script, inout:=INOUT_MODE_DEFAULT) -> SystemBuilder:
+func maybe_with(component: Variant, inout:=INOUT_MODE_DEFAULT) -> SystemBuilder:
 	return _maybe_with(component, inout)
 
 

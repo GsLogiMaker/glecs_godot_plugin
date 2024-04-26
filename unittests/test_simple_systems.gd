@@ -93,7 +93,7 @@ func test_floats():
 			x.b *= 2
 			x.a += x.b
 			)
-			
+	
 	var entity:= world.new_entity("Test", [Floats])
 	entity.get_component(Floats).b = 1.2
 	

@@ -24,6 +24,6 @@ func new_pipeline(
 func new_system(pipeline: Variant = PIPELINE_PROCESS) -> SystemBuilder:
 	return _new_system(pipeline)
 
-func new_entity(name:String, with_components:Array[Script]=[]) -> Entity:
+func new_entity(name:String, with_components:Array[Variant]=[]) -> Entity:
 	return _new_entity(name, with_components)
 	

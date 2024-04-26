@@ -12,11 +12,14 @@ use std::mem::size_of;
 
 use godot::prelude::*;
 
+type Int = i64;
+type Float = f64;
+
 const TYPE_SIZES:&'static [usize] = &[
     /* NIL */ 0,
     /* BOOL */ 4, //size_of::<bool>(),
-    /* INT */ size_of::<i32>(),
-    /* FLOAT */ size_of::<f64>(),
+    /* INT */ size_of::<Int>(),
+    /* FLOAT */ size_of::<Float>(),
     /* STRING */ size_of::<String>(),
     /* VECTOR2 */ size_of::<Vector2>(),
     /* VECTOR2I */ size_of::<Vector2i>(),
