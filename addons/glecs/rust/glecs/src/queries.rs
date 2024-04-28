@@ -3,7 +3,7 @@ use flecs::EntityId;
 use godot::engine::Script;
 use godot::prelude::*;
 
-use crate::world::_BaseGEWorld;
+use crate::world::_GlecsWorld;
 
 #[derive(Clone, Debug, Default)]
 pub(crate) enum BuildType {
@@ -14,9 +14,9 @@ pub(crate) enum BuildType {
 
 #[derive(GodotClass)]
 #[class(base=RefCounted, no_init)]
-pub struct _BaseSystemBuilder {
+pub struct _GlecsSystemBuilder {
     pub(crate) base: Base<RefCounted>,
-    pub(crate) world: Gd<_BaseGEWorld>,
+    pub(crate) world: Gd<_GlecsWorld>,
     pub(crate) pipeline: Variant,
     pub(crate) description: flecs::ecs_query_desc_t,
     pub(crate) terms: Vec<flecs::ecs_term_t>,
@@ -27,10 +27,10 @@ pub struct _BaseSystemBuilder {
     pub(crate) observing_events: Vec<EntityId>,
 }
 #[godot_api]
-impl _BaseSystemBuilder {
-    pub(crate) fn new(world:Gd<_BaseGEWorld>) -> Gd<Self> {
+impl _GlecsSystemBuilder {
+    pub(crate) fn new(world:Gd<_GlecsWorld>) -> Gd<Self> {
         let mut gd = Gd::from_init_fn(|base| {
-            _BaseSystemBuilder {
+            _GlecsSystemBuilder {
                 base,
                 pipeline: Variant::nil(),
                 world,
@@ -63,14 +63,14 @@ impl _BaseSystemBuilder {
         &mut self,
         component: Variant,
         inout: flecs::ecs_inout_kind_t,
-    ) -> Gd<_BaseSystemBuilder> {
+    ) -> Gd<_GlecsSystemBuilder> {
         self.with_oper(component, flecs::ecs_oper_kind_t_EcsAnd);
         self.terms.last_mut().unwrap().inout = inout;
         self.to_gd()
     }
 
     #[func]
-    fn _without(&mut self, component: Variant) -> Gd<_BaseSystemBuilder> {
+    fn _without(&mut self, component: Variant) -> Gd<_GlecsSystemBuilder> {
         self.with_oper(component, flecs::ecs_oper_kind_t_EcsNot);
         self.to_gd()
     }
@@ -80,7 +80,7 @@ impl _BaseSystemBuilder {
         &mut self,
         component: Variant,
         inout: flecs::ecs_inout_kind_t,
-    ) -> Gd<_BaseSystemBuilder> {
+    ) -> Gd<_GlecsSystemBuilder> {
         self.with_oper(component, flecs::ecs_oper_kind_t_EcsOr);
         self.terms.last_mut().unwrap().inout = inout;
         self.to_gd()
@@ -91,7 +91,7 @@ impl _BaseSystemBuilder {
         &mut self,
         _component: Variant,
         _inout: flecs::ecs_inout_kind_t,
-    ) -> Gd<_BaseSystemBuilder> {
+    ) -> Gd<_GlecsSystemBuilder> {
         todo!("Get optional terms working with system iterator first");
         // self.with_oper(component, flecs::ecs_oper_kind_t_EcsOptional);
         // self.terms.last_mut().unwrap().inout = inout;
@@ -99,19 +99,19 @@ impl _BaseSystemBuilder {
     }
 
     #[func]
-    fn _all_from(&mut self, entity: Variant) -> Gd<_BaseSystemBuilder> {
+    fn _all_from(&mut self, entity: Variant) -> Gd<_GlecsSystemBuilder> {
         self.from_oper(entity, flecs::ecs_oper_kind_t_EcsAndFrom);
         self.to_gd()
     }
 
     #[func]
-    fn _any_from(&mut self, entity: Variant) -> Gd<_BaseSystemBuilder> {
+    fn _any_from(&mut self, entity: Variant) -> Gd<_GlecsSystemBuilder> {
         self.from_oper(entity, flecs::ecs_oper_kind_t_EcsOrFrom);
         self.to_gd()
     }
 
     #[func]
-    fn _none_from(&mut self, entity: Variant) -> Gd<_BaseSystemBuilder> {
+    fn _none_from(&mut self, entity: Variant) -> Gd<_GlecsSystemBuilder> {
         self.from_oper(entity, flecs::ecs_oper_kind_t_EcsNotFrom);
         self.to_gd()
     }
@@ -122,16 +122,16 @@ impl _BaseSystemBuilder {
         let world = self.world.clone();
 
         match self.build_type {
-            BuildType::System => _BaseGEWorld
+            BuildType::System => _GlecsWorld
                 ::new_system_from_builder(world, self, callable),
-            BuildType::Observer => _BaseGEWorld
+            BuildType::Observer => _GlecsWorld
                 ::new_observer_from_builder(world, self, callable),
         }
         
     }
 
     #[func]
-    fn _set_pipeline(&mut self, pipeline:Variant) -> Gd<_BaseSystemBuilder> {
+    fn _set_pipeline(&mut self, pipeline:Variant) -> Gd<_GlecsSystemBuilder> {
         self.pipeline = pipeline;
         let gd = self.to_gd();
         gd
@@ -143,7 +143,7 @@ impl _BaseSystemBuilder {
 
     fn with_oper(&mut self, component: Variant, oper:flecs::ecs_oper_kind_t) {
         // TODO: Add checks that scripts are indeed derived from components
-        let comp_id = _BaseGEWorld
+        let comp_id = _GlecsWorld
             ::variant_to_entity_id(self.world.clone(), component);
         
         let term = flecs::ecs_term_t {

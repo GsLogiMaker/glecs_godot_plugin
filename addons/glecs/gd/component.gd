@@ -1,3 +1,5 @@
 
-class_name GEComponent extends _BaseGEComponent
+class_name GlecsComponent extends _GlecsComponent
 
+static func _on_registered(world:GlecsWorld):
+	pass

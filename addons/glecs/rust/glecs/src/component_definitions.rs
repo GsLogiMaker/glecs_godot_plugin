@@ -5,8 +5,8 @@ use flecs::EntityId;
 use godot::engine::Script;
 use godot::prelude::*;
 
-use crate::component::_BaseGEComponent;
-use crate::world::_BaseGEWorld;
+use crate::component::_GlecsComponent;
+use crate::world::_GlecsWorld;
 use crate::TYPE_SIZES;
 
 /// The metadata regarding a component's structure.
@@ -22,7 +22,7 @@ pub(crate) struct ComponetDefinition {
 
     pub(crate) fn new(
         mut component: Gd<Script>,
-        world: &mut _BaseGEWorld,
+        world: &mut _GlecsWorld,
     ) -> Self {
         // Assemble component properties
         let mut component_properties = Vec::default();
@@ -61,7 +61,7 @@ pub(crate) struct ComponetDefinition {
 
         // Assemble definition
         let name = component.to_string();
-        let layout = _BaseGEWorld::layout_from_properties(&component_properties);
+        let layout = _GlecsWorld::layout_from_properties(&component_properties);
         let comp_id = world.world
             .component_dynamic(name.clone(), layout);
         let component_def = Self {
@@ -73,7 +73,7 @@ pub(crate) struct ComponetDefinition {
         };
 
         // Settup hooks
-        _BaseGEComponent::set_hooks_in_component(
+        _GlecsComponent::set_hooks_in_component(
             world,
             comp_id,
         );

@@ -12,7 +12,9 @@ use std::mem::size_of;
 
 use godot::prelude::*;
 
+/// Godot's native int type
 type Int = i64;
+/// Godot's native float type
 type Float = f64;
 
 const TYPE_SIZES:&'static [usize] = &[
@@ -57,7 +59,7 @@ const TYPE_SIZES:&'static [usize] = &[
     /* MAX */ 0,
 ];
 
-struct GECS; #[gdextension] unsafe impl ExtensionLibrary for GECS {}
+struct Glecs; #[gdextension] unsafe impl ExtensionLibrary for Glecs {}
 
 #[macro_export]
 macro_rules! show_error {

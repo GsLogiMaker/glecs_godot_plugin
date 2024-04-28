@@ -1,32 +1,32 @@
 
-class_name SystemBuilder extends _BaseSystemBuilder
+class_name GlecsSystemBuilder extends _GlecsSystemBuilder
 
 
-func with(component: Variant, inout:=INOUT_MODE_DEFAULT) -> SystemBuilder:
+func with(component: Variant, inout:=INOUT_MODE_DEFAULT) -> GlecsSystemBuilder:
 	return _with(component, inout)
 
 
-func without(component:Variant) -> SystemBuilder:
+func without(component:Variant) -> GlecsSystemBuilder:
 	return _without(component)
 
 
-func or_with(component: Variant, inout:=INOUT_MODE_DEFAULT) -> SystemBuilder:
+func or_with(component: Variant, inout:=INOUT_MODE_DEFAULT) -> GlecsSystemBuilder:
 	return _or_with(component, inout)
 
 
-func maybe_with(component: Variant, inout:=INOUT_MODE_DEFAULT) -> SystemBuilder:
+func maybe_with(component: Variant, inout:=INOUT_MODE_DEFAULT) -> GlecsSystemBuilder:
 	return _maybe_with(component, inout)
 
 
-func all_from(entity: Variant) -> SystemBuilder:
+func all_from(entity: Variant) -> GlecsSystemBuilder:
 	return _all_from(entity)
 
 
-func any_from(entity: Variant) -> SystemBuilder:
+func any_from(entity: Variant) -> GlecsSystemBuilder:
 	return _any_from(entity)
 
 
-func none_from(entity: Variant) -> SystemBuilder:
+func none_from(entity: Variant) -> GlecsSystemBuilder:
 	return _none_from(entity)
 
 

@@ -11,28 +11,30 @@ use flecs::EntityId;
 use flecs::Iter;
 use flecs::World as FlWorld;
 use godot::engine::notify::NodeNotification;
+use godot::engine::notify::ObjectNotification;
 use godot::engine::Script;
 use godot::prelude::*;
 
-use crate::component::_BaseGEComponent;
+use crate::component::_GlecsComponent;
 use crate::component_definitions::ComponetDefinition;
 use crate::component_definitions::ComponetProperty;
 use crate::entity::EntityLike;
-use crate::entity::_BaseGEEntity;
-use crate::event::_BaseGEEvent;
+use crate::entity::_GlecsEntity;
+use crate::event::_GlecsEvent;
 use crate::prefab::PrefabDefinition;
-use crate::prefab::_BaseGEPrefab;
+use crate::prefab::_GlecsPrefab;
 use crate::prefab::PREFAB_COMPONENTS;
 use crate::queries::BuildType;
-use crate::queries::_BaseSystemBuilder;
+use crate::queries::_GlecsSystemBuilder;
+use crate::show_error;
 use crate::TYPE_SIZES;
 
 #[derive(GodotClass)]
-#[class(base=Node)]
-pub struct _BaseGEWorld {
-    pub(crate) node: Base<Node>,
+#[class(base=Object)]
+pub struct _GlecsWorld {
+    pub(crate) base: Base<Object>,
     pub(crate) world: FlWorld,
-    gd_entity_map: HashMap<EntityId, Gd<_BaseGEEntity>>,
+    gd_entity_map: HashMap<EntityId, Gd<_GlecsEntity>>,
     prefabs: HashMap<Gd<Script>, Rc<PrefabDefinition>>,
     /// Maps Variant identifiers to entity IDs
     mapped_entities: HashMap<VariantKey, EntityId>,
@@ -41,7 +43,7 @@ pub struct _BaseGEWorld {
 	deleting:bool
 }
 #[godot_api]
-impl _BaseGEWorld {
+impl _GlecsWorld {
     /// Returns the name of the Script that was registered with the world.
     #[func]
     fn get_component_name(
@@ -56,9 +58,9 @@ impl _BaseGEWorld {
     }
 
     #[func]
-    fn _entity_from_flecs_id(&mut self, flecs_id:EntityId) -> Gd<_BaseGEEntity> {
+    fn _entity_from_flecs_id(&mut self, flecs_id:EntityId) -> Gd<_GlecsEntity> {
         let gd_entity = Gd::from_init_fn(|base| {
-            _BaseGEEntity {
+            _GlecsEntity {
                 base,
                 world: self.to_gd(),
                 id: flecs_id,
@@ -78,14 +80,18 @@ impl _BaseGEWorld {
         mut this: Gd<Self>,
         name: String,
         with_components:Array<Variant>,
-    ) -> Gd<_BaseGEEntity> {
+    ) -> Gd<_GlecsEntity> {
         let entity = this.bind_mut().world.entity();
 
         for component in with_components.iter_shared() {
-            _BaseGEEntity::add_component_raw(
+            let component_id = _GlecsWorld::variant_to_entity_id(
+                this.clone(),
+                component,
+            );
+            _GlecsEntity::add_component_raw(
                 this.clone(),
                 entity.id(),
-                component.clone(),
+                component_id,
                 Variant::nil(),
             );
         }
@@ -93,7 +99,7 @@ impl _BaseGEWorld {
         // Create Godot wrapper
         let this_clone = this.clone();
         let mut gd_entity = Gd::from_init_fn(|base| {
-            _BaseGEEntity {
+            _GlecsEntity {
                 base,
                 world: this_clone,
                 id: entity.id(),
@@ -119,7 +125,7 @@ impl _BaseGEWorld {
         mut this: Gd<Self>,
         name: String,
         prefab: Gd<Script>,
-    ) -> Gd<_BaseGEEntity> {
+    ) -> Gd<_GlecsEntity> {
         let gd_entity = Self
             ::_new_entity(this.clone(), name, Array::default());
         let e_id = gd_entity.bind().get_flecs_id();
@@ -146,9 +152,9 @@ impl _BaseGEWorld {
     fn _new_event_listener(
         this: Gd<Self>,
         event: Variant,
-    ) -> Gd<_BaseSystemBuilder>{
+    ) -> Gd<_GlecsSystemBuilder>{
         let event = Self::variant_to_entity_id(this.clone(), event);
-        let builder = _BaseSystemBuilder::new(this);
+        let builder = _GlecsSystemBuilder::new(this);
         let mut builder_clone = builder.clone();
         let mut builder_bind = builder_clone.bind_mut();
         builder_bind.observing_events = vec![event];
@@ -159,10 +165,41 @@ impl _BaseGEWorld {
     #[func]
     fn _new_pipeline(
         &mut self,
-        identifier:Variant,
+        identifier: Variant,
         extra_parameters: Array<Callable>,
     ) {
-        self.new_pipeline(identifier, extra_parameters);
+        // Get or initialize pipeline
+        let pipeline_id = self.get_or_add_tag_entity(identifier.clone());
+        if self.pipelines.get(&pipeline_id).is_some() {
+            show_error!(
+                "Failed to create pipeline",
+                "Pipeline identified by {:?} has already been defined",
+                identifier
+            );
+        }
+        
+        let mut system_query = flecs
+            ::ecs_query_desc_t::default();
+        system_query.filter.terms[0] = flecs::ecs_term_t {
+            id: pipeline_id,
+            ..Default::default()
+        };
+
+        unsafe { flecs::ecs_pipeline_init(
+            self.world.raw(),
+            &flecs::ecs_pipeline_desc_t {
+                entity: pipeline_id,
+                query: system_query,
+            },
+        ) };
+
+        let def = PipelineDefinition {
+            extra_parameters,
+            flecs_id: pipeline_id,
+        };
+
+        let pipeline_def = Rc::new(def);
+        self.pipelines.insert(pipeline_id, pipeline_def.clone());
     }
 
     /// Runs all processess associated with the given pipeline.
@@ -178,8 +215,8 @@ impl _BaseGEWorld {
     }
 
     #[func(gd_self)]
-    fn _new_system(this: Gd<Self>, pipeline: Variant) -> Gd<_BaseSystemBuilder> {
-        let mut builder = _BaseSystemBuilder::new(this);
+    fn _new_system(this: Gd<Self>, pipeline: Variant) -> Gd<_GlecsSystemBuilder> {
+        let mut builder = _GlecsSystemBuilder::new(this);
         builder.bind_mut().pipeline = pipeline;
         builder
     }
@@ -209,22 +246,22 @@ impl _BaseGEWorld {
         match from.get_type() {
             VTObject => {
                 if let Ok(e) =
-                    from.try_to::<Gd<_BaseGEEntity>>()
+                    from.try_to::<Gd<_GlecsEntity>>()
                 {
                     return e.bind().id
                 }
                 if let Ok(e) =
-                    from.try_to::<Gd<_BaseGEComponent>>()
+                    from.try_to::<Gd<_GlecsComponent>>()
                 {
                     return e.bind().component_definition.flecs_id
                 }
                 if let Ok(e) =
-                    from.try_to::<Gd<_BaseGEEvent>>()
+                    from.try_to::<Gd<_GlecsEvent>>()
                 {
                     return e.bind()._id
                 }
                 if let Ok(e) =
-                    from.try_to::<Gd<_BaseGEPrefab>>()
+                    from.try_to::<Gd<_GlecsPrefab>>()
                 {
                     return e.bind().flecs_id
                 }
@@ -252,8 +289,6 @@ impl _BaseGEWorld {
             _ => panic!("Variant is not an Entity"),
         }
     }
-
-    
 
     pub(crate) fn get_component(
         &mut self,
@@ -324,7 +359,7 @@ impl _BaseGEWorld {
 
     pub(crate) fn new_observer_from_builder(
         this: Gd<Self>,
-        builder: &mut _BaseSystemBuilder,
+        builder: &mut _GlecsSystemBuilder,
         callable: Callable,
     ) {
         // Create contex
@@ -381,43 +416,6 @@ impl _BaseGEWorld {
         ) }
     }
 
-    pub(crate) fn new_pipeline(
-        &mut self,
-        identifier: Variant,
-        extra_parameters: Array<Callable>,
-    ) -> Rc<PipelineDefinition> {
-        // Get or initialize pipeline
-        let pipeline_id = self.get_or_add_tag_entity(identifier);
-        if let Some(def) = self.pipelines.get(&pipeline_id) {
-            return def.clone()
-        }
-        
-        let mut system_query = flecs::ecs_query_desc_t{
-            ..unsafe { MaybeUninit::zeroed().assume_init() }
-        };
-        system_query.filter.terms[0] = flecs::ecs_term_t {
-            id: pipeline_id,
-            ..unsafe { MaybeUninit::zeroed().assume_init() }
-        };
-
-        unsafe { flecs::ecs_pipeline_init(
-            self.world.raw(),
-            &flecs::ecs_pipeline_desc_t {
-                entity: pipeline_id,
-                query: system_query,
-            },
-        ) };
-
-        let def = PipelineDefinition {
-            extra_parameters,
-            flecs_id: pipeline_id,
-        };
-
-        let pipeline_def = Rc::new(def);
-        self.pipelines.insert(pipeline_id, pipeline_def.clone());
-        pipeline_def
-    }
-
     pub(crate) fn get_pipeline_definition(
         &self,
         pipeline_id: EntityId,
@@ -438,7 +436,7 @@ impl _BaseGEWorld {
 
     pub(crate) fn new_system_from_builder(
         this: Gd<Self>,
-        builder: &mut _BaseSystemBuilder,
+        builder: &mut _GlecsSystemBuilder,
         callable: Callable,
     ) {
         let this_bound = this.bind();
@@ -629,11 +627,11 @@ impl _BaseGEWorld {
 }
 
 #[godot_api]
-impl INode for _BaseGEWorld {
-    fn init(node: Base<Node>) -> Self {
+impl IObject for _GlecsWorld {
+    fn init(base: Base<Object>) -> Self {
         let world = FlWorld::new();
         let mut gd_world = Self {
-            node,
+            base,
             world: world,
             components: Default::default(),
             gd_entity_map: Default::default(),
@@ -687,33 +685,147 @@ impl INode for _BaseGEWorld {
         gd_world
     }
 
-    fn ready(&mut self) {
-        let get_process_delta_time = Callable::from_object_method(
-            &self.to_gd(),
-            "get_process_delta_time",
-        );
-        let get_physics_process_delta_time = Callable::from_object_method(
-            &self.to_gd(),
-            "get_physics_process_delta_time",
-        );
-
-        self.new_pipeline(
-            StringName::from("process").to_variant(),
-            Array::from(&[get_process_delta_time]),
-        );
-        self.new_pipeline(
-            StringName::from("physics_process").to_variant(),
-            Array::from(&[get_physics_process_delta_time]),
-        );
-    }
-
-	fn on_notification(&mut self, what: NodeNotification) {
+    fn on_notification(&mut self, what: ObjectNotification) {
         match what {
-            NodeNotification::Predelete => {
+            ObjectNotification::Predelete => {
                 self.on_free()
             },
             _ => {},
         }
+    }
+}
+
+#[derive(GodotClass)]
+#[class(base=Node)]
+pub struct _GlecsWorldNode {
+    base: Base<Node>,
+    glecs_world: Gd<_GlecsWorld>,
+}
+#[godot_api]
+impl _GlecsWorldNode {
+        /// Returns the name of the Script that was registered with the world.
+        #[func]
+        fn get_component_name(
+            &self,
+            script: Gd<Script>,
+        ) -> StringName {
+            _GlecsWorld::get_component_name(&mut self.glecs_world.clone().bind_mut(), script)
+        }
+    
+        #[func]
+        fn _entity_from_flecs_id(
+            &self,
+            flecs_id: EntityId,
+        ) -> Gd<_GlecsEntity> {
+            _GlecsWorld::_entity_from_flecs_id(&mut self.glecs_world.clone().bind_mut(), flecs_id)
+        }
+    
+        /// Creates a new entity in the world.
+        #[func]
+        fn _new_entity(
+            &self,
+            name: String,
+            with_components:Array<Variant>,
+        ) -> Gd<_GlecsEntity> {
+            _GlecsWorld::_new_entity(self.glecs_world.clone(), name, with_components)
+        }
+    
+        /// Creates a new entity in the world. 
+        #[func]
+        fn new_entity_with_prefab(
+            &self,
+            name: String,
+            prefab: Gd<Script>,
+        ) -> Gd<_GlecsEntity> {
+            _GlecsWorld::new_entity_with_prefab(self.glecs_world.clone(), name, prefab)
+
+        }
+    
+        #[func]
+        fn _new_event_listener(
+            &self,
+            event: Variant,
+        ) -> Gd<_GlecsSystemBuilder>{
+            _GlecsWorld::_new_event_listener(self.glecs_world.clone(), event)
+        }
+    
+        #[func]
+        fn _new_pipeline(
+            &self,
+            identifier:Variant,
+            extra_parameters: Array<Callable>,
+        ) {
+            _GlecsWorld::_new_pipeline(&mut self.glecs_world.clone().bind_mut(), identifier, extra_parameters)
+        }
+    
+        /// Runs all processess associated with the given pipeline.
+        #[func]
+        fn run_pipeline(
+            &self,
+            pipeline:Variant,
+            delta:f32,
+        ) {
+            _GlecsWorld::run_pipeline(&mut self.glecs_world.clone().bind(), pipeline, delta)
+        }
+    
+        #[func]
+        fn _new_system(&self, pipeline: Variant) -> Gd<_GlecsSystemBuilder> {
+            _GlecsWorld::_new_system(self.glecs_world.clone(), pipeline)
+        }
+    
+        #[func]
+        fn pair(&self, relation:Variant, target:Variant) -> i64 {
+            _GlecsWorld::pair(self.glecs_world.clone(), relation, target)
+
+        }
+    
+        #[func]
+        /// Converts a [`Variant`] value to an EntityId in the most suitable way
+        /// for the given [`Variant`] type.
+        pub(crate) fn variant_to_entity_id(
+            &self,
+            from:Variant,
+        ) -> EntityId {
+            _GlecsWorld::variant_to_entity_id(self.glecs_world.clone(), from)
+        }
+    
+}
+#[godot_api]
+impl INode for _GlecsWorldNode {
+    fn init(base: Base<Node>) -> Self {
+        let mut glecs_world = Gd::<_GlecsWorld>
+            ::from_init_fn(_GlecsWorld::init);
+        
+        glecs_world.set_script(
+            load::<Script>("res://addons/glecs/gd/world_obj.gd").to_variant()
+        );
+        
+        Self {
+            base,
+            glecs_world,
+        }
+    }
+
+    fn ready(&mut self) {
+        // Add process pipeline
+        let get_process_delta_time = Callable::from_object_method(
+            &self.to_gd(),
+            "get_process_delta_time",
+        );
+        self._new_pipeline(
+            StringName::from("process").to_variant(),
+            Array::from(&[get_process_delta_time]),
+        );
+
+        // Add physics process pipeline
+        let get_physics_process_delta_time = Callable::from_object_method(
+            &self.to_gd(),
+            "get_physics_process_delta_time",
+        );
+        self._new_pipeline(
+            StringName::from("physics_process").to_variant(),
+            Array::from(&[get_physics_process_delta_time]),
+        );
     }
 
     fn process(&mut self, delta:f64) {
@@ -723,6 +835,15 @@ impl INode for _BaseGEWorld {
     fn physics_process(&mut self, delta:f64) {
         self.run_pipeline("physics_process".to_variant(), delta as f32);
     }
+
+    fn on_notification(&mut self, what: NodeNotification) {
+        match what {
+            NodeNotification::Predelete => {
+                Gd::free(self.glecs_world.clone());
+            },
+            _ => {},
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -731,13 +852,13 @@ pub(crate) struct ScriptSystemContext {
     /// The arguments passed to the system.
     system_args: Array<Variant>,
     /// Holds the accesses stored in `sysatem_args` for quicker access.
-    term_accesses: Box<[Gd<_BaseGEComponent>]>,
+    term_accesses: Box<[Gd<_GlecsComponent>]>,
     /// A list of getters for extra arguments in a pipeline.
     additional_arg_getters: Box<[Callable]>,
 } impl ScriptSystemContext {
     fn new(
         callable: Callable,
-        world: Gd<_BaseGEWorld>,
+        world: Gd<_GlecsWorld>,
         filter: &flecs::ecs_filter_desc_t,
         additional_arg_getters: Box<[Callable]>,
     ) -> Self {
@@ -753,7 +874,7 @@ pub(crate) struct ScriptSystemContext {
         ) };
 
         // Create component accesses
-        let mut tarm_accesses: Vec<Gd<_BaseGEComponent>> = vec![];
+        let mut tarm_accesses: Vec<Gd<_GlecsComponent>> = vec![];
         for term in raw_terms.iter() {
             // TODO: Handle different term operations
             match term.oper {
@@ -776,10 +897,10 @@ pub(crate) struct ScriptSystemContext {
                 ::from_instance_id(term_description.script_id);
 
             let mut compopnent_access = Gd::from_init_fn(|base| {
-                let base_comp = _BaseGEComponent {
+                let base_comp = _GlecsComponent {
                     base,
                     world: world.clone(),
-                    get_data_fn_ptr: _BaseGEComponent::new_empty_data_getter(),
+                    get_data_fn_ptr: _GlecsComponent::new_empty_data_getter(),
                     component_definition: term_description.clone(),
                 };
                 base_comp

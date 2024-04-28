@@ -13,24 +13,24 @@ use crate::component_definitions::ComponetDefinition;
 use crate::component_definitions::ComponetProperty;
 use crate::entity::FREED_BY_ENTITY_TAG;
 use crate::show_error;
-use crate::world::_BaseGEWorld;
+use crate::world::_GlecsWorld;
 use crate::Float;
 use crate::Int;
 
 /// An ECS component.
 #[derive(GodotClass)]
 #[class(base=Object, no_init)]
-pub struct _BaseGEComponent {
+pub struct _GlecsComponent {
     pub(crate) base: Base<Object>,
     pub(crate) component_definition: Rc<ComponetDefinition>,
-    pub(crate) world: Gd<_BaseGEWorld>,
+    pub(crate) world: Gd<_GlecsWorld>,
     pub(crate) get_data_fn_ptr: Box<dyn Fn(&Self) -> NonNull<u8>>,
 }
 #[godot_api]
-impl _BaseGEComponent {
+impl _GlecsComponent {
     /// Copies the data from the given component to this one.
     #[func]
-    fn copy_from_component(&mut self, from_component:Gd<_BaseGEComponent>) {
+    fn copy_from_component(&mut self, from_component:Gd<_GlecsComponent>) {
         if self.get_flecs_id() != from_component.bind().get_flecs_id() {
             show_error!(
                 "Failed to copy component",
@@ -648,7 +648,7 @@ impl _BaseGEComponent {
 
     // --- Hooks ---
 
-    pub(crate) fn set_hooks_in_component(world: &_BaseGEWorld, componnet: EntityId) {
+    pub(crate) fn set_hooks_in_component(world: &_GlecsWorld, componnet: EntityId) {
         let world_ptr = world.world.raw();
         unsafe { flecs::ecs_set_hooks_id(
             world_ptr,
@@ -688,7 +688,7 @@ impl _BaseGEComponent {
             let data = unsafe {
                 NonNull::new_unchecked(counted_ptr as *mut u8)
             };
-            _BaseGEComponent::init_component_data(
+            _GlecsComponent::init_component_data(
                 data,
                 &comp_desc,
             );
@@ -717,7 +717,7 @@ impl _BaseGEComponent {
             let data = unsafe {
                 NonNull::new_unchecked(counted_ptr as *mut u8)
             };
-            _BaseGEComponent::deinit_component_data(
+            _GlecsComponent::deinit_component_data(
                 data,
                 &comp_desc,
             );
@@ -759,7 +759,7 @@ impl _BaseGEComponent {
 
             // Reset src so that the destructor does not attempt to deinit
             // the moved data
-            _BaseGEComponent::init_component_data(
+            _GlecsComponent::init_component_data(
                 unsafe { NonNull::new_unchecked(src.as_mut_ptr()) },
                 &comp_desc,
             );
@@ -802,7 +802,7 @@ impl _BaseGEComponent {
     }
 }
 #[godot_api]
-impl IObject for _BaseGEComponent {
+impl IObject for _GlecsComponent {
     fn on_notification(&mut self, what: ObjectNotification) {
         match what {
             ObjectNotification::Predelete => {
@@ -823,9 +823,9 @@ impl IObject for _BaseGEComponent {
 
 pub(crate) struct HookContext {
     component_id: EntityId,
-    world: Gd<_BaseGEWorld>,
+    world: Gd<_GlecsWorld>,
 } impl HookContext {
-    pub(crate) fn new(world: Gd<_BaseGEWorld>, component_id: EntityId) -> Self {
+    pub(crate) fn new(world: Gd<_GlecsWorld>, component_id: EntityId) -> Self {
         Self {
             world,
             component_id

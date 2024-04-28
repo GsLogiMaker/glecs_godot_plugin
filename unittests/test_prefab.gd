@@ -2,10 +2,10 @@
 @tool
 extends GutTest
 
-var world:GEWorldNode
+var world:GlecsWorldNode
 
 func before_all():
-	world = GEWorldNode.new()
+	world = GlecsWorldNode.new()
 	add_child(world)
 
 func after_all():
@@ -43,16 +43,16 @@ func test_prefab():
 
 #region Components
 
-class Foo extends GEComponent:
+class Foo extends GlecsComponent:
 	const _VAR_a:= false
 	const _VAR_b:= 0
 	const _VAR_c:= 0.0
 
-class Bar extends GEComponent:
+class Bar extends GlecsComponent:
 	const _VAR_a:= Vector2.ZERO
 	const _VAR_b:= 0.0
 	
-class PrefabPck extends _BaseGEPrefab:
+class PrefabPck extends _GlecsPrefab:
 	const COMPONENTS:= [
 		Foo,
 		Bar,

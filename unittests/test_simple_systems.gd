@@ -1,10 +1,10 @@
 
 extends GutTest
 
-var world:GEWorldNode
+var world:GlecsWorldNode
 
 func before_all():
-	world = GEWorldNode.new()
+	world = GlecsWorldNode.new()
 	add_child(world)
 
 func after_all():
@@ -233,7 +233,7 @@ func test_dicts():
 
 #region Components
 
-class Bools extends GEComponent:
+class Bools extends GlecsComponent:
 	const _VAR_a:= false
 	const _VAR_b:= false
 	var a:bool:
@@ -243,7 +243,7 @@ class Bools extends GEComponent:
 		get: return getc(&"b")
 		set(v): setc(&"b", v)
 
-class Ints extends GEComponent:
+class Ints extends GlecsComponent:
 	const _VAR_a:= 0
 	const _VAR_b:= 0
 	var a:int:
@@ -253,7 +253,7 @@ class Ints extends GEComponent:
 		get: return getc(&"b")
 		set(v): setc(&"b", v)
 
-class Floats extends GEComponent:
+class Floats extends GlecsComponent:
 	const _VAR_a:= 0.0
 	const _VAR_b:= 0.0
 	var a:float:
@@ -263,7 +263,7 @@ class Floats extends GEComponent:
 		get: return getc(&"b")
 		set(v): setc(&"b", v)
 
-class Strings extends GEComponent:
+class Strings extends GlecsComponent:
 	const _VAR_a:= ""
 	const _VAR_b:= ""
 	var a:String:
@@ -273,7 +273,7 @@ class Strings extends GEComponent:
 		get: return getc(&"b")
 		set(v): setc(&"b", v)
 
-class ByteArrays extends GEComponent:
+class ByteArrays extends GlecsComponent:
 	const _VAR_a:PackedByteArray = []
 	const _VAR_b:PackedByteArray = []
 	var a:PackedByteArray:
@@ -283,7 +283,7 @@ class ByteArrays extends GEComponent:
 		get: return getc(&"b")
 		set(v): setc(&"b", v)
 
-class Textures extends GEComponent:
+class Textures extends GlecsComponent:
 	const _VAR_a:Texture2D = null
 	const _VAR_b:Texture2D = null
 	var a:Texture2D:
@@ -293,7 +293,7 @@ class Textures extends GEComponent:
 		get: return getc(&"b")
 		set(v): setc(&"b", v)
 
-class RefCounts extends GEComponent:
+class RefCounts extends GlecsComponent:
 	const _VAR_a:RefCounted = null
 	const _VAR_b:RefCounted = null
 	var a:RefCounted:
@@ -303,7 +303,7 @@ class RefCounts extends GEComponent:
 		get: return getc(&"b")
 		set(v): setc(&"b", v)
 
-class Arrays extends GEComponent:
+class Arrays extends GlecsComponent:
 	const _VAR_a:= []
 	const _VAR_b:= []
 	var a:Array:
@@ -313,7 +313,7 @@ class Arrays extends GEComponent:
 		get: return getc(&"b")
 		set(v): setc(&"b", v)
 
-class Dicts extends GEComponent:
+class Dicts extends GlecsComponent:
 	const _VAR_a:= {}
 	const _VAR_b:= {}
 	var a:Dictionary:

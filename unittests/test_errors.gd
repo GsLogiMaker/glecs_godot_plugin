@@ -1,10 +1,10 @@
 
 extends GutTest
 
-var world:GEWorldNode = null
+var world:GlecsWorldNode = null
 
 func before_all():
-	world = GEWorldNode.new()
+	world = GlecsWorldNode.new()
 	add_child(world, true)
 
 func after_all():
@@ -49,10 +49,10 @@ func test_new_entity_with_unregistered_component():
 
 #region Classes
 
-class Foo extends GEComponent:
+class Foo extends GlecsComponent:
 	const _VAR_vec:= 0.0
 
-class Unregistered extends GEComponent:
+class Unregistered extends GlecsComponent:
 	const _VAR_vec:= 0.0
 
 #endregion

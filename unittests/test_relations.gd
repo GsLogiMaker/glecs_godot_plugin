@@ -1,10 +1,10 @@
 
 extends GutTest
 
-var world:GEWorldNode
+var world:GlecsWorldNode
 
 func before_all():
-	world = GEWorldNode.new()
+	world = GlecsWorldNode.new()
 	add_child(world)
 
 func after_all():
@@ -33,7 +33,7 @@ func test_bools():
 
 #region Components
 
-class Bools extends GEComponent:
+class Bools extends GlecsComponent:
 	const _VAR_a:= false
 	const _VAR_b:= false
 

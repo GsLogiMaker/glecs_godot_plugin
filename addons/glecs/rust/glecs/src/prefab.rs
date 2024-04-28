@@ -3,34 +3,34 @@ use flecs::EntityId;
 use godot::engine::Script;
 use godot::prelude::*;
 
-use crate::component::_BaseGEComponent;
+use crate::component::_GlecsComponent;
 use crate::entity::EntityLike;
-use crate::world::_BaseGEWorld;
+use crate::world::_GlecsWorld;
 
 pub(crate) const PREFAB_COMPONENTS:&str = "COMPONENTS";
 
 #[derive(GodotClass, Debug)]
 #[class(base=RefCounted, no_init)]
-pub struct _BaseGEPrefab {
+pub struct _GlecsPrefab {
     pub(crate) base: Base<RefCounted>,
     /// The world this entity is from.
-    pub(crate) world: Gd<_BaseGEWorld>,
+    pub(crate) world: Gd<_GlecsWorld>,
     /// The Flecs ID of this prefab.
     pub(crate) flecs_id: EntityId,
 }
 #[godot_api]
-impl _BaseGEPrefab {
+impl _GlecsPrefab {
 	#[func]
 	fn add_component(
 		&mut self,
 		component: Variant,
         data: Variant,
-	) -> Option<Gd<_BaseGEComponent>>{
+	) -> Option<Gd<_GlecsComponent>>{
 		EntityLike::add_component(self, component, data)
 	}
 }
-impl EntityLike for _BaseGEPrefab {
-    fn get_world(&self) -> Gd<_BaseGEWorld> {
+impl EntityLike for _GlecsPrefab {
+    fn get_world(&self) -> Gd<_GlecsWorld> {
         self.world.clone()
     }
 
@@ -47,7 +47,7 @@ pub(crate) struct PrefabDefinition {
 } impl PrefabDefinition {
     pub(crate) fn new(
         mut script:Gd<Script>,
-        world:&mut _BaseGEWorld,
+        world:&mut _GlecsWorld,
     ) -> PrefabDefinition {
         let prefab_entt = world.world
             .prefab(&script.instance_id().to_string());

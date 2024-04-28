@@ -1,5 +1,5 @@
 
-class_name GEWorldNode extends _BaseGEWorld
+class_name GlecsWorldNode extends _GlecsWorldNode
 
 ## Emitted when a component is added to an entity, before the entity gets set.
 ## TODO: Handle component parameters being unitialized when accessed through an OnAdd observer
@@ -12,7 +12,7 @@ const PIPELINE_PHYSICS_PROCESS:= &"physics_process"
 
 func new_event_listener(
 	event:Variant,
-) -> SystemBuilder:
+) -> GlecsSystemBuilder:
 	return _new_event_listener(event)
 
 func new_pipeline(
@@ -21,9 +21,9 @@ func new_pipeline(
 ) -> void:
 	_new_pipeline(identifier, additional_parameters)
 
-func new_system(pipeline: Variant = PIPELINE_PROCESS) -> SystemBuilder:
+func new_system(pipeline: Variant = PIPELINE_PROCESS) -> GlecsSystemBuilder:
 	return _new_system(pipeline)
 
-func new_entity(name:String, with_components:Array[Variant]=[]) -> Entity:
+func new_entity(name:String, with_components:Array[Variant]=[]) -> GlecsEntity:
 	return _new_entity(name, with_components)
 	
