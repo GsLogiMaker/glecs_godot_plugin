@@ -11,7 +11,6 @@ use flecs::EntityId;
 use flecs::Iter;
 use flecs::World as FlWorld;
 use godot::engine::notify::NodeNotification;
-use godot::engine::notify::ObjectNotification;
 use godot::engine::Script;
 use godot::prelude::*;
 
@@ -34,13 +33,11 @@ use crate::TYPE_SIZES;
 pub struct _GlecsWorld {
     pub(crate) base: Base<Object>,
     pub(crate) world: FlWorld,
-    gd_entity_map: HashMap<EntityId, Gd<_GlecsEntity>>,
     prefabs: HashMap<Gd<Script>, Rc<PrefabDefinition>>,
     /// Maps Variant identifiers to entity IDs
     mapped_entities: HashMap<VariantKey, EntityId>,
     pipelines: HashMap<EntityId, Rc<PipelineDefinition>>,
     components: HashMap<EntityId, Rc<ComponetDefinition>>,
-	deleting:bool
 }
 #[godot_api]
 impl _GlecsWorld {
@@ -64,11 +61,8 @@ impl _GlecsWorld {
                 base,
                 world: self.to_gd(),
                 id: flecs_id,
-				world_deletion: false,
-                gd_components_map: Default::default(),
             }
         });
-        self.gd_entity_map.insert(flecs_id, gd_entity.clone());
 
         gd_entity
     }
@@ -103,18 +97,13 @@ impl _GlecsWorld {
                 base,
                 world: this_clone,
                 id: entity.id(),
-				world_deletion: false,
-                gd_components_map: Default::default(),
             }
         });
         
         gd_entity.set_name(name);
-
-        let mut bind = this.bind_mut();
         gd_entity.set_script(
             load::<Script>("res://addons/glecs/gd/entity.gd").to_variant(),
         );
-        bind.gd_entity_map.insert(entity.id(), gd_entity.clone());
         
         gd_entity
     }
@@ -523,21 +512,6 @@ impl _GlecsWorld {
         Layout::from_size_align(size, 8).unwrap()
     }
 
-	pub(crate) fn on_entity_freed(&mut self, entity_id:EntityId) {
-		if self.deleting {
-			return;
-		}
-		self.gd_entity_map.remove(&entity_id);
-	}
-
-	pub(crate) fn on_free(&mut self) {
-		self.deleting = true;
-		for (_, gd_entity) in &mut self.gd_entity_map {
-			gd_entity.bind_mut().world_deletion = true;
-			gd_entity.clone().free();
-		}
-	}
-
     pub(crate) fn new_prefab_def(
         this: Gd<Self>,
         mut script:Gd<Script>,
@@ -566,6 +540,11 @@ impl _GlecsWorld {
             script: script,
             flecs_id: prefab_entt.id(),
         })
+    }
+
+    /// Returns a raw pointer to the Flecs world
+    pub(crate) fn raw(&self) -> *mut flecs::ecs_world_t {
+        self.world.raw()
     }
 
     extern "C" fn raw_system_iteration(iter_ptr:*mut flecs::ecs_iter_t) {
@@ -634,11 +613,9 @@ impl IObject for _GlecsWorld {
             base,
             world: world,
             components: Default::default(),
-            gd_entity_map: Default::default(),
             prefabs: Default::default(),
             mapped_entities: Default::default(),
             pipelines: Default::default(),
-			deleting: false,
         };
 
         gd_world.mapped_entities.insert(
@@ -683,15 +660,6 @@ impl IObject for _GlecsWorld {
         );
 
         gd_world
-    }
-
-    fn on_notification(&mut self, what: ObjectNotification) {
-        match what {
-            ObjectNotification::Predelete => {
-                self.on_free()
-            },
-            _ => {},
-        }
     }
 }
 
@@ -788,7 +756,11 @@ impl _GlecsWorldNode {
         ) -> EntityId {
             _GlecsWorld::variant_to_entity_id(self.glecs_world.clone(), from)
         }
-    
+
+        #[func]
+        fn as_object(&self) -> Gd<_GlecsWorld> {
+            self.glecs_world.clone()
+        }
 }
 #[godot_api]
 impl INode for _GlecsWorldNode {

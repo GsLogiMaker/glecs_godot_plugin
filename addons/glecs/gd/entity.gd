@@ -1,6 +1,9 @@
 
 class_name GlecsEntity extends _GlecsEntity
 
+static func spawn(id:int = 0, world:GlecsWorld = null) -> GlecsEntity:
+	return _GlecsEntity._spawn(id, world)
+
 func add_component(component:Variant, data:Variant=null) -> void:
 	_add_component(component, data)
 

@@ -1,59 +1,60 @@
 
-use std::collections::HashMap;
 use std::ffi::c_void;
 use std::fmt::Debug;
 
 use flecs::EntityId;
-use godot::engine::notify::ObjectNotification;
+use godot::engine::Engine;
+use godot::engine::Script;
 use godot::prelude::*;
 
 use crate::component::_GlecsComponent;
+use crate::Int;
 use crate::show_error;
 use crate::world::_GlecsWorld;
 
 pub(crate) static FREED_BY_ENTITY_TAG:&str = "freed_by_entity";
 
-fn increment_name(name:&mut String) {
-    let mut end_number = String::new();
-    for x in name.chars() {
-        if x.is_numeric() {
-            end_number.insert(0, x);
-        } else {
-            break;
-        }
-    }
-
-    if end_number.len() == 0 {
-        name.push('1');
-        return
-    }
-
-    name.truncate(name.len()-end_number.len());
-
-    let number = end_number.parse::<u32>().unwrap();
-    let new_number = number+1;
-
-    end_number.push_str(&format!("{new_number}"));
-
-}
-
 
 #[derive(GodotClass, Debug)]
-#[class(base=Object, no_init)]
+#[class(base=RefCounted, no_init)]
 pub struct _GlecsEntity {
-    pub(crate) base: Base<Object>,
+    pub(crate) base: Base<RefCounted>,
     /// The world this entity is from.
     pub(crate) world: Gd<_GlecsWorld>,
     /// The ID of this entity.
     pub(crate) id: EntityId,
-    /// Is *true* when the world is deleting this entity.
-    pub(crate) world_deletion: bool,
-    /// Maps Flecs component type ID to Godot component objects.
-    pub(crate) gd_components_map:HashMap<EntityId, Gd<_GlecsComponent>>,
 }
 #[godot_api]
 impl _GlecsEntity {
-    
+    #[func]
+    fn _spawn(id: Int, world: Option<Gd<_GlecsWorld>>) -> Gd<Self> {
+        // Use a default world if world is none
+        let world = match world {
+            Some(w) => w,
+            None => {
+                Engine::singleton().get_singleton("".into())
+                    .unwrap()
+                    .cast::<_GlecsWorld>()
+            },
+        };
+
+        // Create new entity if ID is zero
+        let entity_id = if id == 0 {
+            let world_ptr = world.bind().raw();
+            unsafe { flecs::ecs_new_id(world_ptr) }
+        } else {
+            id as EntityId
+        };
+
+        let mut entity = Gd::from_init_fn(|base| {
+            Self { base, id: entity_id, world }
+        });
+        entity.set_script(
+            load::<Script>("res://addons/glecs/gd/entity.gd").to_variant(),
+        );
+        entity
+    }
+
     #[func]
     fn _add_component(
         &mut self,
@@ -73,6 +74,16 @@ impl _GlecsEntity {
     #[func]
     fn _remove_component(&mut self, component: Variant) {
         EntityLike::remove_component(self, component);
+    }
+
+    #[func]
+    fn _delete(&self) {
+        unsafe { flecs::ecs_delete(self.world.bind().raw(), self.id) };
+    }
+
+    #[func]
+    fn _get_id(&self) -> Int {
+        self.id as Int
     }
 
     /// Returns the entity's name.
@@ -107,41 +118,18 @@ impl _GlecsEntity {
         EntityLike::remove_relation(self, relation, target)
     }
 
-    pub(crate) fn free_component(&self, mut component:Gd<_GlecsComponent>) {
-        {
-            let mut bind = component.bind_mut();
-            let mut comp_base = bind.base_mut();
-            comp_base.set_meta(FREED_BY_ENTITY_TAG.into(), Variant::from(true));
-        }
-        component.free();
+    #[func]
+    fn _is_valid(&self) -> bool {
+        EntityLike::is_valid(self)
     }
 
-    fn on_free(&mut self) {
-        // Free component data references
-        for (_, component) in &self.gd_components_map {
-            self.free_component(component.clone());
-        }
-
-        // Remove reference to self from the world
-        if !self.world_deletion {
-            let entt = self.world.bind().world.find_entity(self.id).unwrap();
-            entt.destruct();
-            let id = self.id;
-            self.world.bind_mut().on_entity_freed(id);
-        }
+    #[func]
+    fn _get_world(&self) -> Gd<_GlecsWorld> {
+        EntityLike::get_world(self)
     }
 }
 #[godot_api]
-impl IObject for _GlecsEntity {
-    fn on_notification(&mut self, what: ObjectNotification) {
-        match what {
-            ObjectNotification::Predelete => {
-                self.on_free()
-            },
-            _ => {},
-        }
-    }
-
+impl IRefCounted for _GlecsEntity {
     fn to_string(&self) -> GString {
         GString::from(format!(
             "{}:<{}#{}>",
@@ -159,45 +147,16 @@ impl EntityLike for _GlecsEntity {
     fn get_flecs_id(&self) -> EntityId {
         self.id
     }
-
-    fn add_component_to_cache(
-        &mut self,
-        component_gd:Gd<_GlecsComponent>,
-    ) {
-        let component_definition = component_gd
-            .bind()
-            .component_definition
-            .clone();
-        self.gd_components_map.insert(
-            component_definition.flecs_id,
-            component_gd.clone(),
-        );
-    }
-    
-    fn get_cached_component(&self, flecs_id:EntityId) -> Option<Gd<_GlecsComponent>> {
-        self.gd_components_map
-            .get(&flecs_id)
-            .map(|x| {(*x).clone()})
-    }
 }
  impl EntityLike for Gd<_GlecsEntity> {
     fn get_world(&self) -> Gd<_GlecsWorld> {
-        self.bind().get_world()
+        let world = self.bind()._get_world();
+        world
     }
 
     fn get_flecs_id(&self) -> EntityId {
-        self.bind().get_flecs_id()
-    }
-
-    fn add_component_to_cache(
-        &mut self,
-        component_gd:Gd<_GlecsComponent>,
-    ) {
-        self.bind_mut().add_component_to_cache(component_gd)
-    }
-    
-    fn get_cached_component(&self, flecs_id:EntityId) -> Option<Gd<_GlecsComponent>> {
-        self.bind().get_cached_component(flecs_id)
+        let id = self.bind().get_flecs_id();
+        id
     }
 }
 
@@ -205,14 +164,23 @@ pub(crate) trait EntityLike: Debug {
     fn get_world(&self) -> Gd<_GlecsWorld>;
     fn get_flecs_id(&self) -> EntityId;
 
-    fn add_component_to_cache(
-        &mut self,
-        _component_gd:Gd<_GlecsComponent>,
-    ) {
-    }
+    fn is_valid(&self) -> bool {
+        let world_gd = self.get_world();
+        if !world_gd.is_instance_valid() {
+            // World was deleted
+            return false;
+        }
 
-    fn get_cached_component(&self, _flecs_id:EntityId) -> Option<Gd<_GlecsComponent>> {
-        return None;
+        let flecs_id = self.get_flecs_id();
+        if !unsafe { flecs::ecs_is_alive(
+            world_gd.bind().raw(),
+            flecs_id,
+        ) } {
+            // Entity was deleted
+            return false
+        }
+
+        return true;
     }
 
     fn add_component(
@@ -220,6 +188,8 @@ pub(crate) trait EntityLike: Debug {
         component: Variant,
         with_data: Variant,
     ) -> Option<Gd<_GlecsComponent>> {
+        self.validate();
+
         let world_gd = self.get_world();
         let flecs_id = self.get_flecs_id();
 
@@ -289,6 +259,8 @@ pub(crate) trait EntityLike: Debug {
     }
 
     fn get_component(&mut self, component: Variant) -> Option<Gd<_GlecsComponent>> {
+        self.validate();
+
         let world_gd = self.get_world();
         let flecs_id = self.get_flecs_id();
         
@@ -312,13 +284,6 @@ pub(crate) trait EntityLike: Debug {
                 );
                 return None;
             };
-
-        // Return early if the component object is cached
-        if let Some(component) =
-            self.get_cached_component(component_definition.flecs_id)
-        {
-            return Some(component.clone());
-        }
 
         // Get flecs entity
         let Some(entt) = world.world.find_entity(flecs_id)
@@ -357,15 +322,12 @@ pub(crate) trait EntityLike: Debug {
         });
         comp.bind_mut().base_mut().set_script(component.to_variant());
 
-        // Add to cache
-        self.add_component_to_cache(
-            comp.clone(),
-        );
-
         Some(comp)
     }
 
     fn remove_component(&mut self, component: Variant) {
+        self.validate();
+
         let world_gd = self.get_world();
         let flecs_id = self.get_flecs_id();
 
@@ -383,7 +345,13 @@ pub(crate) trait EntityLike: Debug {
         ) };
     }
 
+    fn add_id(&mut self) { todo!() }
+    fn has_id(&mut self) { todo!() }
+    fn remove_id(&mut self) { todo!() }
+
     fn get_name(&self) -> String {
+        self.validate();
+
         let entt = self.get_world()
             .bind()
             .world
@@ -392,7 +360,9 @@ pub(crate) trait EntityLike: Debug {
         entt.name().into()
     }
 
-    fn set_name(&self, mut value: String) {
+    fn set_name(&self, value: String) {
+        self.validate();
+
         let world = self.get_world();
         let entt = world
             .bind()
@@ -400,13 +370,12 @@ pub(crate) trait EntityLike: Debug {
             .find_entity(self.get_flecs_id())
             .unwrap();
 
-        while world.bind().world.lookup(&value).is_some() {
-            increment_name(&mut value);
-        }
         entt.named(&value);
     }
 
     fn add_relation(&mut self, relation:Variant, target:Variant) {
+        self.validate();
+
         let self_id = self.get_flecs_id();
         let world = self.get_world();
 
@@ -419,6 +388,8 @@ pub(crate) trait EntityLike: Debug {
     }
 
     fn remove_relation(&mut self, relation: Variant, target:Variant) {
+        self.validate();
+
         let self_id = self.get_flecs_id();
         let world = self.get_world();
 
@@ -428,5 +399,15 @@ pub(crate) trait EntityLike: Debug {
             _GlecsWorld::variant_to_entity_id(world, target),
         ) };
         unsafe { flecs::ecs_remove_id(raw_world, self_id, pair) };
+    }
+
+    /// Panics if the entity or its world were deleted.
+    fn validate(&self) {
+        if !self.is_valid() {
+            show_error!(
+                "Entity validation failed",
+                "Entity or its world was deleted.",
+            );
+        }
     }
 }
