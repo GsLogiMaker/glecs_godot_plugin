@@ -18,7 +18,7 @@ func test_on_add_event():
 	
 	world.new_event_listener(&"on_add") \
 		.with(Ints) \
-		.for_each(func(_ints:Ints):
+		.for_each(func(_ints: Ints):
 			self.i += 1
 			)
 	
@@ -36,6 +36,32 @@ func test_on_add_event():
 	e3.free()
 	e4.free()
 
+func test_on_add_event_with_objects():
+	i = 0
+	world.new_event_listener(&"on_add") \
+		.with(Textures) \
+		.for_each(func(_ints: Textures):
+			self.i += 1
+			)
+	
+	var e:= world.new_entity("WithInts", [Textures])
+	assert_eq(i, 1)
+	assert_eq(e.get_component(Textures).a, null)
+	assert_eq(e.get_component(Textures).b, null)
+
+	e.free()
+	
+	# In this test, the loaded textures will be auto freed by Godot if Glecs
+	# does not properly take ownership of them.
+	i = 0
+	var e2:= world.new_entity("WithTextures")
+	e2.add_component(Textures, [load("res://icon.png"), load("res://icon.svg")])
+	assert_eq(i, 1)
+	assert_eq(e2.get_component(Textures).a, load("res://icon.png"))
+	assert_eq(e2.get_component(Textures).b, load("res://icon.svg"))
+
+	e2.free()
+
 #endregion
 
 #region Components
@@ -49,5 +75,28 @@ class Ints extends GlecsComponent:
 	var b:int = 25:
 		get: return getc(&"b")
 		set(v): setc(&"b", v)
+
+class Textures extends GlecsComponent:
+	const _VAR_a:= null
+	const _VAR_b:= null
+	var a:Texture2D:
+		get: return getc(&"a")
+		set(v): setc(&"a", v)
+	var b:Texture2D:
+		get: return getc(&"b")
+		set(v): setc(&"b", v)
+	
+	static func _on_registered(world:GlecsWorld) -> void:
+		world.new_event_listener(world.EVENT_ON_ADD) \
+			.with(Textures) \
+			.for_each(func(t: Textures):
+				prints("Added Textures", t.a, t.b)
+				)
+		
+		world.new_event_listener(world.EVENT_ON_SET) \
+			.with(Textures) \
+			.for_each(func(t: Textures):
+				prints("Set Textures", t.a, t.b)
+				)
 
 #endregion

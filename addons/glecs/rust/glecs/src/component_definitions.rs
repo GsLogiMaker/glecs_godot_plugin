@@ -93,10 +93,15 @@ pub(crate) struct ComponetDefinition {
         None
     }
 
-    pub(crate) fn get_property_default_value(&self, property: &str) -> Variant {
+    pub(crate) fn get_property_default_value(
+        &self,
+        property: impl std::fmt::Display,
+    ) -> Variant {
         let mut script = Gd::<Script>::from_instance_id(self.script_id);
+        let key = format!("{}{}", Self::PROPERTY_PREFIX, property);
+        dbg!(&key);
         script.get_script_constant_map()
-            .get(format!("{}{}", Self::PROPERTY_PREFIX, property))
+            .get(key)
             .unwrap()
     }
 

@@ -1,6 +1,7 @@
 
 use std::ffi::c_void;
 use std::fmt::Debug;
+use std::mem::ManuallyDrop;
 use std::ptr::NonNull;
 use std::rc::Rc;
 use std::mem::size_of;
@@ -105,14 +106,14 @@ impl _GlecsComponent {
                             // Parameter is wrong type, get value
                             // from component's default
                             def.get_property_default_value(
-                                &property_meta.name.to_string(),
+                                property_meta.name.clone(),
                             )
                         };
                         value
                     } else {
                         // Get value from component's default
                         def.get_property_default_value(
-                            &property_meta.name.to_string(),
+                            property_meta.name.clone(),
                         )
                     };
 
@@ -125,7 +126,7 @@ impl _GlecsComponent {
             VariantType::Nil => {
                 for property_meta in def.parameters.iter() {
                     let default = def.get_property_default_value(
-                        &property_meta.name.to_string(),
+                        property_meta.name.clone(),
                     );
                     let nonnull_data = unsafe {
                         NonNull::new_unchecked(data.as_mut_ptr())
@@ -226,11 +227,10 @@ impl _GlecsComponent {
             NonNull::new_unchecked(data.as_ptr().add(offset))
         };
         let casted_value = unsafe {
-            prop_ptr.cast::<T>()
+            prop_ptr.cast::<ManuallyDrop<T>>()
                 .as_ref()
-                .clone()
         };
-        casted_value
+        ManuallyDrop::into_inner(casted_value.clone())
     }
     
     fn get_property_data_raw_variant(
@@ -240,12 +240,11 @@ impl _GlecsComponent {
         let prop_ptr = unsafe {
             NonNull::new_unchecked(data.as_ptr().add(offset))
         };
-        let casted_value = unsafe {
-            prop_ptr.cast::<Variant>()
+        let got_value = unsafe {
+            prop_ptr.cast::<ManuallyDrop<Variant>>()
                 .as_ref()
-                .clone()
         };
-        casted_value
+        ManuallyDrop::into_inner(got_value.clone())
     }
 
     // --- Setting ---
@@ -344,22 +343,28 @@ impl _GlecsComponent {
         let prop_ptr = unsafe {
             NonNull::new_unchecked(data.as_ptr().add(offset))
         };
-        let prop_mut = unsafe { prop_ptr.cast::<T>().as_mut() };
-        let casted_value = value.to::<T>();
-        *prop_mut = casted_value;
+        let prop_mut = unsafe { prop_ptr.cast::<ManuallyDrop<T>>().as_mut() };
+        let new_value = ManuallyDrop::new(value.to::<T>());
+        let mut old_prop = std::mem::replace(prop_mut, new_value);
+        drop(unsafe { ManuallyDrop::take(&mut old_prop) })
     }
 
     fn set_property_data_raw_variant(
         data: NonNull<u8>,
-        value: Variant,
+        new_value: Variant,
         offset: usize,
     ) {
         let prop_ptr = unsafe {
             NonNull::new_unchecked(data.as_ptr().add(offset))
         };
-        let prop_mut = unsafe { prop_ptr.cast::<Variant>().as_mut() };
-        let casted_value = value.to::<Variant>();
-        *prop_mut = casted_value;
+        let prop_mut = unsafe {
+            prop_ptr.cast::<ManuallyDrop<Variant>>().as_mut()
+        };
+        let mut old_prop = std::mem::replace(
+            prop_mut,
+            ManuallyDrop::new(new_value),
+        );
+        drop(unsafe { ManuallyDrop::take(&mut old_prop) })
     }
 
     // --- Initialization ---
@@ -369,7 +374,9 @@ impl _GlecsComponent {
         comp_def: &ComponetDefinition,
     ) {
         for p in comp_def.parameters.iter() {
-            Self::init_property_data(comp_data, Variant::nil(), p);
+            let initial_value = comp_def
+                .get_property_default_value(p.name.clone());
+            Self::init_property_data(comp_data, initial_value, p);
         }
     }
 
@@ -468,10 +475,17 @@ impl _GlecsComponent {
             (default)()
         };
         unsafe {
-            let param_ptr:*mut u8 = &mut *data.as_ptr().add(property_data.offset);
-            let param_slice = std::slice::from_raw_parts_mut(param_ptr, size_of::<T>());
-            let value_ptr:*const T = &default_value.to::<T>();
-            let value_slice = std::slice::from_raw_parts(value_ptr as *const u8, size_of::<T>());
+            let param_ptr: *mut u8 = &mut *data.as_ptr()
+                .add(property_data.offset);
+            let param_slice = std::slice
+                ::from_raw_parts_mut(param_ptr, size_of::<T>());
+            let value_ptr: *const ManuallyDrop<T> = &ManuallyDrop::new(
+                default_value.to::<T>()
+            );
+            let value_slice = std::slice::from_raw_parts(
+                value_ptr.cast::<u8>(),
+                size_of::<T>(),
+            );
             param_slice.copy_from_slice(value_slice);
         }
     }
@@ -487,10 +501,17 @@ impl _GlecsComponent {
             Variant::default()
         };
         unsafe {
-            let param_ptr:*mut u8 = &mut *data.as_ptr().add(property_data.offset);
-            let param_slice = std::slice::from_raw_parts_mut(param_ptr, size_of::<Variant>());
-            let value_ptr:*const Variant = &default_value;
-            let value_slice = std::slice::from_raw_parts(value_ptr as *const u8, size_of::<Variant>());
+            let param_ptr:*mut u8 = &mut *data.as_ptr()
+                .add(property_data.offset);
+            let param_slice = std::slice
+                ::from_raw_parts_mut(param_ptr, size_of::<Variant>());
+            let value_ptr:*const ManuallyDrop<Variant> = &ManuallyDrop::new(
+                default_value
+            );
+            let value_slice = std::slice::from_raw_parts(
+                value_ptr.cast::<u8>(),
+                size_of::<Variant>(),
+            );
             param_slice.copy_from_slice(value_slice);
         }
     }
@@ -577,38 +598,30 @@ impl _GlecsComponent {
         comp_data: NonNull<u8>,
         property_data: &ComponetProperty,
     ) {
-        let property_ptr = unsafe {
+        let property = unsafe {
             comp_data.as_ptr()
                 .add(property_data.offset)
-                .cast::<T>()
+                .cast::<ManuallyDrop<T>>()
                 .as_mut()
                 .unwrap()
         };
-        let property = std::mem::replace(
-            property_ptr,
-            unsafe { std::mem::zeroed() },
-        );
 
-        drop(property);
+        drop(unsafe { ManuallyDrop::take(property) })
     }
 
     fn deinit_property_data_raw_variant(
         comp_data: NonNull<u8>,
         property_data: &ComponetProperty,
     ) {
-        let property_ptr = unsafe {
+        let property = unsafe {
             comp_data.as_ptr()
                 .add(property_data.offset)
-                .cast::<Variant>()
+                .cast::<ManuallyDrop<Variant>>()
                 .as_mut()
                 .unwrap()
         };
-        let property = std::mem::replace(
-            property_ptr,
-            unsafe { std::mem::zeroed() },
-        );
-
-        drop(property);
+        
+        drop(unsafe { ManuallyDrop::take(property) })
     }
 
 
