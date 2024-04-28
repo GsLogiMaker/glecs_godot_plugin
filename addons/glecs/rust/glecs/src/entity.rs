@@ -234,10 +234,6 @@ pub(crate) trait EntityLike: Debug {
             with_data,
         );
         
-        let component_id = _GlecsWorld::variant_to_entity_id(
-            world_gd.clone(),
-            component.clone(),
-        );
         // Create Godot wrapper
         let mut comp = Gd::from_init_fn(|base| {
             let base_comp = _GlecsComponent {
@@ -264,23 +260,32 @@ pub(crate) trait EntityLike: Debug {
         with_data: Variant,
     ) {
         let world_raw = world_gd.bind().world.raw();
-        let initial_data = _GlecsComponent
-            ::create_initial_data(
-                &world_gd.bind()
-                    .get_component_description(component)
-                    .unwrap(),
-                with_data,
-            );
-
-        // Add component to entity
-        // TODO: Fix zero sized components
-        unsafe { flecs::ecs_set_id(
-            world_raw,
-            raw_entity,
-            component,
-            initial_data.len(),
-            initial_data.as_ptr().cast::<c_void>(),
-        ) };
+        if with_data == Variant::nil() {
+            // Add component to entity
+            unsafe { flecs::ecs_add_id(
+                world_raw,
+                raw_entity,
+                component,
+            ) };
+        } else {
+            let initial_data = _GlecsComponent
+                ::create_initial_data(
+                    &world_gd.bind()
+                        .get_component_description(component)
+                        .unwrap(),
+                    with_data,
+                );
+    
+            // Add component to entity
+            // TODO: Fix zero sized components
+            unsafe { flecs::ecs_set_id(
+                world_raw,
+                raw_entity,
+                component,
+                initial_data.len(),
+                initial_data.as_ptr().cast::<c_void>(),
+            ) };
+        }
     }
 
     fn get_component(&mut self, component: Variant) -> Option<Gd<_GlecsComponent>> {
