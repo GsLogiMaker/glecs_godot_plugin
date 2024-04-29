@@ -18,25 +18,37 @@ func test_add_entity():
 	
 func test_world_deletion():
 	var w:= GlecsWorldNode.new()
+	
 	var e:= w.new_entity("Test", [Foo])
-	var foo = e.get_component(Foo)
+	var foo:Foo = e.get_component(Foo)
+	
 	var e2:= w.new_entity("Test", [Foo])
-	var foo2 = e2.get_component(Foo)
+	var foo2:Foo = e2.get_component(Foo)
 	
 	foo.setc(&"vec", 24.3)
 	foo2.setc(&"vec", 125.1)
 	
+	assert_eq(e.is_valid(), true)
+	assert_eq(foo.is_valid(), true)
+	assert_eq(e2.is_valid(), true)
+	assert_eq(foo2.is_valid(), true)
+	
 	e2.free()
-	assert_eq(is_instance_valid(e2), false)
-	assert_eq(is_instance_valid(foo2), false)
+	assert_eq(e.is_valid(), true)
+	assert_eq(foo.is_valid(), true)
+	assert_eq(e2.is_valid(), false)
+	assert_eq(foo2.is_valid(), false)
 	
 	foo.free()
-	assert_eq(is_instance_valid(foo), true)
+	assert_eq(e.is_valid(), true)
+	assert_eq(foo.is_valid(), false)
+	assert_eq(e2.is_valid(), false)
+	assert_eq(foo2.is_valid(), false)
 	
 	w.free()
 	assert_eq(is_instance_valid(w), false)
-	assert_eq(is_instance_valid(e), false)
-	assert_eq(is_instance_valid(foo), false)
+	assert_eq(e.is_valid(), false)
+	assert_eq(foo.is_valid(), false)
 	
 func test_simple_system():
 	world.new_system() \

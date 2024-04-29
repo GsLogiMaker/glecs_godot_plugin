@@ -7,12 +7,11 @@ use std::rc::Rc;
 use std::mem::size_of;
 
 use flecs::EntityId;
-use godot::engine::notify::ObjectNotification;
 use godot::prelude::*;
 
 use crate::component_definitions::ComponetDefinition;
 use crate::component_definitions::ComponetProperty;
-use crate::entity::FREED_BY_ENTITY_TAG;
+use crate::entity::EntityLike;
 use crate::show_error;
 use crate::world::_GlecsWorld;
 use crate::Float;
@@ -20,18 +19,21 @@ use crate::Int;
 
 /// An ECS component.
 #[derive(GodotClass)]
-#[class(base=Object, no_init)]
+#[class(base=RefCounted, no_init)]
 pub struct _GlecsComponent {
-    pub(crate) base: Base<Object>,
-    pub(crate) component_definition: Rc<ComponetDefinition>,
+    pub(crate) base: Base<RefCounted>,
     pub(crate) world: Gd<_GlecsWorld>,
-    pub(crate) get_data_fn_ptr: Box<dyn Fn(&Self) -> NonNull<u8>>,
+    /// The ID that this component is attatached to.
+    pub(crate) entity_id: EntityId,
+    pub(crate) component_definition: Rc<ComponetDefinition>,
 }
 #[godot_api]
 impl _GlecsComponent {
     /// Copies the data from the given component to this one.
     #[func]
-    fn copy_from_component(&mut self, from_component:Gd<_GlecsComponent>) {
+    fn _copy_from_component(&mut self, from_component:Gd<_GlecsComponent>) {
+        EntityLike::validate(self);
+
         if self.get_flecs_id() != from_component.bind().get_flecs_id() {
             show_error!(
                 "Failed to copy component",
@@ -55,34 +57,51 @@ impl _GlecsComponent {
 
     /// Returns the name of the the type of this component.
     #[func]
-    fn get_component_type_name(&self) -> StringName {
+    fn _get_type_name(&self) -> StringName {
+        EntityLike::validate(self);
+
         self.component_definition.name.clone()
     }
 
     /// Returns a property from the component data.
     #[func]
-    fn getc(&self, property: StringName) -> Variant {
+    fn _getc(&self, property: StringName) -> Variant {
+        EntityLike::validate(self);
+
         let v = self._get_property(property.clone());
         v
     }
 
     /// Sets a property in the component data.
     #[func]
-    fn setc(&mut self, property: StringName, value:Variant) {
+    fn _setc(&mut self, property: StringName, value:Variant) {
+        EntityLike::validate(self);
+
         if !self._set_property(property.clone(), value.clone()) {
             show_error!(
                 "Failed to set property",
                 "No property named \"{}\" in component of type \"{}\"",
                 property,
-                self.get_component_type_name(),
+                self._get_type_name(),
             );
         }
     }
 
-    /// Prevent user from freeing a component.
+    #[func]
+    fn _delete(&self) {
+        EntityLike::delete(self)
+    }
+
+    /// Override default 'free' behavior (This only works if the
+    /// variable is staticly typed in GdScript.)
     #[func]
     fn free(&self) {
-        return;
+        EntityLike::delete(self)
+    }
+
+    #[func]
+    fn _is_valid(&self) -> bool {
+        EntityLike::is_valid(self)
     }
 
     pub(crate) fn create_initial_data(def: &ComponetDefinition, parameters:Variant) -> Box<[u8]> {
@@ -166,7 +185,7 @@ impl _GlecsComponent {
                 "Failed to get property",
                 "No property named \"{}\" in component of type \"{}\"",
                 property,
-                self.get_component_type_name(),
+                self._get_type_name(),
             );
         }
 
@@ -643,20 +662,16 @@ impl _GlecsComponent {
     }
 
     fn get_data(&self) -> NonNull<u8> {
-        ( &(*self.get_data_fn_ptr) )(self)
+        unsafe { NonNull::new_unchecked(flecs::ecs_get_mut_id(
+            self.world.bind().raw(),
+            self.entity_id,
+            self.component_definition.flecs_id,
+        ).cast::<u8>()) }
     }
 
     /// Returns the Flecs ID of this component's type.
     pub(crate) fn get_flecs_id(&self) -> EntityId {
         self.component_definition.flecs_id
-    }
-
-    fn on_free(&mut self) {
-        let mut base = self.base_mut();
-        if !base.has_meta(FREED_BY_ENTITY_TAG.into()) {
-            base.cancel_free();
-            return;
-        }
     }
 
     // --- Hooks ---
@@ -814,23 +829,92 @@ impl _GlecsComponent {
         }
     }
 }
-#[godot_api]
-impl IObject for _GlecsComponent {
-    fn on_notification(&mut self, what: ObjectNotification) {
-        match what {
-            ObjectNotification::Predelete => {
-                self.on_free()
-            },
-            _ => {},
+
+impl EntityLike for _GlecsComponent {
+    fn get_world(&self) -> Gd<_GlecsWorld> {
+        self.world.clone()
+    }
+
+    fn get_flecs_id(&self) -> EntityId {
+        self.component_definition.flecs_id
+    }
+
+    fn delete(&self) {
+        unsafe { flecs::ecs_remove_id(
+            self.world.bind().raw(),
+            self.entity_id,
+            self.component_definition.flecs_id,
+        ) };
+    }
+
+    fn is_valid(&self) -> bool{
+        // Check world
+        let world_gd = self.get_world();
+        if !world_gd.is_instance_valid() {
+            // World was deleted
+            return false;
+        }
+
+        // Check master entity
+        if !unsafe { flecs::ecs_is_alive(
+            world_gd.bind().raw(),
+            self.entity_id,
+        ) } {
+            // Master entity was deleted
+            return false;
+        }
+
+        // Check component
+        if !unsafe { flecs::ecs_is_alive(
+            world_gd.bind().raw(),
+            self.component_definition.flecs_id,
+        ) } {
+            // Component was deleted
+            return false;
+        }
+
+        // Check that the entity has this component attached
+        if !unsafe { flecs::ecs_has_id(
+            self.world.bind().raw(),
+            self.entity_id,
+            self.component_definition.flecs_id,
+        ) } {
+            // The entity does not have the component attached, this
+            // reference is invalid
+            return false;
+        }
+
+        return true;
+    }
+
+    fn validate(&self) {
+        if !self._is_valid() {
+            show_error!(
+                "Component validation failed",
+                "Component, its world, or its entity was deleted.",
+            );
         }
     }
-    
+}
+
+#[godot_api]
+impl IObject for _GlecsComponent {
     fn get_property(&self, property: StringName) -> Option<Variant> {
         Some(self._get_property(property))
     }
 
     fn set_property(&mut self, property: StringName, v:Variant) -> bool{
         self._set_property(property, v)
+    }
+}
+
+impl std::fmt::Debug for _GlecsComponent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("_GlecsComponent")
+            .field("base", &self.base)
+            .field("component_definition", &self.component_definition)
+            .field("world", &self.world)
+            .finish()
     }
 }
 

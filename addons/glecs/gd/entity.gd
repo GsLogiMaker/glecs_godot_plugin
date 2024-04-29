@@ -13,6 +13,9 @@ func get_component(component:Variant) -> GlecsComponent:
 func remove_component(component: Variant) -> void:
 	_remove_component(component)
 
+func delete() -> void:
+	_delete()
+
 func get_name() -> String:
 	return _get_name()
 
@@ -24,3 +27,9 @@ func add_relation(relation: Variant, with_entity: GlecsEntity) -> void:
 
 func remove_relation(relation: Variant, with_entity: GlecsEntity) -> void:
 	_remove_relation(relation, with_entity)
+
+func is_valid() -> bool:
+	return _is_valid()
+
+func get_world() -> _GlecsWorld:
+	return _get_world()

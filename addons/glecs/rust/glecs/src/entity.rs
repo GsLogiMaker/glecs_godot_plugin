@@ -12,8 +12,6 @@ use crate::Int;
 use crate::show_error;
 use crate::world::_GlecsWorld;
 
-pub(crate) static FREED_BY_ENTITY_TAG:&str = "freed_by_entity";
-
 
 #[derive(GodotClass, Debug)]
 #[class(base=RefCounted, no_init)]
@@ -78,7 +76,14 @@ impl _GlecsEntity {
 
     #[func]
     fn _delete(&self) {
-        unsafe { flecs::ecs_delete(self.world.bind().raw(), self.id) };
+        EntityLike::delete(self)
+    }
+
+    /// Override default 'free' behavior (This only works if the
+    /// variable is staticly typed in GdScript.)
+    #[func]
+    fn free(&self) {
+        EntityLike::delete(self)
     }
 
     #[func]
@@ -208,10 +213,8 @@ pub(crate) trait EntityLike: Debug {
         let mut comp = Gd::from_init_fn(|base| {
             let base_comp = _GlecsComponent {
                 base,
+                entity_id: flecs_id,
                 world: world_gd.clone(),
-                get_data_fn_ptr: _GlecsComponent::new_default_data_getter(
-                    self.get_flecs_id()
-                ),
                 component_definition: world_gd.bind()
                     .get_component_description(component_id)
                     .unwrap(),
@@ -313,9 +316,7 @@ pub(crate) trait EntityLike: Debug {
             let base_comp = _GlecsComponent {
                 base,
                 world: world_gd_clone,
-                get_data_fn_ptr: _GlecsComponent::new_default_data_getter(
-                    self.get_flecs_id()
-                ),
+                entity_id: flecs_id,
                 component_definition,
             };
             base_comp
@@ -345,6 +346,12 @@ pub(crate) trait EntityLike: Debug {
         ) };
     }
 
+    fn delete(&self) {
+        let world = self.get_world();
+        let id = self.get_flecs_id();
+        unsafe { flecs::ecs_delete(world.bind().raw(), id) };
+    }
+
     fn add_id(&mut self) { todo!() }
     fn has_id(&mut self) { todo!() }
     fn remove_id(&mut self) { todo!() }
@@ -360,7 +367,7 @@ pub(crate) trait EntityLike: Debug {
         entt.name().into()
     }
 
-    fn set_name(&self, value: String) {
+    fn set_name(&self, mut value: String) {
         self.validate();
 
         let world = self.get_world();
@@ -369,6 +376,11 @@ pub(crate) trait EntityLike: Debug {
             .world
             .find_entity(self.get_flecs_id())
             .unwrap();
+
+        // Ensure name is unique
+        while world.bind().world.lookup(&value).is_some() {
+            increment_name(&mut value);
+        }
 
         entt.named(&value);
     }
@@ -410,4 +422,28 @@ pub(crate) trait EntityLike: Debug {
             );
         }
     }
+}
+
+fn increment_name(name:&mut String) {
+    let mut end_number = String::new();
+    for x in name.chars() {
+        if x.is_numeric() {
+            end_number.insert(0, x);
+        } else {
+            break;
+        }
+    }
+
+    if end_number.len() == 0 {
+        name.push('1');
+        return
+    }
+
+    name.truncate(name.len()-end_number.len());
+
+    let number = end_number.parse::<u32>().unwrap();
+    let new_number = number+1;
+
+    end_number.push_str(&format!("{new_number}"));
+
 }

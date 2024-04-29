@@ -568,27 +568,17 @@ impl _GlecsWorld {
             system_args_ref.set(i, getter.callv(Array::default()));
         }
 
-        let entity_count = unsafe {*iter_ptr}.count;
-		for _entity_index in 0..entity_count {
-			// Create components arguments
-            let field_count = unsafe {*iter_ptr}.field_count;
-			for field_i in 0i32..(field_count) {
+        let entity_count = unsafe {*iter_ptr}.count as usize;
+		for entity_i in 0..entity_count {
+            let entity = unsafe { *(*iter_ptr).entities.add(entity_i) };
+            let field_count = unsafe {*iter_ptr}.field_count as usize;
+            
+			// Update cached component arguments
+			for field_i in 0..field_count {
                 let mut term_bind = context
-                    .term_accesses[field_i as usize]
+                    .term_accesses[field_i]
                     .bind_mut();
-                let component_size = term_bind
-                    .component_definition
-                    .layout
-                    .size();
-                let data = unsafe { NonNull::new_unchecked(
-                    flecs::ecs_field_w_size(iter_ptr, component_size, field_i+1)
-                        as *mut u8,
-                ) };
-
-                // TODO: Optimize away box allocation
-				term_bind.get_data_fn_ptr = Box::new(move |_self| {
-                    data
-                });
+				term_bind.entity_id = entity;
 			}
 			
 			let _result = context.callable.callv(

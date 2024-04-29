@@ -44,7 +44,7 @@ func test_new_entity_with_unregistered_component():
 
 func test_creating_entity_by_new():
 	# Test that an entity is invalidated by being deleted
-	var e:= GlecsEntity.spawn(0, world.get_world_object())
+	var e:= GlecsEntity.spawn(0, world.as_object())
 	assert_eq(e.is_valid(), true)
 	e.delete()
 	assert_eq(e.is_valid(), false)
