@@ -43,86 +43,246 @@ class Component extends _GlecsBaseComponent:
 ## TODO: Explain conversions from Variant to Glecs.Entity
 class Entity extends _GlecsBaseEntity:
 	
-	## Called when the script is registered with Glecs.
-	static func _registered(world:Glecs.World) -> void:
+	## Called when the script is registered in [param world]. [br] [br]
+	##
+	## The main use for this function is for creating prefabs from classes,
+	## like so:
+	## [codeblock]
+	## class MyPrefab extends Glecs.Entity:
+	##     static func _registered(world: Glecs.World) -> void:
+	##         var my_prefab = Glecs.Entity.from(MyPrefab, world) \
+	##             .add_entity(Glecs.PREFAB) \
+	##             .add_component(SomeComponent)
+	## [/codeblock]
+	## For more on prefabs, see [method add_entity]. [br]
+	## See also: [method from], [method add_entity], [method add_component]
+	static func _registered(world: Glecs.World) -> void:
 		pass
 
-	## Creates a new entity.
-	static func spawn(world:Glecs.World = null) -> Glecs.Entity:
+	## Creates a new entity in [param world]. [br] [br]
+	##
+	## Example:
+	## [codeblock]
+	## var entity = Glecs.Entity.spawn()
+	## [/codeblock]
+	## See also: [method from]
+	static func spawn(world: Glecs.World = null) -> Glecs.Entity:
 		return _GlecsBaseEntity._spawn(world)
 	
-	## Creates a reference to an existing entity from the
-	## given [Variant].
-	static func from(entity:Variant, world:Glecs.World = null) -> Glecs.Entity:
+	## Returns a reference to an existing [param entity],
+	## in [param world]. [br] [br]
+	##
+	## Example:
+	## [codeblock]
+	## var id = Glecs.PREFAB
+	## var entity = Glecs.Entity.from(id)
+	## [/codeblock]
+	## See also: [method spawn]
+	static func from(entity: Variant, world: Glecs.World = null) -> Entity:
 		return _GlecsBaseEntity._from(entity, world)
 
+	## Adds component data to this entity, with an optional
+	## [param default_value]. [br] [br]
+	##
+	## Example:
+	## [codeblock]
+	## var entity = Glecs.Entity.spawn()
+	## entity.add_component(MyComponent)
+	## [/codeblock]
+	## For more on components, see [Glecs.Component]. [br]
+	## See also: [method get_component], [method remove_component]
 	func add_component(component:Variant, default_value:Variant=null) -> Entity:
 		_add_component(component, default_value)
 		return self
 
-	## Returns a reference to a component.
-	func get_component(component:Variant) -> Glecs.Component:
+	## Returns a reference to this entity's [param component] data. [br] [br]
+	## 
+	## For more information on components, see: [Glecs.Component]. [br]
+	## See also: [method add_component], [method remove_component]
+	func get_component(component:Variant) -> Component:
 		return _get_component(component)
 
-	## Removes component data from this entity.
-	func remove_component(component: Variant) -> Glecs.Entity:
+	## Removes component data from this entity. [br] [br]
+	## 
+	## For more information on components, see [Glecs.Component]. [br]
+	## See also: [method add_component], [method has_component]
+	func remove_component(component: Variant) -> Entity:
 		_remove_component(component)
 		return self
 
-	## Deletes this entity from the ECS world.
-	##
-	## Note: this does not delete the [Glecs.Entity] object, which is
-	## a reference counted reference to the entity.
+	## Deletes this entity from the ECS world. [br] [br]
+	## 
+	## This method does not delete this [Glecs.Entity], which is
+	## a [RefCounted] object. The lifetime of an entity is completely separate
+	## from the lifetime of a [Glecs.Entity], which acts like a reference to an
+	## entity.
+	## [br] [br]
+	## See also: [method is_valid].
 	func delete() -> void:
 		_delete()
 
-	## Adds an other entity as a tag or relationship to this entity.
+	## Adds an other entity as a tag or relationship to this entity. [br] [br]
+	##
+	## Example:
+	## [codeblock]
+	## var my_tag = Glecs.Entity.spawn()
+	## var entity = Glecs.Entity.spawn()
+	## 
+	## entity.add_entity(my_tag)
+	## [/codeblock]
+	## See also: [method has_entity], [method remove_entity],
+	## [method add_relation]
 	func add_entity(tag: Variant) -> Entity:
 		_add_entity(tag)
 		return self
 
-	## Returns true if this entity has the given tag or relationship.
+	## Returns true if this entity has the given tag or relationship. [br] [br]
+	##
+	## Example:
+	## [codeblock]
+	## var my_tag = Glecs.Entity.spawn()
+	## var entity = Glecs.Entity.spawn()
+	## entity.add_entity(my_tag)
+	##
+	## assert(entity.has_entity(my_tag) == true)
+	## [/codeblock]
+	## See also: [method add_entity], [method remove_entity],
+	## [method has_relation]
 	func has_entity(tag: Variant) -> bool:
 		return _has_entity(tag)
 
-	## Removes the given tag or relationship with this entity.
+	## Removes the given tag or relationship with this entity. [br] [br]
+	##
+	## Example:
+	## [codeblock]
+	## var my_tag = Glecs.Entity.spawn()
+	## var entity = Glecs.Entity.spawn()
+	## entity.add_entity(my_tag)
+	##
+	## entity.remove_entity(my_tag)
+	## assert(entity.has_entity(my_tag) == false)
+	## [/codeblock]
+	## See also: [method add_entity], [method has_entity],
+	## [method remove_relation]
 	func remove_entity(tag: Variant) -> Entity:
 		_remove_entity(tag)
 		return self
 
-	## Returns the ID of this entity according to its world.
+	## Returns the ID of this entity from its world. [br] [br]
+	##
+	## Example:
+	## [codeblock]
+	## var first = Glecs.Entity.spawn()
+	## var second = Glecs.Entity.from(first)
+	##
+	## assert(first.get_id() == second.get_id())
+	## [/codeblock]
+	## See also: [method get_world]
 	func get_id() -> int:
 		return _get_id()
 
-	## Returns the name of this entity.
+	## Returns the name of this entity. [br] [br]
+	##
+	## Example:
+	## [codeblock]
+	## var entity = Glecs.Entity.spawn()
+	## entity.set_name("MyEntity")
+	##
+	## assert(entity.get_name() == "MyEntity")
+	## [/codeblock]
+	## See also: [method set_name]
 	func get_name() -> String:
 		return _get_name()
 
-	## Sets the name of this entity.
+	## Sets the name of this entity. [br] [br]
+	##
+	## Example:
+	## [codeblock]
+	## var entity = Glecs.Entity.spawn()
+	## entity.set_name("MyEntity")
+	##
+	## assert(entity.get_name() == "MyEntity")
+	## [/codeblock]
+	## See also: [method get_name]
 	func set_name(value: String) -> Entity:
 		_set_name(value)
 		return self
 
-	## Adds to this entity a relationship between the two given entites.
+	## Adds an entity pair to this entity. [br] [br]
+	##
+	## Example:
+	## [codeblock]
+	## var eats = Glecs.Entity.spawn() # Define relation
+	## var apples = Glecs.Entity.spawn() # Define relation target
+	## var entity = Glecs.Entity.spawn()
+	##
+	## entity.add_relation(eats, apples)
+	## assert(entity.has_relation(eats, apples) == true)
+	## [/codeblock]
+	## See also: [method has_relation], [method remove_relation],
+	## [method add_entity]
 	func add_relation(relation: Variant, with_entity: Variant) -> Entity:
 		_add_relation(relation, with_entity)
 		return self
+	
+	## Returns true if this entity has the given entity pair. [br] [br]
+	##
+	## Example:
+	## [codeblock]
+	## var eats = Glecs.Entity.spawn() # Define relation
+	## var apples = Glecs.Entity.spawn() # Define relation target
+	## var entity = Glecs.Entity.spawn()
+	## entity.add_relation(eats, apples)
+	##
+	## assert(entity.has_relation(eats, apples) == true)
+	## [/codeblock]
+	## See also: [method add_relation], [method remove_relation],
+	## [method has_entity]
+	func has_relation(relation: Variant, with_entity: Variant) -> bool:
+		breakpoint # TODO: implement Glecs.Entity.has_relation
+		return false
 
-	## Removes from this entity a relationship between the two given entites.
+	## Removes an entity pair from this entity. [br] [br]
+	##
+	## Example:
+	## [codeblock]
+	## var eats = Glecs.Entity.spawn() # Define relation
+	## var apples = Glecs.Entity.spawn() # Define relation target
+	## var entity = Glecs.Entity.spawn()
+	## entity.add_relation(eats, apples)
+	##
+	## entity.remove_relation(eats, apples)
+	## assert(entity.has_relation(eats, apples) == true)
+	## [/codeblock]
+	## See also: [method add_relation], [method has_relation],
+	## [method remove_entity]
 	func remove_relation(relation: Variant, with_entity: Variant) -> Entity:
 		_remove_relation(relation, with_entity)
 		return self
 
-	## Returns true if this entity reference is valid.
+	## Returns true if this [Glecs.Entity] is a valid reference to an
+	## entity. [br] [br]
 	##
-	## An entity reference is valid if the following are true:
-	## - The ID of the reference is a real entity in the world.
+	## A [Glecs.Entity] is valid if the following are true: [br]
+	## - The world is not [code]null[/code]. [br]
+	## - The world is not deleted. [br]
+	## - The ID of the [Glecs.Entity] is a real entity in the world. [br]
 	## - The entity is not deleted.
-	## - The world is not delete.
+	##
+	## [br] [br]
+	## Example:
+	## [codeblock]
+	## var entity = Glecs.Entity.spawn()
+	## entity.delete()
+	## assert(is_instance_valid(entity) == true)
+	## assert(entity.is_valid() == false)
+	## [/codeblock]
+	## See also: [method delete]
 	func is_valid() -> bool:
 		return _is_valid()
 
-	## Returns the world object this entity is in.
+	## Returns the world object this entity is in. [br] [br]
+	## See also: [method get_id]
 	func get_world() -> Glecs.World:
 		return _get_world()
 
