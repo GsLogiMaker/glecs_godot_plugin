@@ -1,7 +1,7 @@
 
 class_name GlecsComponent extends _GlecsComponent
 
-static func _on_registered(world:GlecsWorld) -> void:
+static func _registered(world:GlecsWorld) -> void:
 	pass
 
 func copy_from_component(from_component: GlecsComponent) -> void:

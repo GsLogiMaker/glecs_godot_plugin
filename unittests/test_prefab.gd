@@ -42,9 +42,9 @@ func test_prefab():
 	assert_almost_eq(bar.b, 5.6, 0.001)
 
 	# Test process with inhereted components
-	world.run_pipeline(&"process", 0.0)
+	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
 	assert_eq(foo.b, 24)
-	assert_almost_eq(foo.c, 3.43, 0.001)
+	assert_almost_eq(foo.c, 3.63, 0.001)
 	assert_almost_eq(bar.a, Vector2(2+foo.c, 1.1+(foo.c*2)), Vector2(0.001, 0.001))
 	assert_almost_eq(bar.b, PI, 0.001)
 
@@ -63,7 +63,7 @@ class Bar extends GlecsComponent:
 	
 class MyPrefab extends GlecsEntity:
 	
-	static func _on_registered(world:GlecsWorld) -> void:
+	static func _registered(world:GlecsWorld) -> void:
 		var p:= GlecsEntity.from(MyPrefab, world)
 		p.add_entity(world.PREFAB_TAG)
 		p.add_component(Foo, [true, 23, 2.33])

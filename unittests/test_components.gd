@@ -52,7 +52,7 @@ func test_registeration():
 	e.get_component(RegisterationA).set_value(3)
 	e.get_component(RegisterationB).set_value(11)
 	
-	# A system defined in RegistrationA's _on_registered function should run
+	# A system defined in RegistrationA's _registered function should run
 	# on GlecsWorldNode's process pipeline
 	await get_tree().process_frame # Skip this frame (We are already past the trigger for GlecsWorldNode's process pipeline)
 	await get_tree().process_frame # Pipeline process runs first time this frame
@@ -124,7 +124,7 @@ class RegisterationA extends GlecsComponent:
 	func set_result(v:float) -> void:
 		setc(&"result", v)
 	
-	static func _on_registered(world:GlecsWorld):
+	static func _registered(world:GlecsWorld):
 		world.new_system() \
 			.with(RegisterationA) \
 			.with(RegisterationB) \
@@ -146,7 +146,7 @@ class RegisterationB extends GlecsComponent:
 	func set_result(v:float) -> void:
 		setc(&"result", v)
 	
-	static func _on_registered(world:GlecsWorld):
+	static func _registered(world:GlecsWorld):
 		world.new_system() \
 			.with(RegisterationA) \
 			.with(RegisterationB) \

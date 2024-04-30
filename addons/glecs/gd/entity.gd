@@ -1,7 +1,7 @@
 
 class_name GlecsEntity extends _GlecsEntity
 
-static func _on_registered(world:GlecsWorld) -> void:
+static func _registered(world:GlecsWorld) -> void:
 	pass
 
 ## Creates a new entity

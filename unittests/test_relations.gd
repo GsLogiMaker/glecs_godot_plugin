@@ -23,7 +23,7 @@ func test_bools():
 	var grass:= world.new_entity("Grass", [])
 	cow.add_relation("eats", grass)
 	
-	world.run_pipeline(&"process", 0.0)
+	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
 	
 	assert_eq(true, true)
 	

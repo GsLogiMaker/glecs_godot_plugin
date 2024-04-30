@@ -372,7 +372,7 @@ impl _GlecsWorld {
         let mut args = VariantArray::new();
         args.push(this.to_variant());
         let callable = Callable
-            ::from_object_method(&target, "_on_registered");
+            ::from_object_method(&target, "_registered");
         callable.callv(args);
     }
 
