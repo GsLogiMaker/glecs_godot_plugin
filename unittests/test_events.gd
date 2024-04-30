@@ -87,13 +87,13 @@ class Textures extends GlecsComponent:
 		set(v): setc(&"b", v)
 	
 	static func _on_registered(world:GlecsWorld) -> void:
-		world.new_event_listener(world.EVENT_ON_ADD) \
+		world.new_event_listener(world.ON_ADD_EVENT) \
 			.with(Textures) \
 			.for_each(func(t: Textures):
 				prints("Added Textures", t.a, t.b)
 				)
 		
-		world.new_event_listener(world.EVENT_ON_SET) \
+		world.new_event_listener(world.ON_SET_EVENT) \
 			.with(Textures) \
 			.for_each(func(t: Textures):
 				prints("Set Textures", t.a, t.b)

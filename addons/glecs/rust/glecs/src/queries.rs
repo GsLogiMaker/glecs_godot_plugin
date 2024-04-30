@@ -144,7 +144,7 @@ impl _GlecsSystemBuilder {
     fn with_oper(&mut self, component: Variant, oper:flecs::ecs_oper_kind_t) {
         // TODO: Add checks that scripts are indeed derived from components
         let comp_id = _GlecsWorld
-            ::variant_to_entity_id(self.world.clone(), component);
+            ::_id_from_variant(self.world.clone(), component);
         
         let term = flecs::ecs_term_t {
             id: comp_id,
@@ -155,9 +155,10 @@ impl _GlecsSystemBuilder {
     }
 
     fn from_oper(&mut self, entity: Variant, oper:flecs::ecs_oper_kind_t) {
-        let entity_id = self.world
-            .bind_mut()
-            .get_or_add_tag_entity(entity);
+        let entity_id = _GlecsWorld::_id_from_variant(
+            self.world.clone(),
+            entity,
+        );
         
         let term = flecs::ecs_term_t {
             id: entity_id,

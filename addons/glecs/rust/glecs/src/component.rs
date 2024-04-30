@@ -643,24 +643,6 @@ impl _GlecsComponent {
         drop(unsafe { ManuallyDrop::take(property) })
     }
 
-
-    pub(crate) fn new_default_data_getter(entity:EntityId) -> Box<dyn Fn(&Self) -> NonNull<u8>> {
-        Box::new(move |this| {
-            let value = unsafe { flecs::ecs_get_mut_id(
-                this.world.bind().world.raw(),
-                entity,
-                this.get_flecs_id(),
-            ) };
-            unsafe { NonNull::new_unchecked(value as *mut u8) }
-        })
-    }
-
-    pub(crate) fn new_empty_data_getter() -> Box<dyn Fn(&Self) -> NonNull<u8>> {
-        Box::new(|_this| {
-            unreachable!("This function should never be called")
-        })
-    }
-
     fn get_data(&self) -> NonNull<u8> {
         unsafe { NonNull::new_unchecked(flecs::ecs_get_mut_id(
             self.world.bind().raw(),

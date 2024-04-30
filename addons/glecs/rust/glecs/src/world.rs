@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use std::ffi::c_void;
 use std::hash::Hash;
 use std::mem::MaybeUninit;
-use std::ptr::NonNull;
 use std::rc::Rc;
 
 use flecs::EntityId;
@@ -78,7 +77,7 @@ impl _GlecsWorld {
         let entity = this.bind_mut().world.entity();
 
         for component in with_components.iter_shared() {
-            let component_id = _GlecsWorld::variant_to_entity_id(
+            let component_id = _GlecsWorld::_id_from_variant(
                 this.clone(),
                 component,
             );
@@ -120,8 +119,10 @@ impl _GlecsWorld {
         let e_id = gd_entity.bind().get_flecs_id();
         
         // let prefab_id = this.bind_mut().entity_from_variant(prefab);
-        let prefab_def = Self
-            ::get_or_add_prefab_definition(this.clone(), prefab);
+        let prefab_id = Self::_id_from_variant(
+            this.clone(),
+            prefab.to_variant(),
+        );
 
         let this_bind = this.bind_mut();
         let raw_world = this_bind.world.raw();
@@ -130,7 +131,7 @@ impl _GlecsWorld {
         unsafe { flecs::ecs_add_id(
             raw_world,
             e_id,
-            flecs::ecs_pair(flecs::EcsIsA, prefab_def.flecs_id),
+            flecs::ecs_pair(flecs::EcsIsA, prefab_id),
         ) };
 
         gd_entity
@@ -142,7 +143,7 @@ impl _GlecsWorld {
         this: Gd<Self>,
         event: Variant,
     ) -> Gd<_GlecsSystemBuilder>{
-        let event = Self::variant_to_entity_id(this.clone(), event);
+        let event = Self::_id_from_variant(this.clone(), event);
         let builder = _GlecsSystemBuilder::new(this);
         let mut builder_clone = builder.clone();
         let mut builder_bind = builder_clone.bind_mut();
@@ -151,15 +152,18 @@ impl _GlecsWorld {
         builder
     }
 
-    #[func]
+    #[func(gd_self)]
     fn _new_pipeline(
-        &mut self,
+        mut this: Gd<Self>,
         identifier: Variant,
         extra_parameters: Array<Callable>,
     ) {
         // Get or initialize pipeline
-        let pipeline_id = self.get_or_add_tag_entity(identifier.clone());
-        if self.pipelines.get(&pipeline_id).is_some() {
+        let pipeline_id = Self::get_or_add_tag_entity(
+            this.clone(),
+            identifier.clone(),
+        );
+        if this.bind().pipelines.get(&pipeline_id).is_some() {
             show_error!(
                 "Failed to create pipeline",
                 "Pipeline identified by {:?} has already been defined",
@@ -175,7 +179,7 @@ impl _GlecsWorld {
         };
 
         unsafe { flecs::ecs_pipeline_init(
-            self.world.raw(),
+            this.bind().raw(),
             &flecs::ecs_pipeline_desc_t {
                 entity: pipeline_id,
                 query: system_query,
@@ -188,7 +192,7 @@ impl _GlecsWorld {
         };
 
         let pipeline_def = Rc::new(def);
-        self.pipelines.insert(pipeline_id, pipeline_def.clone());
+        this.bind_mut().pipelines.insert(pipeline_id, pipeline_def.clone());
     }
 
     /// Runs all processess associated with the given pipeline.
@@ -212,17 +216,18 @@ impl _GlecsWorld {
 
     #[func(gd_self)]
     fn pair(this: Gd<Self>, relation:Variant, target:Variant) -> i64 {
-        let left = Self::variant_to_entity_id(this.clone(), relation);
-        let right = Self::variant_to_entity_id(this, target);
-        flecs::ecs_pair(left, right) as i64
+        let left = Self::_id_from_variant(this.clone(), relation);
+        let right = Self::_id_from_variant(this, target);
+        let pair = flecs::ecs_pair(left, right);
+        pair as i64
     }
 
     #[func(gd_self)]
     /// Converts a [`Variant`] value to an EntityId in the most suitable way
     /// for the given [`Variant`] type.
-    pub(crate) fn variant_to_entity_id(
-        mut this: Gd<Self>,
-        from:Variant,
+    pub(crate) fn _id_from_variant(
+        this: Gd<Self>,
+        entity: Variant,
     ) -> EntityId {
         use VariantType::Object as VTObject;
         use VariantType::Vector2 as VTVector2;
@@ -232,51 +237,78 @@ impl _GlecsWorld {
         use VariantType::String as VTString;
         use VariantType::StringName as VTStringName;
         use VariantType::Nil as VTNil;
-        match from.get_type() {
+        let this_clone = this.clone();
+        let from_clone = entity.clone();
+        let id = match entity.get_type() {
             VTObject => {
                 if let Ok(e) =
-                    from.try_to::<Gd<_GlecsEntity>>()
+                    entity.try_to::<Gd<_GlecsEntity>>()
                 {
                     return e.bind().id
                 }
                 if let Ok(e) =
-                    from.try_to::<Gd<_GlecsComponent>>()
+                    entity.try_to::<Gd<_GlecsComponent>>()
                 {
                     return e.bind().component_definition.flecs_id
                 }
                 if let Ok(e) =
-                    from.try_to::<Gd<_GlecsEvent>>()
+                    entity.try_to::<Gd<_GlecsEvent>>()
                 {
                     return e.bind()._id
                 }
                 if let Ok(e) =
-                    from.try_to::<Gd<_GlecsPrefab>>()
+                    entity.try_to::<Gd<_GlecsPrefab>>()
                 {
                     return e.bind().flecs_id
                 }
-                if let Ok(e) = from.try_to::<Gd<Script>>() {
-                    return Self::get_or_add_component_gd(this, e)
+                if let Ok(e) = entity.try_to::<Gd<Script>>() {
+                    let component_type = _GlecsComponent::class_name()
+                        .to_string_name();
+                    let entity_type = _GlecsEntity::class_name()
+                        .to_string_name();
+                    match e.get_instance_base_type() {
+                        type_name if type_name == component_type => {
+                            // Component script
+                            return Self::get_or_add_component_gd(this, e)
+                        },
+                        type_name if type_name == entity_type => {
+                            // Entity script
+                            return Self::get_or_add_tag_entity(
+                                this,
+                                e.to_variant(),
+                            )
+                        },
+                        _ => {},
+                    }
+                    if e.get_instance_base_type() == component_type {
+                    }
                 }
                 
                 panic!("Object is not an Entity")
             },
             VTVector2 => {
-                let veci = from.to::<Vector2>();
+                let veci = entity.to::<Vector2>();
                 let (x, y) = (veci.x as EntityId, veci.y as EntityId);
                 flecs::ecs_pair(x, y)
             },
             VTVector2i => {
-                let veci = from.to::<Vector2i>();
+                let veci = entity.to::<Vector2i>();
                 let (x, y) = (veci.x as EntityId, veci.y as EntityId);
                 flecs::ecs_pair(x, y)
             },
-            VTInt => from.to::<i64>() as EntityId,
-            VTFloat => from.to::<f64>() as EntityId,
-            VTString => this.bind_mut().get_or_add_tag_entity(from),
-            VTStringName => this.bind_mut().get_or_add_tag_entity(from),
+            VTInt => entity.to::<i64>() as EntityId,
+            VTFloat => entity.to::<f64>() as EntityId,
+            VTString => Self::get_or_add_tag_entity(this, entity),
+            VTStringName => Self::get_or_add_tag_entity(this, entity),
             VTNil => panic!("Null is not an Entity"),
             _ => panic!("Variant is not an Entity"),
+        };
+
+        if !unsafe { flecs::ecs_id_is_valid(this_clone.bind().raw(), id) } {
+            panic!("Value \"{from_clone}\" does not convert to a valid Entity.")
         }
+
+        id
     }
 
     pub(crate) fn get_component(
@@ -321,20 +353,9 @@ impl _GlecsWorld {
             &mut world_bind,
         ));
         world_bind.components.insert(def.flecs_id, def.clone());
-        world_bind.add_tag_entity(key.to_variant(), def.flecs_id);
-
         drop(world_bind);
-
-        this.bind_mut();
         
-        // Call _on_registerd
-        {
-            let mut args = VariantArray::new();
-            args.push(this.to_variant());
-            let callable = Callable
-                ::from_object_method(&key, "_on_registered");
-            callable.callv(args);
-        }
+        Self::add_tag_entity(this, key.to_variant(), def.flecs_id);
 
         def.flecs_id
     }
@@ -344,6 +365,15 @@ impl _GlecsWorld {
         key: EntityId,
     ) -> Option<Rc<ComponetDefinition>> {
         self.components.get(&key).map(|x| x.clone())
+    }
+
+    fn do_registered_callback(this: Gd<Self>, target: Gd<Script>) {
+        // Call _on_registerd
+        let mut args = VariantArray::new();
+        args.push(this.to_variant());
+        let callable = Callable
+            ::from_object_method(&target, "_on_registered");
+        callable.callv(args);
     }
 
     pub(crate) fn new_observer_from_builder(
@@ -483,9 +513,18 @@ impl _GlecsWorld {
         ) };
     }
 
-    pub(crate) fn add_tag_entity(&mut self, key: Variant, id: EntityId) -> EntityId {
-        let key = VariantKey::new(key);
-        self.mapped_entities.insert(key, id);
+    pub(crate) fn add_tag_entity(
+        mut this: Gd<Self>,
+        key: Variant,
+        id: EntityId,
+    ) -> EntityId {
+        let varint_key = VariantKey::new(key.clone());
+        this.bind_mut().mapped_entities.insert(varint_key, id);
+
+        if let Ok(s) = key.try_to::<Gd<Script>>() {
+            Self::do_registered_callback(this, s);
+        }
+
         id
     }
 
@@ -493,13 +532,21 @@ impl _GlecsWorld {
         self.mapped_entities.get(&VariantKey::new(key)).map(|x| *x)
     }
 
-    pub(crate) fn get_or_add_tag_entity(&mut self, key:Variant) -> EntityId {
+    pub(crate) fn get_or_add_tag_entity(
+        mut this: Gd<Self>,
+        key:Variant,
+    ) -> EntityId {
         let variant_key = VariantKey::new(key.clone());
-        self.mapped_entities.get(&variant_key)
-            .map(|x| *x)
-            .unwrap_or_else(||
-                self.add_tag_entity(key, self.world.entity().id())
-            )
+        let id_opt = this.bind_mut()
+            .mapped_entities
+            .get(&variant_key)
+            .map(|x| *x);
+        
+        id_opt.unwrap_or_else(|| {
+            let new_id = this.bind_mut().world.entity().id();
+            Self::add_tag_entity(this, key, new_id);
+            new_id
+        })
     }
 
     pub(crate) fn layout_from_properties(
@@ -609,44 +656,52 @@ impl IObject for _GlecsWorld {
         };
 
         gd_world.mapped_entities.insert(
-            StringName::from("on_add").to_variant().into(),
+            StringName::from("flecs.on_add").to_variant().into(),
             unsafe { flecs::EcsOnAdd },
         );
         gd_world.mapped_entities.insert(
-            StringName::from("on_remove").to_variant().into(),
+            StringName::from("flecs.on_remove").to_variant().into(),
             unsafe { flecs::EcsOnRemove },
         );
         gd_world.mapped_entities.insert(
-            StringName::from("on_set").to_variant().into(),
+            StringName::from("flecs.on_set").to_variant().into(),
             unsafe { flecs::EcsOnSet },
         );
         gd_world.mapped_entities.insert(
-            StringName::from("on_unset").to_variant().into(),
+            StringName::from("flecs.on_unset").to_variant().into(),
             unsafe { flecs::EcsUnSet },
         );
         gd_world.mapped_entities.insert(
-            StringName::from("on_monitor").to_variant().into(),
+            StringName::from("flecs.on_monitor").to_variant().into(),
             unsafe { flecs::EcsMonitor },
         );
         gd_world.mapped_entities.insert(
-            StringName::from("on_delete").to_variant().into(),
+            StringName::from("flecs.on_delete").to_variant().into(),
             unsafe { flecs::EcsOnDelete },
         );
         gd_world.mapped_entities.insert(
-            StringName::from("on_table_create").to_variant().into(),
+            StringName::from("flecs.on_table_create").to_variant().into(),
             unsafe { flecs::EcsOnTableCreate },
         );
         gd_world.mapped_entities.insert(
-            StringName::from("on_table_delete").to_variant().into(),
+            StringName::from("flecs.on_table_delete").to_variant().into(),
             unsafe { flecs::EcsOnTableDelete },
         );
         gd_world.mapped_entities.insert(
-            StringName::from("on_table_empty").to_variant().into(),
+            StringName::from("flecs.on_table_empty").to_variant().into(),
             unsafe { flecs::EcsOnTableEmpty },
         );
         gd_world.mapped_entities.insert(
-            StringName::from("on_table_fill").to_variant().into(),
+            StringName::from("flecs.on_table_fill").to_variant().into(),
             unsafe { flecs::EcsOnTableFill },
+        );
+        gd_world.mapped_entities.insert(
+            StringName::from("flecs.prefab").to_variant().into(),
+            unsafe { flecs::EcsPrefab },
+        );
+        gd_world.mapped_entities.insert(
+            StringName::from("flecs.is_a").to_variant().into(),
+            unsafe { flecs::EcsIsA },
         );
 
         gd_world
@@ -708,12 +763,29 @@ impl _GlecsWorldNode {
         }
     
         #[func]
-        fn _new_pipeline(
+        /// Converts a [`Variant`] value to an EntityId in the most suitable way
+        /// for the given [`Variant`] type.
+        pub(crate) fn _id_from_variant(
             &self,
+            entity: Variant,
+        ) -> EntityId {
+            _GlecsWorld::_id_from_variant(
+                self.as_object().clone(),
+                entity,
+            )
+        }
+
+        #[func(gd_self)]
+        fn _new_pipeline(
+            this: Gd<Self>,
             identifier:Variant,
             extra_parameters: Array<Callable>,
         ) {
-            _GlecsWorld::_new_pipeline(&mut self.glecs_world.clone().bind_mut(), identifier, extra_parameters)
+            _GlecsWorld::_new_pipeline(
+                this.bind().as_object().clone(),
+                identifier,
+                extra_parameters,
+            )
         }
     
         /// Runs all processess associated with the given pipeline.
@@ -744,7 +816,7 @@ impl _GlecsWorldNode {
             &self,
             from:Variant,
         ) -> EntityId {
-            _GlecsWorld::variant_to_entity_id(self.glecs_world.clone(), from)
+            _GlecsWorld::_id_from_variant(self.glecs_world.clone(), from)
         }
 
         #[func]
@@ -766,36 +838,6 @@ impl INode for _GlecsWorldNode {
             base,
             glecs_world,
         }
-    }
-
-    fn ready(&mut self) {
-        // Add process pipeline
-        let get_process_delta_time = Callable::from_object_method(
-            &self.to_gd(),
-            "get_process_delta_time",
-        );
-        self._new_pipeline(
-            StringName::from("process").to_variant(),
-            Array::from(&[get_process_delta_time]),
-        );
-
-        // Add physics process pipeline
-        let get_physics_process_delta_time = Callable::from_object_method(
-            &self.to_gd(),
-            "get_physics_process_delta_time",
-        );
-        self._new_pipeline(
-            StringName::from("physics_process").to_variant(),
-            Array::from(&[get_physics_process_delta_time]),
-        );
-    }
-
-    fn process(&mut self, delta:f64) {
-        self.run_pipeline("process".to_variant(), delta as f32);
-    }
-
-    fn physics_process(&mut self, delta:f64) {
-        self.run_pipeline("physics_process".to_variant(), delta as f32);
     }
 
     fn on_notification(&mut self, what: NodeNotification) {
@@ -861,8 +903,8 @@ pub(crate) struct ScriptSystemContext {
             let mut compopnent_access = Gd::from_init_fn(|base| {
                 let base_comp = _GlecsComponent {
                     base,
+                    entity_id: 0, // ID should be changed by the system
                     world: world.clone(),
-                    get_data_fn_ptr: _GlecsComponent::new_empty_data_getter(),
                     component_definition: term_description.clone(),
                 };
                 base_comp

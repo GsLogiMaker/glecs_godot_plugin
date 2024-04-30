@@ -99,7 +99,6 @@ pub(crate) struct ComponetDefinition {
     ) -> Variant {
         let mut script = Gd::<Script>::from_instance_id(self.script_id);
         let key = format!("{}{}", Self::PROPERTY_PREFIX, property);
-        dbg!(&key);
         script.get_script_constant_map()
             .get(key)
             .unwrap()

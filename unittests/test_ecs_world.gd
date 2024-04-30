@@ -59,7 +59,7 @@ func test_simple_system():
 			
 	var entity:= world.new_entity("Test", [Foo])
 	
-	world.run_pipeline("process", 1.0)
+	world.run_pipeline(world.PROCESS_PIPELINE, 1.0)
 	
 	assert_almost_eq(entity.get_component(Foo).getc(&"vec"), 2.67, 0.01)
 

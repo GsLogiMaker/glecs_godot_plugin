@@ -1,8 +1,16 @@
 
 class_name GlecsEntity extends _GlecsEntity
 
-static func spawn(id:int = 0, world:GlecsWorld = null) -> GlecsEntity:
-	return _GlecsEntity._spawn(id, world)
+static func _on_registered(world:GlecsWorld) -> void:
+	pass
+
+## Creates a new entity
+static func spawn(world:GlecsWorld = null) -> GlecsEntity:
+	return _GlecsEntity._spawn(world)
+
+## Creates a reference to an existing entity from the given [Varaint].
+static func from(entity:Variant, world:GlecsWorld = null) -> GlecsEntity:
+	return _GlecsEntity._from(entity, world)
 
 func add_component(component:Variant, data:Variant=null) -> void:
 	_add_component(component, data)
@@ -15,6 +23,18 @@ func remove_component(component: Variant) -> void:
 
 func delete() -> void:
 	_delete()
+
+func add_entity(entity: Variant) -> void:
+	_add_entity(entity)
+
+func has_entity(entity: Variant) -> bool:
+	return _has_entity(entity)
+
+func remove_entity(entity: Variant) -> void:
+	_remove_entity(entity)
+
+func get_id() -> int:
+	return _get_id()
 
 func get_name() -> String:
 	return _get_name()
