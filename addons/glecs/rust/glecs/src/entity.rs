@@ -7,10 +7,10 @@ use godot::engine::Engine;
 use godot::engine::Script;
 use godot::prelude::*;
 
-use crate::component::_GlecsComponent;
+use crate::component::_GlecsBaseComponent;
 use crate::Int;
 use crate::show_error;
-use crate::world::_GlecsWorld;
+use crate::world::_GlecsBaseWorld;
 
 pub(crate) fn load_entity_script() -> Variant {
     load::<Script>("res://addons/glecs/gd/glecs.gd")
@@ -22,24 +22,24 @@ pub(crate) fn load_entity_script() -> Variant {
 
 #[derive(GodotClass, Debug)]
 #[class(base=RefCounted, no_init)]
-pub struct _GlecsEntity {
+pub struct _GlecsBaseEntity {
     pub(crate) base: Base<RefCounted>,
     /// The world this entity is from.
-    pub(crate) world: Gd<_GlecsWorld>,
+    pub(crate) world: Gd<_GlecsBaseWorld>,
     /// The ID of this entity.
     pub(crate) id: EntityId,
 }
 #[godot_api]
-impl _GlecsEntity {
+impl _GlecsBaseEntity {
     #[func]
-    fn _spawn(world: Option<Gd<_GlecsWorld>>) -> Gd<Self> {
+    fn _spawn(world: Option<Gd<_GlecsBaseWorld>>) -> Gd<Self> {
         // Use a default world if world is none
         let world = match world {
             Some(w) => w,
             None => {
                 Engine::singleton().get_singleton("Glecs".into())
                     .unwrap()
-                    .cast::<_GlecsWorld>()
+                    .cast::<_GlecsBaseWorld>()
             },
         };
 
@@ -54,19 +54,19 @@ impl _GlecsEntity {
     }
 
     #[func]
-    fn _from(entity: Variant, world: Option<Gd<_GlecsWorld>>) -> Gd<Self> {
+    fn _from(entity: Variant, world: Option<Gd<_GlecsBaseWorld>>) -> Gd<Self> {
         // Use a default world if world is none
         let world = match world {
             Some(w) => w,
             None => {
                 Engine::singleton().get_singleton("Glecs".into())
                     .unwrap()
-                    .cast::<_GlecsWorld>()
+                    .cast::<_GlecsBaseWorld>()
             },
         };
 
         // Convert variant to entity ID
-        let entity_id = _GlecsWorld::_id_from_variant(
+        let entity_id = _GlecsBaseWorld::_id_from_variant(
             world.clone(),
             entity,
         );
@@ -83,13 +83,13 @@ impl _GlecsEntity {
         &mut self,
         component: Variant,
         data:Variant,
-    ) -> Option<Gd<_GlecsComponent>> {
+    ) -> Option<Gd<_GlecsBaseComponent>> {
         EntityLike::add_component(self, component, data)
     }
 
     /// Returns a componently previously attached to this entity.
     #[func]
-    fn _get_component(&mut self, component: Variant) -> Option<Gd<_GlecsComponent>> {
+    fn _get_component(&mut self, component: Variant) -> Option<Gd<_GlecsBaseComponent>> {
         EntityLike::get_component(self, component)
     }
 
@@ -169,18 +169,18 @@ impl _GlecsEntity {
     }
 
     #[func]
-    fn _get_world(&self) -> Gd<_GlecsWorld> {
+    fn _get_world(&self) -> Gd<_GlecsBaseWorld> {
         EntityLike::get_world(self)
     }
 
     #[func]
-    fn _set_world(&mut self, world: Gd<_GlecsWorld>) {
+    fn _set_world(&mut self, world: Gd<_GlecsBaseWorld>) {
         self.world = world;
     }
 }
 
 #[godot_api]
-impl IRefCounted for _GlecsEntity {
+impl IRefCounted for _GlecsBaseEntity {
     fn to_string(&self) -> GString {
         GString::from(format!(
             "{}:<{}#{}>",
@@ -190,8 +190,8 @@ impl IRefCounted for _GlecsEntity {
         ))
     }
 }
-impl EntityLike for _GlecsEntity {
-    fn get_world(&self) -> Gd<_GlecsWorld> {
+impl EntityLike for _GlecsBaseEntity {
+    fn get_world(&self) -> Gd<_GlecsBaseWorld> {
         self.world.clone()
     }
 
@@ -199,8 +199,8 @@ impl EntityLike for _GlecsEntity {
         self.id
     }
 }
- impl EntityLike for Gd<_GlecsEntity> {
-    fn get_world(&self) -> Gd<_GlecsWorld> {
+ impl EntityLike for Gd<_GlecsBaseEntity> {
+    fn get_world(&self) -> Gd<_GlecsBaseWorld> {
         let world = self.bind()._get_world();
         world
     }
@@ -212,7 +212,7 @@ impl EntityLike for _GlecsEntity {
 }
 
 pub(crate) trait EntityLike: Debug {
-    fn get_world(&self) -> Gd<_GlecsWorld>;
+    fn get_world(&self) -> Gd<_GlecsBaseWorld>;
     fn get_flecs_id(&self) -> EntityId;
 
     fn is_valid(&self) -> bool {
@@ -238,13 +238,13 @@ pub(crate) trait EntityLike: Debug {
         &mut self,
         component: Variant,
         with_data: Variant,
-    ) -> Option<Gd<_GlecsComponent>> {
+    ) -> Option<Gd<_GlecsBaseComponent>> {
         self.validate();
 
         let world_gd = self.get_world();
         let flecs_id = self.get_flecs_id();
 
-        let component_id = _GlecsWorld::_id_from_variant(
+        let component_id = _GlecsBaseWorld::_id_from_variant(
             world_gd.clone(),
             component.clone(),
         );
@@ -257,7 +257,7 @@ pub(crate) trait EntityLike: Debug {
         
         // Create Godot wrapper
         let mut comp = Gd::from_init_fn(|base| {
-            let base_comp = _GlecsComponent {
+            let base_comp = _GlecsBaseComponent {
                 base,
                 entity_id: flecs_id,
                 world: world_gd.clone(),
@@ -273,7 +273,7 @@ pub(crate) trait EntityLike: Debug {
     }
 
     fn add_component_raw(
-        world_gd: Gd<_GlecsWorld>,
+        world_gd: Gd<_GlecsBaseWorld>,
         raw_entity: EntityId,
         component: EntityId,
         with_data: Variant,
@@ -287,7 +287,7 @@ pub(crate) trait EntityLike: Debug {
                 component,
             ) };
         } else {
-            let initial_data = _GlecsComponent
+            let initial_data = _GlecsBaseComponent
                 ::create_initial_data(
                     &world_gd.bind()
                         .get_component_description(component)
@@ -307,14 +307,14 @@ pub(crate) trait EntityLike: Debug {
         }
     }
 
-    fn get_component(&mut self, component: Variant) -> Option<Gd<_GlecsComponent>> {
+    fn get_component(&mut self, component: Variant) -> Option<Gd<_GlecsBaseComponent>> {
         self.validate();
 
         let world_gd = self.get_world();
         let flecs_id = self.get_flecs_id();
         
         // Get component ID
-        let c_id = _GlecsWorld::_id_from_variant(
+        let c_id = _GlecsBaseWorld::_id_from_variant(
             world_gd.clone(),
             component.clone(),
         );
@@ -359,7 +359,7 @@ pub(crate) trait EntityLike: Debug {
 
         let world_gd_clone = world_gd.clone();
         let mut comp = Gd::from_init_fn(|base| {
-            let base_comp = _GlecsComponent {
+            let base_comp = _GlecsBaseComponent {
                 base,
                 world: world_gd_clone,
                 entity_id: flecs_id,
@@ -378,7 +378,7 @@ pub(crate) trait EntityLike: Debug {
         let world_gd = self.get_world();
         let flecs_id = self.get_flecs_id();
 
-        let component_id = _GlecsWorld::_id_from_variant(
+        let component_id = _GlecsBaseWorld::_id_from_variant(
             world_gd.clone(),
             component,
         );
@@ -404,7 +404,7 @@ pub(crate) trait EntityLike: Debug {
         let world = self.get_world();
         let id = self.get_flecs_id();
 
-        let adding_id = _GlecsWorld::_id_from_variant(
+        let adding_id = _GlecsBaseWorld::_id_from_variant(
             world.clone(),
             entity,
         );
@@ -422,7 +422,7 @@ pub(crate) trait EntityLike: Debug {
         let world = self.get_world();
         let id = self.get_flecs_id();
 
-        let adding_id = _GlecsWorld::_id_from_variant(
+        let adding_id = _GlecsBaseWorld::_id_from_variant(
             world.clone(),
             entity,
         );
@@ -440,7 +440,7 @@ pub(crate) trait EntityLike: Debug {
         let world = self.get_world();
         let id = self.get_flecs_id();
 
-        let adding_id = _GlecsWorld::_id_from_variant(
+        let adding_id = _GlecsBaseWorld::_id_from_variant(
             world.clone(),
             entity,
         );
@@ -490,8 +490,8 @@ pub(crate) trait EntityLike: Debug {
 
         let raw_world = world.bind().world.raw();
         let pair = unsafe { flecs::ecs_make_pair(
-            _GlecsWorld::_id_from_variant(world.clone(), relation),
-            _GlecsWorld::_id_from_variant(world, target),
+            _GlecsBaseWorld::_id_from_variant(world.clone(), relation),
+            _GlecsBaseWorld::_id_from_variant(world, target),
         ) };
         unsafe { flecs::ecs_add_id(raw_world, self_id, pair) };
     }
@@ -504,8 +504,8 @@ pub(crate) trait EntityLike: Debug {
 
         let raw_world = world.bind().world.raw();
         let pair = unsafe { flecs::ecs_make_pair(
-            _GlecsWorld::_id_from_variant(world.clone(), relation),
-            _GlecsWorld::_id_from_variant(world, target),
+            _GlecsBaseWorld::_id_from_variant(world.clone(), relation),
+            _GlecsBaseWorld::_id_from_variant(world, target),
         ) };
         unsafe { flecs::ecs_remove_id(raw_world, self_id, pair) };
     }

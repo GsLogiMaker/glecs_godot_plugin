@@ -13,18 +13,18 @@ use godot::engine::notify::NodeNotification;
 use godot::engine::Script;
 use godot::prelude::*;
 
-use crate::component::_GlecsComponent;
+use crate::component::_GlecsBaseComponent;
 use crate::component_definitions::ComponetDefinition;
 use crate::component_definitions::ComponetProperty;
 use crate::entity::load_entity_script;
 use crate::entity::EntityLike;
-use crate::entity::_GlecsEntity;
+use crate::entity::_GlecsBaseEntity;
 use crate::event::_GlecsEvent;
 use crate::prefab::PrefabDefinition;
 use crate::prefab::_GlecsPrefab;
 use crate::prefab::PREFAB_COMPONENTS;
 use crate::queries::BuildType;
-use crate::queries::_GlecsSystemBuilder;
+use crate::queries::_GlecsBaseSystemBuilder;
 use crate::show_error;
 use crate::TYPE_SIZES;
 
@@ -36,17 +36,9 @@ pub(crate) fn load_world_obj_script() -> Variant {
         .to_variant()
 }
 
-pub(crate) fn load_world_node_script() -> Variant {
-    load::<Script>("res://addons/glecs/gd/glecs.gd")
-        .get_script_constant_map()
-        .get("WorldNode")
-        .unwrap()
-        .to_variant()
-}
-
 #[derive(GodotClass)]
 #[class(base=Object)]
-pub struct _GlecsWorld {
+pub struct _GlecsBaseWorld {
     pub(crate) base: Base<Object>,
     pub(crate) world: FlWorld,
     prefabs: HashMap<Gd<Script>, Rc<PrefabDefinition>>,
@@ -56,7 +48,7 @@ pub struct _GlecsWorld {
     components: HashMap<EntityId, Rc<ComponetDefinition>>,
 }
 #[godot_api]
-impl _GlecsWorld {
+impl _GlecsBaseWorld {
     /// Returns the name of the Script that was registered with the world.
     #[func]
     fn get_component_name(
@@ -71,9 +63,9 @@ impl _GlecsWorld {
     }
 
     #[func]
-    fn _entity_from_flecs_id(&mut self, flecs_id:EntityId) -> Gd<_GlecsEntity> {
+    fn _entity_from_flecs_id(&mut self, flecs_id:EntityId) -> Gd<_GlecsBaseEntity> {
         let gd_entity = Gd::from_init_fn(|base| {
-            _GlecsEntity {
+            _GlecsBaseEntity {
                 base,
                 world: self.to_gd(),
                 id: flecs_id,
@@ -90,15 +82,15 @@ impl _GlecsWorld {
         mut this: Gd<Self>,
         name: String,
         with_components:Array<Variant>,
-    ) -> Gd<_GlecsEntity> {
+    ) -> Gd<_GlecsBaseEntity> {
         let entity = this.bind_mut().world.entity();
 
         for component in with_components.iter_shared() {
-            let component_id = _GlecsWorld::_id_from_variant(
+            let component_id = _GlecsBaseWorld::_id_from_variant(
                 this.clone(),
                 component,
             );
-            _GlecsEntity::add_component_raw(
+            _GlecsBaseEntity::add_component_raw(
                 this.clone(),
                 entity.id(),
                 component_id,
@@ -109,7 +101,7 @@ impl _GlecsWorld {
         // Create Godot wrapper
         let this_clone = this.clone();
         let mut gd_entity = Gd::from_init_fn(|base| {
-            _GlecsEntity {
+            _GlecsBaseEntity {
                 base,
                 world: this_clone,
                 id: entity.id(),
@@ -128,7 +120,7 @@ impl _GlecsWorld {
         mut this: Gd<Self>,
         name: String,
         prefab: Gd<Script>,
-    ) -> Gd<_GlecsEntity> {
+    ) -> Gd<_GlecsBaseEntity> {
         let gd_entity = Self
             ::_new_entity(this.clone(), name, Array::default());
         let e_id = gd_entity.bind().get_flecs_id();
@@ -157,9 +149,9 @@ impl _GlecsWorld {
     fn _new_event_listener(
         this: Gd<Self>,
         event: Variant,
-    ) -> Gd<_GlecsSystemBuilder>{
+    ) -> Gd<_GlecsBaseSystemBuilder>{
         let event = Self::_id_from_variant(this.clone(), event);
-        let builder = _GlecsSystemBuilder::new(this);
+        let builder = _GlecsBaseSystemBuilder::new(this);
         let mut builder_clone = builder.clone();
         let mut builder_bind = builder_clone.bind_mut();
         builder_bind.observing_events = vec![event];
@@ -223,8 +215,8 @@ impl _GlecsWorld {
     }
 
     #[func(gd_self)]
-    fn _new_system(this: Gd<Self>, pipeline: Variant) -> Gd<_GlecsSystemBuilder> {
-        let mut builder = _GlecsSystemBuilder::new(this);
+    fn _new_system(this: Gd<Self>, pipeline: Variant) -> Gd<_GlecsBaseSystemBuilder> {
+        let mut builder = _GlecsBaseSystemBuilder::new(this);
         builder.bind_mut().pipeline = pipeline;
         builder
     }
@@ -257,12 +249,12 @@ impl _GlecsWorld {
         let id = match entity.get_type() {
             VTObject => {
                 if let Ok(e) =
-                    entity.try_to::<Gd<_GlecsEntity>>()
+                    entity.try_to::<Gd<_GlecsBaseEntity>>()
                 {
                     return e.bind().id
                 }
                 if let Ok(e) =
-                    entity.try_to::<Gd<_GlecsComponent>>()
+                    entity.try_to::<Gd<_GlecsBaseComponent>>()
                 {
                     return e.bind().component_definition.flecs_id
                 }
@@ -277,9 +269,9 @@ impl _GlecsWorld {
                     return e.bind().flecs_id
                 }
                 if let Ok(e) = entity.try_to::<Gd<Script>>() {
-                    let component_type = _GlecsComponent::class_name()
+                    let component_type = _GlecsBaseComponent::class_name()
                         .to_string_name();
-                    let entity_type = _GlecsEntity::class_name()
+                    let entity_type = _GlecsBaseEntity::class_name()
                         .to_string_name();
                     match e.get_instance_base_type() {
                         type_name if type_name == component_type => {
@@ -393,7 +385,7 @@ impl _GlecsWorld {
 
     pub(crate) fn new_observer_from_builder(
         this: Gd<Self>,
-        builder: &mut _GlecsSystemBuilder,
+        builder: &mut _GlecsBaseSystemBuilder,
         callable: Callable,
     ) {
         // Create contex
@@ -470,7 +462,7 @@ impl _GlecsWorld {
 
     pub(crate) fn new_system_from_builder(
         this: Gd<Self>,
-        builder: &mut _GlecsSystemBuilder,
+        builder: &mut _GlecsBaseSystemBuilder,
         callable: Callable,
     ) {
         let this_bound = this.bind();
@@ -658,7 +650,7 @@ impl _GlecsWorld {
 }
 
 #[godot_api]
-impl IObject for _GlecsWorld {
+impl IObject for _GlecsBaseWorld {
     fn init(base: Base<Object>) -> Self {
         let world = FlWorld::new();
         let mut gd_world = Self {
@@ -725,27 +717,27 @@ impl IObject for _GlecsWorld {
 
 #[derive(GodotClass)]
 #[class(base=Node)]
-pub struct _GlecsWorldNode {
+pub struct _GlecsBaseWorldNode {
     base: Base<Node>,
-    glecs_world: Gd<_GlecsWorld>,
+    glecs_world: Gd<_GlecsBaseWorld>,
 }
 #[godot_api]
-impl _GlecsWorldNode {
+impl _GlecsBaseWorldNode {
         /// Returns the name of the Script that was registered with the world.
         #[func]
         fn get_component_name(
             &self,
             script: Gd<Script>,
         ) -> StringName {
-            _GlecsWorld::get_component_name(&mut self.glecs_world.clone().bind_mut(), script)
+            _GlecsBaseWorld::get_component_name(&mut self.glecs_world.clone().bind_mut(), script)
         }
     
         #[func]
         fn _entity_from_flecs_id(
             &self,
             flecs_id: EntityId,
-        ) -> Gd<_GlecsEntity> {
-            _GlecsWorld::_entity_from_flecs_id(&mut self.glecs_world.clone().bind_mut(), flecs_id)
+        ) -> Gd<_GlecsBaseEntity> {
+            _GlecsBaseWorld::_entity_from_flecs_id(&mut self.glecs_world.clone().bind_mut(), flecs_id)
         }
     
         /// Creates a new entity in the world.
@@ -754,8 +746,8 @@ impl _GlecsWorldNode {
             &self,
             name: String,
             with_components:Array<Variant>,
-        ) -> Gd<_GlecsEntity> {
-            _GlecsWorld::_new_entity(self.glecs_world.clone(), name, with_components)
+        ) -> Gd<_GlecsBaseEntity> {
+            _GlecsBaseWorld::_new_entity(self.glecs_world.clone(), name, with_components)
         }
     
         /// Creates a new entity in the world. 
@@ -764,8 +756,8 @@ impl _GlecsWorldNode {
             &self,
             name: String,
             prefab: Gd<Script>,
-        ) -> Gd<_GlecsEntity> {
-            _GlecsWorld::new_entity_with_prefab(self.glecs_world.clone(), name, prefab)
+        ) -> Gd<_GlecsBaseEntity> {
+            _GlecsBaseWorld::new_entity_with_prefab(self.glecs_world.clone(), name, prefab)
 
         }
     
@@ -773,8 +765,8 @@ impl _GlecsWorldNode {
         fn _new_event_listener(
             &self,
             event: Variant,
-        ) -> Gd<_GlecsSystemBuilder>{
-            _GlecsWorld::_new_event_listener(self.glecs_world.clone(), event)
+        ) -> Gd<_GlecsBaseSystemBuilder>{
+            _GlecsBaseWorld::_new_event_listener(self.glecs_world.clone(), event)
         }
     
         #[func]
@@ -784,7 +776,7 @@ impl _GlecsWorldNode {
             &self,
             entity: Variant,
         ) -> EntityId {
-            _GlecsWorld::_id_from_variant(
+            _GlecsBaseWorld::_id_from_variant(
                 self.as_object().clone(),
                 entity,
             )
@@ -796,7 +788,7 @@ impl _GlecsWorldNode {
             identifier:Variant,
             extra_parameters: Array<Callable>,
         ) {
-            _GlecsWorld::_new_pipeline(
+            _GlecsBaseWorld::_new_pipeline(
                 this.bind().as_object().clone(),
                 identifier,
                 extra_parameters,
@@ -810,17 +802,17 @@ impl _GlecsWorldNode {
             pipeline:Variant,
             delta:f32,
         ) {
-            _GlecsWorld::run_pipeline(&mut self.glecs_world.clone().bind(), pipeline, delta)
+            _GlecsBaseWorld::run_pipeline(&mut self.glecs_world.clone().bind(), pipeline, delta)
         }
     
         #[func]
-        fn _new_system(&self, pipeline: Variant) -> Gd<_GlecsSystemBuilder> {
-            _GlecsWorld::_new_system(self.glecs_world.clone(), pipeline)
+        fn _new_system(&self, pipeline: Variant) -> Gd<_GlecsBaseSystemBuilder> {
+            _GlecsBaseWorld::_new_system(self.glecs_world.clone(), pipeline)
         }
     
         #[func]
         fn pair(&self, relation:Variant, target:Variant) -> i64 {
-            _GlecsWorld::pair(self.glecs_world.clone(), relation, target)
+            _GlecsBaseWorld::pair(self.glecs_world.clone(), relation, target)
 
         }
     
@@ -831,19 +823,19 @@ impl _GlecsWorldNode {
             &self,
             from:Variant,
         ) -> EntityId {
-            _GlecsWorld::_id_from_variant(self.glecs_world.clone(), from)
+            _GlecsBaseWorld::_id_from_variant(self.glecs_world.clone(), from)
         }
 
         #[func]
-        fn as_object(&self) -> Gd<_GlecsWorld> {
+        fn as_object(&self) -> Gd<_GlecsBaseWorld> {
             self.glecs_world.clone()
         }
 }
 #[godot_api]
-impl INode for _GlecsWorldNode {
+impl INode for _GlecsBaseWorldNode {
     fn init(base: Base<Node>) -> Self {
-        let mut glecs_world = Gd::<_GlecsWorld>
-            ::from_init_fn(_GlecsWorld::init);
+        let mut glecs_world = Gd::<_GlecsBaseWorld>
+            ::from_init_fn(_GlecsBaseWorld::init);
         
         glecs_world.set_script(load_world_obj_script());
         
@@ -869,13 +861,13 @@ pub(crate) struct ScriptSystemContext {
     /// The arguments passed to the system.
     system_args: Array<Variant>,
     /// Holds the accesses stored in `sysatem_args` for quicker access.
-    term_accesses: Box<[Gd<_GlecsComponent>]>,
+    term_accesses: Box<[Gd<_GlecsBaseComponent>]>,
     /// A list of getters for extra arguments in a pipeline.
     additional_arg_getters: Box<[Callable]>,
 } impl ScriptSystemContext {
     fn new(
         callable: Callable,
-        world: Gd<_GlecsWorld>,
+        world: Gd<_GlecsBaseWorld>,
         filter: &flecs::ecs_filter_desc_t,
         additional_arg_getters: Box<[Callable]>,
     ) -> Self {
@@ -891,7 +883,7 @@ pub(crate) struct ScriptSystemContext {
         ) };
 
         // Create component accesses
-        let mut tarm_accesses: Vec<Gd<_GlecsComponent>> = vec![];
+        let mut tarm_accesses: Vec<Gd<_GlecsBaseComponent>> = vec![];
         for term in raw_terms.iter() {
             // TODO: Handle different term operations
             match term.oper {
@@ -914,7 +906,7 @@ pub(crate) struct ScriptSystemContext {
                 ::from_instance_id(term_description.script_id);
 
             let mut compopnent_access = Gd::from_init_fn(|base| {
-                let base_comp = _GlecsComponent {
+                let base_comp = _GlecsBaseComponent {
                     base,
                     entity_id: 0, // ID should be changed by the system
                     world: world.clone(),

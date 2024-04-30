@@ -13,25 +13,25 @@ use crate::component_definitions::ComponetDefinition;
 use crate::component_definitions::ComponetProperty;
 use crate::entity::EntityLike;
 use crate::show_error;
-use crate::world::_GlecsWorld;
+use crate::world::_GlecsBaseWorld;
 use crate::Float;
 use crate::Int;
 
 /// An ECS component.
 #[derive(GodotClass)]
 #[class(base=RefCounted, no_init)]
-pub struct _GlecsComponent {
+pub struct _GlecsBaseComponent {
     pub(crate) base: Base<RefCounted>,
-    pub(crate) world: Gd<_GlecsWorld>,
+    pub(crate) world: Gd<_GlecsBaseWorld>,
     /// The ID that this component is attatached to.
     pub(crate) entity_id: EntityId,
     pub(crate) component_definition: Rc<ComponetDefinition>,
 }
 #[godot_api]
-impl _GlecsComponent {
+impl _GlecsBaseComponent {
     /// Copies the data from the given component to this one.
     #[func]
-    fn _copy_from_component(&mut self, from_component:Gd<_GlecsComponent>) {
+    fn _copy_from_component(&mut self, from_component:Gd<_GlecsBaseComponent>) {
         EntityLike::validate(self);
 
         if self.get_flecs_id() != from_component.bind().get_flecs_id() {
@@ -658,7 +658,7 @@ impl _GlecsComponent {
 
     // --- Hooks ---
 
-    pub(crate) fn set_hooks_in_component(world: &_GlecsWorld, componnet: EntityId) {
+    pub(crate) fn set_hooks_in_component(world: &_GlecsBaseWorld, componnet: EntityId) {
         let world_ptr = world.world.raw();
         unsafe { flecs::ecs_set_hooks_id(
             world_ptr,
@@ -698,7 +698,7 @@ impl _GlecsComponent {
             let data = unsafe {
                 NonNull::new_unchecked(counted_ptr as *mut u8)
             };
-            _GlecsComponent::init_component_data(
+            _GlecsBaseComponent::init_component_data(
                 data,
                 &comp_desc,
             );
@@ -727,7 +727,7 @@ impl _GlecsComponent {
             let data = unsafe {
                 NonNull::new_unchecked(counted_ptr as *mut u8)
             };
-            _GlecsComponent::deinit_component_data(
+            _GlecsBaseComponent::deinit_component_data(
                 data,
                 &comp_desc,
             );
@@ -769,7 +769,7 @@ impl _GlecsComponent {
 
             // Reset src so that the destructor does not attempt to deinit
             // the moved data
-            _GlecsComponent::init_component_data(
+            _GlecsBaseComponent::init_component_data(
                 unsafe { NonNull::new_unchecked(src.as_mut_ptr()) },
                 &comp_desc,
             );
@@ -812,8 +812,8 @@ impl _GlecsComponent {
     }
 }
 
-impl EntityLike for _GlecsComponent {
-    fn get_world(&self) -> Gd<_GlecsWorld> {
+impl EntityLike for _GlecsBaseComponent {
+    fn get_world(&self) -> Gd<_GlecsBaseWorld> {
         self.world.clone()
     }
 
@@ -880,7 +880,7 @@ impl EntityLike for _GlecsComponent {
 }
 
 #[godot_api]
-impl IObject for _GlecsComponent {
+impl IObject for _GlecsBaseComponent {
     fn get_property(&self, property: StringName) -> Option<Variant> {
         Some(self._get_property(property))
     }
@@ -890,7 +890,7 @@ impl IObject for _GlecsComponent {
     }
 }
 
-impl std::fmt::Debug for _GlecsComponent {
+impl std::fmt::Debug for _GlecsBaseComponent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("_GlecsComponent")
             .field("base", &self.base)
@@ -902,9 +902,9 @@ impl std::fmt::Debug for _GlecsComponent {
 
 pub(crate) struct HookContext {
     component_id: EntityId,
-    world: Gd<_GlecsWorld>,
+    world: Gd<_GlecsBaseWorld>,
 } impl HookContext {
-    pub(crate) fn new(world: Gd<_GlecsWorld>, component_id: EntityId) -> Self {
+    pub(crate) fn new(world: Gd<_GlecsBaseWorld>, component_id: EntityId) -> Self {
         Self {
             world,
             component_id

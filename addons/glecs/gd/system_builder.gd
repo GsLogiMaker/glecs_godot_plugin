@@ -1,5 +1,5 @@
 
-class_name GlecsSystemBuilder extends _GlecsSystemBuilder
+class_name GlecsSystemBuilder extends _GlecsBaseSystemBuilder
 
 
 func with(component: Variant, inout:=INOUT_MODE_DEFAULT) -> GlecsSystemBuilder:

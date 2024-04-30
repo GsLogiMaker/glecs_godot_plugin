@@ -2,7 +2,7 @@
 class_name Glecs
 
 
-class Component extends _GlecsComponent:
+class Component extends _GlecsBaseComponent:
 
 	static func _registered(world:Glecs.World) -> void:
 		pass
@@ -29,7 +29,7 @@ class Component extends _GlecsComponent:
 ## A reference to an entity.
 ##
 ## TODO: Explain conversions from Variant to Glecs.Entity
-class Entity extends _GlecsEntity:
+class Entity extends _GlecsBaseEntity:
 	
 	## Called when the script is registered with Glecs.
 	static func _registered(world:Glecs.World) -> void:
@@ -37,12 +37,12 @@ class Entity extends _GlecsEntity:
 
 	## Creates a new entity.
 	static func spawn(world:Glecs.World = null) -> Glecs.Entity:
-		return _GlecsEntity._spawn(world)
+		return _GlecsBaseEntity._spawn(world)
 	
 	## Creates a reference to an existing entity from the
 	## given [Variant].
 	static func from(entity:Variant, world:Glecs.World = null) -> Glecs.Entity:
-		return _GlecsEntity._from(entity, world)
+		return _GlecsBaseEntity._from(entity, world)
 
 	## Adds component data to this entity, with optional custom default value.
 	func add_component(component:Variant, default_value:Variant=null) -> void:
@@ -109,7 +109,7 @@ class Entity extends _GlecsEntity:
 		return _get_world()
 
 
-class World extends _GlecsWorld:
+class World extends _GlecsBaseWorld:
 
 	## Emitted when a component is added to an entity, before the entity gets set.
 	var ON_ADD_EVENT:= id_from_variant(&"flecs.on_add"):
@@ -146,7 +146,7 @@ class World extends _GlecsWorld:
 		return _new_entity(name, with_components)
 
 
-class WorldNode extends _GlecsWorldNode:
+class WorldNode extends _GlecsBaseWorldNode:
 
 	## Emitted when a component is added to an entity, before the entity gets set.
 	var ON_ADD_EVENT:= id_from_variant(&"flecs.on_add"):
