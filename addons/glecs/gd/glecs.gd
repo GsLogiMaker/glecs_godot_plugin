@@ -1,6 +1,18 @@
 
 class_name Glecs
 
+static var ON_ADD:= _GlecsBindings._flecs_on_add()
+static var ON_REMOVE:= _GlecsBindings._flecs_on_remove()
+static var ON_SET:= _GlecsBindings._flecs_on_set()
+static var UN_SET:= _GlecsBindings._flecs_un_set()
+static var MONITOR:= _GlecsBindings._flecs_monitor()
+static var ON_DELETE:= _GlecsBindings._flecs_on_delete()
+static var ON_TABLE_CREATE:= _GlecsBindings._flecs_on_table_create()
+static var ON_TABLE_DELETE:= _GlecsBindings._flecs_on_table_delete()
+static var ON_TABLE_EMPTY:= _GlecsBindings._flecs_on_table_empty()
+static var ON_TABLE_FILL:= _GlecsBindings._flecs_on_table_fill()
+static var PREFAB:= _GlecsBindings._flecs_prefab()
+static var IS_A:= _GlecsBindings._flecs_is_a()
 
 class Component extends _GlecsBaseComponent:
 
@@ -110,16 +122,7 @@ class Entity extends _GlecsBaseEntity:
 
 
 class World extends _GlecsBaseWorld:
-
-	## Emitted when a component is added to an entity, before the entity gets set.
-	var ON_ADD_EVENT:= id_from_variant(&"flecs.on_add"):
-		set(_v): return
-	## Emitted after a component's value changed.
-	var ON_SET_EVENT:= id_from_variant(&"flecs.on_set"):
-		set(_v): return
-	var PREFAB_TAG:= id_from_variant(&"flecs.prefab"):
-		set(_v): return
-
+	
 	var PROCESS_PIPELINE:= id_from_variant(&"glecs.process"):
 		set(_v): return
 	var PHYSICS_PROCESS_PIPELINE:= id_from_variant(&"glecs.physics_process"):
@@ -147,17 +150,6 @@ class World extends _GlecsBaseWorld:
 
 
 class WorldNode extends _GlecsBaseWorldNode:
-
-	## Emitted when a component is added to an entity, before the entity gets set.
-	var ON_ADD_EVENT:= id_from_variant(&"flecs.on_add"):
-		set(_v): return
-	## Emitted after a component's value changed.
-	var ON_SET_EVENT:= id_from_variant(&"flecs.on_set"):
-		set(_v): return
-	var PREFAB_TAG:= id_from_variant(&"flecs.prefab"):
-		set(_v): return
-	var IS_A_TAG:= id_from_variant(&"flecs.is_a"):
-		set(_v): return
 
 	var PROCESS_PIPELINE:= id_from_variant(&"glecs.process"):
 		set(_v): return

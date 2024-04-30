@@ -49,6 +49,7 @@ pub struct _GlecsBaseWorld {
 }
 #[godot_api]
 impl _GlecsBaseWorld {
+
     /// Returns the name of the Script that was registered with the world.
     #[func]
     fn get_component_name(
@@ -653,7 +654,7 @@ impl _GlecsBaseWorld {
 impl IObject for _GlecsBaseWorld {
     fn init(base: Base<Object>) -> Self {
         let world = FlWorld::new();
-        let mut gd_world = Self {
+        let gd_world = Self {
             base,
             world: world,
             components: Default::default(),
@@ -661,56 +662,6 @@ impl IObject for _GlecsBaseWorld {
             mapped_entities: Default::default(),
             pipelines: Default::default(),
         };
-
-        gd_world.mapped_entities.insert(
-            StringName::from("flecs.on_add").to_variant().into(),
-            unsafe { flecs::EcsOnAdd },
-        );
-        gd_world.mapped_entities.insert(
-            StringName::from("flecs.on_remove").to_variant().into(),
-            unsafe { flecs::EcsOnRemove },
-        );
-        gd_world.mapped_entities.insert(
-            StringName::from("flecs.on_set").to_variant().into(),
-            unsafe { flecs::EcsOnSet },
-        );
-        gd_world.mapped_entities.insert(
-            StringName::from("flecs.on_unset").to_variant().into(),
-            unsafe { flecs::EcsUnSet },
-        );
-        gd_world.mapped_entities.insert(
-            StringName::from("flecs.on_monitor").to_variant().into(),
-            unsafe { flecs::EcsMonitor },
-        );
-        gd_world.mapped_entities.insert(
-            StringName::from("flecs.on_delete").to_variant().into(),
-            unsafe { flecs::EcsOnDelete },
-        );
-        gd_world.mapped_entities.insert(
-            StringName::from("flecs.on_table_create").to_variant().into(),
-            unsafe { flecs::EcsOnTableCreate },
-        );
-        gd_world.mapped_entities.insert(
-            StringName::from("flecs.on_table_delete").to_variant().into(),
-            unsafe { flecs::EcsOnTableDelete },
-        );
-        gd_world.mapped_entities.insert(
-            StringName::from("flecs.on_table_empty").to_variant().into(),
-            unsafe { flecs::EcsOnTableEmpty },
-        );
-        gd_world.mapped_entities.insert(
-            StringName::from("flecs.on_table_fill").to_variant().into(),
-            unsafe { flecs::EcsOnTableFill },
-        );
-        gd_world.mapped_entities.insert(
-            StringName::from("flecs.prefab").to_variant().into(),
-            unsafe { flecs::EcsPrefab },
-        );
-        gd_world.mapped_entities.insert(
-            StringName::from("flecs.is_a").to_variant().into(),
-            unsafe { flecs::EcsIsA },
-        );
-
         gd_world
     }
 }

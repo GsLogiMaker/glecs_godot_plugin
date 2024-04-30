@@ -26,7 +26,7 @@ func test_prefab():
 			)
 			
 	var entity:= Glecs.Entity.spawn(world.as_object())
-	entity.add_entity(world.pair(world.IS_A_TAG, MyPrefab))
+	entity.add_entity(world.pair(Glecs.IS_A, MyPrefab))
 	
 	# Test inhereted componets exist entity
 	var foo:Foo = entity.get_component(Foo)
@@ -65,7 +65,7 @@ class MyPrefab extends Glecs.Entity:
 	
 	static func _registered(world:Glecs.World) -> void:
 		var p:= Glecs.Entity.from(MyPrefab, world)
-		p.add_entity(world.PREFAB_TAG)
+		p.add_entity(Glecs.PREFAB)
 		p.add_component(Foo, [true, 23, 2.33])
 		p.add_component(Bar, [Vector2(2, 1.1), 5.6])
 		

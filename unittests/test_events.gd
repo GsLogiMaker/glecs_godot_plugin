@@ -16,7 +16,7 @@ func after_all():
 func test_on_add_event():
 	i = 0
 	
-	world.new_event_listener(world.ON_ADD_EVENT) \
+	world.new_event_listener(Glecs.ON_ADD) \
 		.with(Ints) \
 		.for_each(func(_ints: Ints):
 			self.i += 1
@@ -38,7 +38,7 @@ func test_on_add_event():
 
 func test_on_add_event_with_objects():
 	i = 0
-	world.new_event_listener(world.ON_ADD_EVENT) \
+	world.new_event_listener(Glecs.ON_ADD) \
 		.with(Textures) \
 		.for_each(func(_ints: Textures):
 			self.i += 1
@@ -87,13 +87,13 @@ class Textures extends Glecs.Component:
 		set(v): setc(&"b", v)
 	
 	static func _registered(world:Glecs.World) -> void:
-		world.new_event_listener(world.ON_ADD_EVENT) \
+		world.new_event_listener(Glecs.ON_ADD) \
 			.with(Textures) \
 			.for_each(func(t: Textures):
 				prints("Added Textures", t.a, t.b)
 				)
 		
-		world.new_event_listener(world.ON_SET_EVENT) \
+		world.new_event_listener(Glecs.ON_SET) \
 			.with(Textures) \
 			.for_each(func(t: Textures):
 				prints("Set Textures", t.a, t.b)
