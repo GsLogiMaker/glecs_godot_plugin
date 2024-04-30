@@ -1,11 +1,11 @@
 
 extends GutTest
 
-var world:GlecsWorldNode
+var world:Glecs.WorldNode
 var i:= 0
 
 func before_all():
-	world = GlecsWorldNode.new()
+	world = Glecs.WorldNode.new()
 	add_child(world)
 
 func after_all():
@@ -66,7 +66,7 @@ func test_on_add_event_with_objects():
 
 #region Components
 
-class Ints extends GlecsComponent:
+class Ints extends Glecs.Component:
 	const _VAR_a:= 0
 	const _VAR_b:= 0
 	var a:int:
@@ -76,7 +76,7 @@ class Ints extends GlecsComponent:
 		get: return getc(&"b")
 		set(v): setc(&"b", v)
 
-class Textures extends GlecsComponent:
+class Textures extends Glecs.Component:
 	const _VAR_a:= null
 	const _VAR_b:= null
 	var a:Texture2D:
@@ -86,7 +86,7 @@ class Textures extends GlecsComponent:
 		get: return getc(&"b")
 		set(v): setc(&"b", v)
 	
-	static func _registered(world:GlecsWorld) -> void:
+	static func _registered(world:Glecs.World) -> void:
 		world.new_event_listener(world.ON_ADD_EVENT) \
 			.with(Textures) \
 			.for_each(func(t: Textures):

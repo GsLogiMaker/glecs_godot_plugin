@@ -1,0 +1,2 @@
+
+extends Glecs.WorldNode

@@ -1,5 +1,5 @@
 
-extends GlecsComponent
+extends Glecs.Component
 
 const DEFINE:= {
 	dict = TYPE_DICTIONARY,

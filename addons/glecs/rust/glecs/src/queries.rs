@@ -5,6 +5,11 @@ use godot::prelude::*;
 
 use crate::world::_GlecsWorld;
 
+pub(crate) fn load_system_builder_script() -> Variant {
+    load::<Script>("res://addons/glecs/gd/system_builder.gd")
+        .to_variant()
+}
+
 #[derive(Clone, Debug, Default)]
 pub(crate) enum BuildType {
     #[default]
@@ -40,10 +45,7 @@ impl _GlecsSystemBuilder {
                 observing_events: Default::default(),
             }
         });
-        gd.set_script(
-            load::<Script>("res://addons/glecs/gd/system_builder.gd")
-                .to_variant()
-        );
+        gd.set_script(load_system_builder_script());
         gd
     }
 

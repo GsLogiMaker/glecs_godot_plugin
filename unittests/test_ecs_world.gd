@@ -1,10 +1,10 @@
 
 extends GutTest
 
-var world:GlecsWorldNode = null
+var world: Glecs.WorldNode = null
 
 func before_all():
-	world = GlecsWorldNode.new()
+	world = Glecs.WorldNode.new()
 	add_child(world, true)
 
 func after_all():
@@ -17,7 +17,7 @@ func test_add_entity():
 	assert_null(null)
 	
 func test_world_deletion():
-	var w:= GlecsWorldNode.new()
+	var w:= Glecs.WorldNode.new()
 	
 	var e:= w.new_entity("Test", [Foo])
 	var foo:Foo = e.get_component(Foo)
@@ -63,5 +63,5 @@ func test_simple_system():
 	
 	assert_almost_eq(entity.get_component(Foo).getc(&"vec"), 2.67, 0.01)
 
-class Foo extends GlecsComponent:
+class Foo extends Glecs.Component:
 	const _VAR_vec:= 0.0

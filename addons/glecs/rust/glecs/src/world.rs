@@ -16,6 +16,7 @@ use godot::prelude::*;
 use crate::component::_GlecsComponent;
 use crate::component_definitions::ComponetDefinition;
 use crate::component_definitions::ComponetProperty;
+use crate::entity::load_entity_script;
 use crate::entity::EntityLike;
 use crate::entity::_GlecsEntity;
 use crate::event::_GlecsEvent;
@@ -26,6 +27,22 @@ use crate::queries::BuildType;
 use crate::queries::_GlecsSystemBuilder;
 use crate::show_error;
 use crate::TYPE_SIZES;
+
+pub(crate) fn load_world_obj_script() -> Variant {
+    load::<Script>("res://addons/glecs/gd/glecs.gd")
+        .get_script_constant_map()
+        .get("World")
+        .unwrap()
+        .to_variant()
+}
+
+pub(crate) fn load_world_node_script() -> Variant {
+    load::<Script>("res://addons/glecs/gd/glecs.gd")
+        .get_script_constant_map()
+        .get("WorldNode")
+        .unwrap()
+        .to_variant()
+}
 
 #[derive(GodotClass)]
 #[class(base=Object)]
@@ -100,9 +117,7 @@ impl _GlecsWorld {
         });
         
         gd_entity.set_name(name);
-        gd_entity.set_script(
-            load::<Script>("res://addons/glecs/gd/entity.gd").to_variant(),
-        );
+        gd_entity.set_script(load_entity_script());
         
         gd_entity
     }
@@ -830,9 +845,7 @@ impl INode for _GlecsWorldNode {
         let mut glecs_world = Gd::<_GlecsWorld>
             ::from_init_fn(_GlecsWorld::init);
         
-        glecs_world.set_script(
-            load::<Script>("res://addons/glecs/gd/world_obj.gd").to_variant()
-        );
+        glecs_world.set_script(load_world_obj_script());
         
         Self {
             base,

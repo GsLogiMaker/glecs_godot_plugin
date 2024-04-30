@@ -12,6 +12,13 @@ use crate::Int;
 use crate::show_error;
 use crate::world::_GlecsWorld;
 
+pub(crate) fn load_entity_script() -> Variant {
+    load::<Script>("res://addons/glecs/gd/glecs.gd")
+        .get_script_constant_map()
+        .get("Entity")
+        .unwrap()
+        .to_variant()
+}
 
 #[derive(GodotClass, Debug)]
 #[class(base=RefCounted, no_init)]
@@ -42,9 +49,7 @@ impl _GlecsEntity {
         let mut entity = Gd::from_init_fn(|base| {
             Self { base, id: entity_id, world }
         });
-        entity.set_script(
-            load::<Script>("res://addons/glecs/gd/entity.gd").to_variant(),
-        );
+        entity.set_script(load_entity_script());
         entity
     }
 
@@ -69,9 +74,7 @@ impl _GlecsEntity {
         let mut entity = Gd::from_init_fn(|base| {
             Self { base, id: entity_id, world }
         });
-        entity.set_script(
-            load::<Script>("res://addons/glecs/gd/entity.gd").to_variant(),
-        );
+        entity.set_script(load_entity_script());
         entity
     }
 
