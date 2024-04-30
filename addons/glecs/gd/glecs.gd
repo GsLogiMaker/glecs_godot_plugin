@@ -56,17 +56,18 @@ class Entity extends _GlecsBaseEntity:
 	static func from(entity:Variant, world:Glecs.World = null) -> Glecs.Entity:
 		return _GlecsBaseEntity._from(entity, world)
 
-	## Adds component data to this entity, with optional custom default value.
-	func add_component(component:Variant, default_value:Variant=null) -> void:
+	func add_component(component:Variant, default_value:Variant=null) -> Entity:
 		_add_component(component, default_value)
+		return self
 
 	## Returns a reference to a component.
 	func get_component(component:Variant) -> Glecs.Component:
 		return _get_component(component)
 
 	## Removes component data from this entity.
-	func remove_component(component: Variant) -> void:
+	func remove_component(component: Variant) -> Glecs.Entity:
 		_remove_component(component)
+		return self
 
 	## Deletes this entity from the ECS world.
 	##
@@ -76,16 +77,18 @@ class Entity extends _GlecsBaseEntity:
 		_delete()
 
 	## Adds an other entity as a tag or relationship to this entity.
-	func add_entity(tag: Variant) -> void:
+	func add_entity(tag: Variant) -> Entity:
 		_add_entity(tag)
+		return self
 
 	## Returns true if this entity has the given tag or relationship.
 	func has_entity(tag: Variant) -> bool:
 		return _has_entity(tag)
 
 	## Removes the given tag or relationship with this entity.
-	func remove_entity(tag: Variant) -> void:
+	func remove_entity(tag: Variant) -> Entity:
 		_remove_entity(tag)
+		return self
 
 	## Returns the ID of this entity according to its world.
 	func get_id() -> int:
@@ -96,16 +99,19 @@ class Entity extends _GlecsBaseEntity:
 		return _get_name()
 
 	## Sets the name of this entity.
-	func set_name(value: String) -> void:
+	func set_name(value: String) -> Entity:
 		_set_name(value)
+		return self
 
 	## Adds to this entity a relationship between the two given entites.
-	func add_relation(relation: Variant, with_entity: Variant) -> void:
+	func add_relation(relation: Variant, with_entity: Variant) -> Entity:
 		_add_relation(relation, with_entity)
+		return self
 
 	## Removes from this entity a relationship between the two given entites.
-	func remove_relation(relation: Variant, with_entity: Variant) -> void:
+	func remove_relation(relation: Variant, with_entity: Variant) -> Entity:
 		_remove_relation(relation, with_entity)
+		return self
 
 	## Returns true if this entity reference is valid.
 	##
