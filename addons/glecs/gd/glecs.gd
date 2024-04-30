@@ -77,11 +77,11 @@ class Entity extends _GlecsBaseEntity:
 	## var id = Glecs.PREFAB
 	## var entity = Glecs.Entity.from(id)
 	## [/codeblock]
-	## See also: [method spawn]
+	## See also: [method spawn], [method Glecs.World.id_from_variant]
 	static func from(entity: Variant, world: Glecs.World = null) -> Entity:
 		return _GlecsBaseEntity._from(entity, world)
 
-	## Adds component data to this entity, with an optional
+	## Adds [param component] data to this entity, with an optional
 	## [param default_value]. [br] [br]
 	##
 	## Example:
@@ -90,7 +90,8 @@ class Entity extends _GlecsBaseEntity:
 	## entity.add_component(MyComponent)
 	## [/codeblock]
 	## For more on components, see [Glecs.Component]. [br]
-	## See also: [method get_component], [method remove_component]
+	## See also: [method get_component], [method remove_component],
+	## [method Glecs.World.id_from_variant]
 	func add_component(component:Variant, default_value:Variant=null) -> Entity:
 		_add_component(component, default_value)
 		return self
@@ -99,18 +100,20 @@ class Entity extends _GlecsBaseEntity:
 	## 
 	## For more information on components, see: [Glecs.Component]. [br]
 	## See also: [method add_component], [method remove_component]
+	## , [method Glecs.World.id_from_variant]
 	func get_component(component:Variant) -> Component:
 		return _get_component(component)
 
-	## Removes component data from this entity. [br] [br]
+	## Removes [param component] data from this entity. [br] [br]
 	## 
 	## For more information on components, see [Glecs.Component]. [br]
-	## See also: [method add_component], [method has_component]
+	## See also: [method add_component], [method has_component],
+	## [method Glecs.World.id_from_variant]
 	func remove_component(component: Variant) -> Entity:
 		_remove_component(component)
 		return self
 
-	## Deletes this entity from the ECS world. [br] [br]
+	## Deletes this entity from its ECS world. [br] [br]
 	## 
 	## This method does not delete this [Glecs.Entity], which is
 	## a [RefCounted] object. The lifetime of an entity is completely separate
@@ -121,7 +124,7 @@ class Entity extends _GlecsBaseEntity:
 	func delete() -> void:
 		_delete()
 
-	## Adds an other entity as a tag or relationship to this entity. [br] [br]
+	## Adds a tag or relationship to this entity. [br] [br]
 	##
 	## Example:
 	## [codeblock]
@@ -131,7 +134,7 @@ class Entity extends _GlecsBaseEntity:
 	## entity.add_entity(my_tag)
 	## [/codeblock]
 	## See also: [method has_entity], [method remove_entity],
-	## [method add_relation]
+	## [method add_relation], [method Glecs.World.id_from_variant]
 	func add_entity(tag: Variant) -> Entity:
 		_add_entity(tag)
 		return self
@@ -147,11 +150,11 @@ class Entity extends _GlecsBaseEntity:
 	## assert(entity.has_entity(my_tag) == true)
 	## [/codeblock]
 	## See also: [method add_entity], [method remove_entity],
-	## [method has_relation]
+	## [method has_relation], [method Glecs.World.id_from_variant]
 	func has_entity(tag: Variant) -> bool:
 		return _has_entity(tag)
 
-	## Removes the given tag or relationship with this entity. [br] [br]
+	## Removes a tag or relationship with this entity. [br] [br]
 	##
 	## Example:
 	## [codeblock]
@@ -163,7 +166,7 @@ class Entity extends _GlecsBaseEntity:
 	## assert(entity.has_entity(my_tag) == false)
 	## [/codeblock]
 	## See also: [method add_entity], [method has_entity],
-	## [method remove_relation]
+	## [method remove_relation], [method Glecs.World.id_from_variant]
 	func remove_entity(tag: Variant) -> Entity:
 		_remove_entity(tag)
 		return self
@@ -194,7 +197,7 @@ class Entity extends _GlecsBaseEntity:
 	func get_name() -> String:
 		return _get_name()
 
-	## Sets the name of this entity. [br] [br]
+	## Sets the name of this entity to [param value]. [br] [br]
 	##
 	## Example:
 	## [codeblock]
@@ -220,7 +223,7 @@ class Entity extends _GlecsBaseEntity:
 	## assert(entity.has_relation(eats, apples) == true)
 	## [/codeblock]
 	## See also: [method has_relation], [method remove_relation],
-	## [method add_entity]
+	## [method add_entity], [method Glecs.World.id_from_variant]
 	func add_relation(relation: Variant, with_entity: Variant) -> Entity:
 		_add_relation(relation, with_entity)
 		return self
@@ -237,7 +240,7 @@ class Entity extends _GlecsBaseEntity:
 	## assert(entity.has_relation(eats, apples) == true)
 	## [/codeblock]
 	## See also: [method add_relation], [method remove_relation],
-	## [method has_entity]
+	## [method has_entity], [method Glecs.World.id_from_variant]
 	func has_relation(relation: Variant, with_entity: Variant) -> bool:
 		breakpoint # TODO: implement Glecs.Entity.has_relation
 		return false
@@ -255,7 +258,7 @@ class Entity extends _GlecsBaseEntity:
 	## assert(entity.has_relation(eats, apples) == true)
 	## [/codeblock]
 	## See also: [method add_relation], [method has_relation],
-	## [method remove_entity]
+	## [method remove_entity], [method Glecs.World.id_from_variant]
 	func remove_relation(relation: Variant, with_entity: Variant) -> Entity:
 		_remove_relation(relation, with_entity)
 		return self
@@ -299,6 +302,24 @@ class World extends _GlecsBaseWorld:
 	) -> GlecsSystemBuilder:
 		return _new_event_listener(event)
 
+	## Converts a [Variant] to an entity ID. [br] [br]
+	##
+	## How Variants are converts: [br]
+	## - [int]: No change. [br]
+	## - [float]: Converted to int. [br]
+	## - [Vector2i]: Interpreted as a pair. [br]
+	## - [Vector2]: Converted to integers, then interpreted as a pair. [br]
+	## - [String]: Finds entity by its name. [br]
+	## - [StringName]: Finds entity by its name. [br]
+	## - [Glecs.Entity]: Calls [method Glecs.Entity.get_id]. [br]
+	## - [Glecs.Component]: Throws exception for being too ambiguous. (Should
+	## 		it return the component type ID, or the ID of the
+	## 		entity its attached to?) [br]
+	## - [Script] extending [Glecs.Entity]: Returns the ID registered 
+	## 		with the world. [br]
+	## - [Script] extending [Glecs.Component]: Returns the ID registered 
+	## 		with the world. [br]
+	## - Everything else: Throws an exception.
 	func id_from_variant(entity: Variant) -> int:
 		return _id_from_variant(entity)
 
