@@ -32,7 +32,9 @@ pub struct _GlecsBaseEntity {
 #[godot_api]
 impl _GlecsBaseEntity {
     #[func]
-    fn _spawn(world: Option<Gd<_GlecsBaseWorld>>) -> Gd<Self> {
+    pub(crate) fn _spawn(
+        world: Option<Gd<_GlecsBaseWorld>>,
+    ) -> Gd<Self> {
         // Use a default world if world is none
         let world = match world {
             Some(w) => w,
@@ -54,7 +56,10 @@ impl _GlecsBaseEntity {
     }
 
     #[func]
-    fn _from(entity: Variant, world: Option<Gd<_GlecsBaseWorld>>) -> Gd<Self> {
+    pub(crate) fn _from(
+        entity: Variant,
+        world: Option<Gd<_GlecsBaseWorld>>,
+    ) -> Gd<Self> {
         // Use a default world if world is none
         let world = match world {
             Some(w) => w,

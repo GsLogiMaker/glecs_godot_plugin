@@ -13,18 +13,18 @@ func after_all():
 #region Tests
 
 func test_pipelines():
-	world.new_pipeline(&"1")
-	world.new_pipeline(&"2")
+	world.new_pipeline(&"first")
+	world.new_pipeline(&"second")
 	
 	var entity:= world.new_entity("Test", [Bools, Ints])
 	var ints:Ints = entity.get_component(Ints)
 	
-	world.new_system(&"1") \
+	world.new_system(&"first") \
 		.with(Ints) \
 		.for_each(func(x:Ints):
 			ints.a = 25
 			)
-	world.new_system(&"2") \
+	world.new_system(&"second") \
 		.with(Ints) \
 		.for_each(func(x:Ints):
 			ints.b = 50
@@ -34,7 +34,7 @@ func test_pipelines():
 	ints.b = 0
 	assert_eq(entity.get_component(Ints).a, 0)
 	assert_eq(entity.get_component(Ints).b, 0)
-	world.run_pipeline(&"1", 0.0)
+	world.run_pipeline(&"first", 0.0)
 	assert_eq(entity.get_component(Ints).a, 25)
 	assert_eq(entity.get_component(Ints).b, 0)
 	
@@ -42,7 +42,7 @@ func test_pipelines():
 	ints.b = 0
 	assert_eq(entity.get_component(Ints).a, 0)
 	assert_eq(entity.get_component(Ints).b, 0)
-	world.run_pipeline(&"2", 0.0)
+	world.run_pipeline(&"second", 0.0)
 	assert_eq(entity.get_component(Ints).a, 0)
 	assert_eq(entity.get_component(Ints).b, 50)
 	
@@ -58,9 +58,9 @@ func test_bools():
 	
 	var entity:= world.new_entity("Test", [Bools])
 	
-	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
-	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
-	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
+	world.run_pipeline(Glecs.PROCESS, 0.0)
+	world.run_pipeline(Glecs.PROCESS, 0.0)
+	world.run_pipeline(Glecs.PROCESS, 0.0)
 	
 	assert_eq(entity.get_component(Bools).a, true)
 	assert_eq(entity.get_component(Bools).b, false)
@@ -78,9 +78,9 @@ func test_ints():
 	var entity:= world.new_entity("Test", [Ints])
 	entity.get_component(Ints).b = 1
 	
-	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
-	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
-	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
+	world.run_pipeline(Glecs.PROCESS, 0.0)
+	world.run_pipeline(Glecs.PROCESS, 0.0)
+	world.run_pipeline(Glecs.PROCESS, 0.0)
 	
 	assert_eq(entity.get_component(Ints).a, 14)
 	
@@ -93,13 +93,15 @@ func test_floats():
 			x.b *= 2
 			x.a += x.b
 			)
+	get_process_delta_time()
+	get_physics_process_delta_time()
 	
 	var entity:= world.new_entity("Test", [Floats])
 	entity.get_component(Floats).b = 1.2
 	
-	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
-	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
-	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
+	world.run_pipeline(Glecs.PROCESS, 0.0)
+	world.run_pipeline(Glecs.PROCESS, 0.0)
+	world.run_pipeline(Glecs.PROCESS, 0.0)
 	
 	assert_almost_eq(entity.get_component(Floats).a, 16.8, 0.05)
 	
@@ -119,9 +121,9 @@ func test_strings():
 	assert_eq(strings.a, "")
 	assert_eq(strings.b, "po")
 	
-	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
-	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
-	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
+	world.run_pipeline(Glecs.PROCESS, 0.0)
+	world.run_pipeline(Glecs.PROCESS, 0.0)
+	world.run_pipeline(Glecs.PROCESS, 0.0)
 	
 	assert_eq(strings.a, "poempoemempoememem")
 	assert_eq(strings.b, "poememem")
@@ -140,9 +142,9 @@ func test_byte_arrays():
 	entity.get_component(ByteArrays).a = PackedByteArray([1, 2, 3])
 	entity.get_component(ByteArrays).b = PackedByteArray([2, 4, 3])
 	
-	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
-	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
-	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
+	world.run_pipeline(Glecs.PROCESS, 0.0)
+	world.run_pipeline(Glecs.PROCESS, 0.0)
+	world.run_pipeline(Glecs.PROCESS, 0.0)
 	
 	assert_eq(entity.get_component(ByteArrays).a, PackedByteArray([7, 14, 12]))
 	
@@ -165,9 +167,9 @@ func test_textures():
 	assert_eq(entity.get_component(Textures).b, null)
 	entity.get_component(Textures).b = load("res://icon.svg")
 	
-	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
-	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
-	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
+	world.run_pipeline(Glecs.PROCESS, 0.0)
+	world.run_pipeline(Glecs.PROCESS, 0.0)
+	world.run_pipeline(Glecs.PROCESS, 0.0)
 	
 	assert_eq(entity.get_component(Textures).a, load("res://icon.svg"))
 	assert_eq(entity.get_component(Textures).b, load("res://icon.svg"))
@@ -200,9 +202,9 @@ func test_arrays():
 	entity.get_component(Arrays).a = [23, 4, 6]
 	entity.get_component(Arrays).b = [1, 2, 1]
 	
-	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
-	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
-	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
+	world.run_pipeline(Glecs.PROCESS, 0.0)
+	world.run_pipeline(Glecs.PROCESS, 0.0)
+	world.run_pipeline(Glecs.PROCESS, 0.0)
 	
 	assert_eq(entity.get_component(Arrays).a, [23, 4, 6])
 	assert_eq(entity.get_component(Arrays).b, [70, 14, 19])
@@ -220,9 +222,9 @@ func test_dicts():
 	entity.get_component(Dicts).a = {"add_by": 5}
 	entity.get_component(Dicts).b = {"value": 2}
 	
-	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
-	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
-	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
+	world.run_pipeline(Glecs.PROCESS, 0.0)
+	world.run_pipeline(Glecs.PROCESS, 0.0)
+	world.run_pipeline(Glecs.PROCESS, 0.0)
 	
 	assert_eq(entity.get_component(Dicts).a, {"add_by":5})
 	assert_eq(entity.get_component(Dicts).b, {"value":17})

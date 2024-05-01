@@ -14,9 +14,12 @@ static var ON_TABLE_FILL:= _GlecsBindings._flecs_on_table_fill()
 static var PREFAB:= _GlecsBindings._flecs_prefab()
 static var IS_A:= _GlecsBindings._flecs_is_a()
 
+static var PROCESS:= 0
+static var PHYSICS_PROCESS:= 0
+
 class Component extends _GlecsBaseComponent:
 
-	static func _registered(world:Glecs.World) -> void:
+	static func _registered(world: Glecs.World) -> void:
 		pass
 
 	func copy_from_component(from_component: Glecs.Component) -> void:
@@ -28,7 +31,7 @@ class Component extends _GlecsBaseComponent:
 	func getc(property: StringName) -> Variant:
 		return _getc(property)
 		
-	func setc(property: StringName, value:Variant) -> void:
+	func setc(property: StringName, value: Variant) -> void:
 		return _setc(property, value)
 		
 	func delete() -> void:
@@ -292,10 +295,9 @@ class Entity extends _GlecsBaseEntity:
 
 class World extends _GlecsBaseWorld:
 	
-	var PROCESS_PIPELINE:= id_from_variant(&"glecs.process"):
-		set(_v): return
-	var PHYSICS_PROCESS_PIPELINE:= id_from_variant(&"glecs.physics_process"):
-		set(_v): return
+	func _init() -> void:
+		Glecs.PROCESS = id_from_variant("Glecs/process")
+		Glecs.PHYSICS_PROCESS = id_from_variant("Glecs/physics_process")
 
 	func new_event_listener(
 		event:Variant,
@@ -329,7 +331,7 @@ class World extends _GlecsBaseWorld:
 	) -> void:
 		_new_pipeline(identifier, additional_parameters)
 
-	func new_system(pipeline: Variant = PROCESS_PIPELINE) -> GlecsSystemBuilder:
+	func new_system(pipeline: Variant = Glecs.PROCESS) -> GlecsSystemBuilder:
 		return _new_system(pipeline)
 
 	func new_entity(name:String, with_components:Array[Variant]=[]) -> Glecs.Entity:
@@ -338,20 +340,11 @@ class World extends _GlecsBaseWorld:
 
 class WorldNode extends _GlecsBaseWorldNode:
 
-	var PROCESS_PIPELINE:= id_from_variant(&"glecs.process"):
-		set(_v): return
-	var PHYSICS_PROCESS_PIPELINE:= id_from_variant(&"glecs.physics_process"):
-		set(_v): return
-
-	func _ready() -> void:
-		new_pipeline(PROCESS_PIPELINE, [get_process_delta_time])
-		new_pipeline(PHYSICS_PROCESS_PIPELINE, [get_physics_process_delta_time])
-
 	func _process(delta: float) -> void:
-		run_pipeline(PROCESS_PIPELINE, delta)
+		run_pipeline(Glecs.PROCESS, delta)
 
 	func _physics_process(delta: float) -> void:
-		run_pipeline(PHYSICS_PROCESS_PIPELINE, delta)
+		run_pipeline(Glecs.PHYSICS_PROCESS, delta)
 
 	func new_event_listener(
 		event:Variant,
@@ -362,12 +355,12 @@ class WorldNode extends _GlecsBaseWorldNode:
 		return _id_from_variant(entity)
 
 	func new_pipeline(
-		identifier:Variant,
+		name: String,
 		additional_parameters:Array[Callable]=[],
-	) -> void:
-		_new_pipeline(identifier, additional_parameters)
+	) -> Entity:
+		return _new_pipeline(name, additional_parameters)
 
-	func new_system(pipeline: Variant = PROCESS_PIPELINE) -> GlecsSystemBuilder:
+	func new_system(pipeline: Variant = Glecs.PROCESS) -> GlecsSystemBuilder:
 		return _new_system(pipeline)
 
 	func new_entity(name:String, with_components:Array[Variant]=[]) -> Glecs.Entity:

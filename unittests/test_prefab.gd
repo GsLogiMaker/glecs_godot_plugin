@@ -42,7 +42,7 @@ func test_prefab():
 	assert_almost_eq(bar.b, 5.6, 0.001)
 
 	# Test process with inhereted components
-	world.run_pipeline(world.PROCESS_PIPELINE, 0.0)
+	world.run_pipeline(Glecs.PROCESS, 0.0)
 	assert_eq(foo.b, 24)
 	assert_almost_eq(foo.c, 3.63, 0.001)
 	assert_almost_eq(bar.a, Vector2(2+foo.c, 1.1+(foo.c*2)), Vector2(0.001, 0.001))

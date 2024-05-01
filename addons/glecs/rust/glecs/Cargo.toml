@@ -11,6 +11,7 @@ cc = "1.0.83"
 [dependencies]
 flecs = "0.1.4"
 godot = { git = "https://github.com/godot-rust/gdext", branch = "master" }
+cstr = "0.2.12"
 
 [patch.crates-io]
 flecs = {path = "../flecs-rs"}
