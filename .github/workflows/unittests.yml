@@ -1,0 +1,41 @@
+
+name: Run Unit Tests
+
+on:
+  push:
+    branches: [ "dev" ]
+  pull_request:
+    branches: [ "dev" ]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build Glecs
+    - run: cargo build --verbose \
+      --manifest-path \./addons/glecs/rust/glecs/Cargo.toml \
+      --features compile_bindings \
+      --target-dir ./addons/glecs/bin
+      
+    - name: Run Godot tests
+    - uses: croconut/godot-tester@v5.1
+    - with:
+        # Your Godot version number e.g. 3.2.2
+        version: 4.2.0 # default is 3.2.2
+        # Test against mono version? Default: false
+        is-mono: false # optional, default is false
+        # Decimal value for minimum passing score e.g. if 88% of tests pass and minimum-pass is 0.8, then action passes.
+        minimum-pass: 1.0 # optional, default is 0.99
+        # Directory containing Gut tests
+        test-dir: res://unittests # optional, default is res://test
+        # Maximum number of failing asserts or tests, if this or pass rate fails then the action will fail. Is not checked if you do not set it
+        max-fails: 0 # optional, default is false
+        # Filename to store and read results in XML
+        result-output-file: test_results.xml # optional, default is test_results.xml
+          
