@@ -10,18 +10,17 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  
+
 jobs:
   build:
 
     runs-on: ubuntu-latest
 
     steps:
-      name: Build Glecs
     - uses: actions/checkout@v4
-    - run: cargo build --verbose --manifest-path \./addons/glecs/rust/glecs/Cargo.toml --features compile_bindings --target-dir ./addons/glecs/bin
+    - name: Build Glecs
+      run: cargo build --verbose --manifest-path \./addons/glecs/rust/glecs/Cargo.toml --features compile_bindings --target-dir ./addons/glecs/bin
       
-      name: Run Godot tests
     - uses: croconut/godot-tester@v5.1
       with:
         # Your Godot version number e.g. 3.2.2
