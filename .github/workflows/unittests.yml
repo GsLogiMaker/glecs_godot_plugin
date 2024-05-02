@@ -16,13 +16,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      name: Build Glecs
     - uses: actions/checkout@v4
-    - name: Build Glecs
     - run: cargo build --verbose --manifest-path \./addons/glecs/rust/glecs/Cargo.toml --features compile_bindings --target-dir ./addons/glecs/bin
       
-    - name: Run Godot tests
+      name: Run Godot tests
     - uses: croconut/godot-tester@v5.1
-    - with:
+      with:
         # Your Godot version number e.g. 3.2.2
         version: 4.2.0 # default is 3.2.2
         # Test against mono version? Default: false
