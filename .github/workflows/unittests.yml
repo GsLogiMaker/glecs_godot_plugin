@@ -18,6 +18,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    - name: Initialize submodules
+      run: git submodule update --init --recursive
+
+    - uses: actions/checkout@v4
     - name: Build Glecs
       run: cargo build --verbose --manifest-path \./addons/glecs/rust/glecs/Cargo.toml --features compile_bindings --target-dir ./addons/glecs/bin
       
