@@ -28,7 +28,7 @@ jobs:
     - uses: croconut/godot-tester@v5.1
       with:
         # Your Godot version number e.g. 3.2.2
-        version: 4.2.0 # default is 3.2.2
+        version: 4.2 # default is 3.2.2
         # Test against mono version? Default: false
         is-mono: false # optional, default is false
         # Decimal value for minimum passing score e.g. if 88% of tests pass and minimum-pass is 0.8, then action passes.
