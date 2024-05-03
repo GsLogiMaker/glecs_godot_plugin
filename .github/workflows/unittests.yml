@@ -45,4 +45,4 @@ jobs:
         # max-fails: 0 # optional, default is false
         
         # Filename to store and read results in XML
-        result-output-file: unittest_log.xml # optional, default is test_results.
+        result-output-file: test_results.xml # optional, default is test_results.
