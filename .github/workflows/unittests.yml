@@ -33,7 +33,7 @@ jobs:
       uses: Vitorgus/Setup-Godot@v1.1.1
       with:
         # Godot version to download
-        godot-version: 4.2
+        godot-version: 4.2.0
         # If set to true, will download de mono version of Godot
         mono: false # optional
         # If set to false, will skip the default export templates download
