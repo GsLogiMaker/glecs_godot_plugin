@@ -28,6 +28,10 @@ jobs:
           --manifest-path \./addons/glecs/rust/glecs/Cargo.toml \
           --features compile_bindings \
           --target-dir ./addons/glecs/bin
+        cargo build --release --verbose \
+          --manifest-path \./addons/glecs/rust/glecs/Cargo.toml \
+          --features compile_bindings \
+          --target-dir ./addons/glecs/bin
       
     - uses: croconut/godot-tester@v5.1
       with:

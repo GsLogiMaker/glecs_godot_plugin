@@ -4,12 +4,14 @@ compatibility_minimum = 4.2
 reloadable = true
 
 [libraries]
-linux.debug.x86_64 = "./rust/glecs/target/debug/libglecs.so"
 
-linux.release.x86_64 = "./rust/godot_entities_ecs/target/release/libsuper_ecgds.so"
-windows.debug.x86_64 = "./rust/godot_entities_ecs/target/debug/super_ecgds.dll"
-windows.release.x86_64 = "./rust/godot_entities_ecs/target/release/super_ecgds.dll"
-macos.debug = "./rust/godot_entities_ecs/target/debug/libsuper_ecgds.dylib"
-macos.release = "./rust/godot_entities_ecs/target/release/libsuper_ecgds.dylib"
-macos.debug.arm64 = "./rust/godot_entities_ecs/target/debug/libsuper_ecgds.dylib"
-macos.release.arm64 = "./rust/godot_entities_ecs/target/release/libsuper_ecgds.dylib"
+linux.release.x86_64 = "./bin/release/libglecs.so"
+linux.debug.x86_64 = "./bin/debug/libglecs.so"
+
+windows.release.x86_64 = "./bin/release/libglecs.dll"
+windows.debug.x86_64 = "./bin/debug/libglecs.dll"
+
+macos.release.x86_64 = "./bin/release/libglecs.dylib"
+macos.debug.x86_64 = "./bin/debug/libglecs.dylib"
+macos.release.arm64 = "./bin/release/libglecs.dylib"
+macos.debug.arm64 = "./bin/debug/libglecs.dylib"
