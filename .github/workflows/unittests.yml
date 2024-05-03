@@ -46,3 +46,7 @@ jobs:
         
         # Filename to store and read results in XML
         result-output-file: test_results.xml # optional, default is test_results.
+
+    - name: Print top files
+      if: always()
+      run: ls
