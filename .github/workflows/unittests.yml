@@ -12,26 +12,23 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  unittests_linux_x86_64:
 
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
     - name: Initialize submodules
       run: git submodule update --init --recursive
 
     - uses: actions/checkout@v4
     - name: Build Glecs
       run: |
-        cargo build --verbose \
-          --manifest-path \./addons/glecs/rust/glecs/Cargo.toml \
-          --features compile_bindings \
-          --target-dir ./addons/glecs/bin
         cargo build --release --verbose \
           --manifest-path \./addons/glecs/rust/glecs/Cargo.toml \
           --features compile_bindings \
           --target-dir ./addons/glecs/bin
+        
+        cp ./addons/glecs/bin/release ./addons/glecs/bin/debug -r
       
     - uses: croconut/godot-tester@v5.1
       with:
