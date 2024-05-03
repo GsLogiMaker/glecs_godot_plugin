@@ -29,30 +29,16 @@ jobs:
           --features compile_bindings \
           --target-dir ./addons/glecs/bin
       
-    - name: List Dir Pre
-      run:
-        ls
-          
-
-    - uses: croconut/godot-tester@v5.1
+    - name: Setup Godot
+      uses: Vitorgus/Setup-Godot@v1.1.1
       with:
-        # Your Godot version number e.g. 3.2.2
-        version: 4.2 # default is 3.2.2
-        # Test against mono version? Default: false
-        is-mono: false # optional, default is false
-        # Decimal value for minimum passing score e.g. if 88% of tests pass and minimum-pass is 0.8, then action passes.
-        minimum-pass: 1.0 # optional, default is 0.99
-        # Directory containing Gut tests
-        test-dir: res://unittests # optional, default is res://test
-        
-        # Maximum number of failing asserts or tests, if this or pass rate fails then the action will fail. Is not checked if you do not set it
-        # max-fails: 0 # optional, default is false
-        
-        # Filename to store and read results in XML
-        result-output-file: unittest_log.xml # optional, default is test_results.
-        config-file: "res://.gut_editor_config.json"
-        
-    - name: List Dir Post
-      run:
-        ls
+        # Godot version to download
+        godot-version: 4.2
+        # If set to true, will download de mono version of Godot
+        mono: false # optional
+        # If set to false, will skip the default export templates download
+        download-templates: false # optional, default is true
           
+    - name: Run tests
+      run:
+        godot --headless -s res://addons/gut/gut_cmdln.gd -gdir="res://unittests/" -gexit
