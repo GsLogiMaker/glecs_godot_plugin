@@ -1,4 +1,7 @@
 
+# Compiled binaries
+addons/glecs/bin/
+
 # Ignore rust files
 addons/glecs/rust/flecs-rs/target
 addons/glecs/rust/flecs-rs/Cargo.lock

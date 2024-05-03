@@ -16,7 +16,7 @@
  "ignore_pause": false,
  "include_subdirs": true,
  "inner_class": null,
- "junit_xml_file": "",
+ "junit_xml_file": "/home/gabrielschwab/Documents/godot4_projects/glecs_plugin_dev/unittest_log.xml",
  "junit_xml_timestamp": false,
  "log_level": 1,
  "opacity": 100,
@@ -26,7 +26,7 @@
   "font_size": 30,
   "hide_output_text": false,
   "hide_result_tree": false,
-  "hide_settings": true,
+  "hide_settings": false,
   "output_font_name": "CourierPrime",
   "output_font_size": 30,
   "use_colors": false
@@ -34,12 +34,12 @@
  "post_run_script": "",
  "pre_run_script": "",
  "prefix": "test_",
- "selected": "test_simple_systems.gd",
+ "selected": null,
  "should_exit": false,
  "should_exit_on_success": false,
  "should_maximize": false,
  "show_help": false,
  "suffix": ".gd",
  "tests": [],
- "unit_test_name": "test_pipelines"
+ "unit_test_name": null
 }
