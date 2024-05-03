@@ -1,17 +1,9 @@
 
-# Ignore rust files
-/rust/flecs-rs
-rust/godot_entities_ecs/.vscode
-rust/godot_entities_ecs/src
+# Ignore residual files in bin
+/bin/*/*/
+/bin/*/*.d
+/bin/*/.cargo-lock
+/bin/.rustc_info.json
 
-rust/godot_entities_ecs/target/*/.fingerprint
-rust/godot_entities_ecs/target/*/build
-rust/godot_entities_ecs/target/*/deps
-rust/godot_entities_ecs/target/*/examples
-rust/godot_entities_ecs/target/*/incremental
-rust/godot_entities_ecs/target/*.TAG
-rust/godot_entities_ecs/target/*.json
-rust/godot_entities_ecs/target/*/.cargo-lock
-rust/godot_entities_ecs/target/*/*.d
-rust/godot_entities_ecs/Cargo.lock
-rust/godot_entities_ecs/Cargo.toml
+# Ignore Rust source code
+/rust
