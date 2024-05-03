@@ -50,5 +50,5 @@ jobs:
     - name: Print top files
       if: always()
       run: |
-        apt install tree
+        sudo apt install tree
         tree ../ -L 3
