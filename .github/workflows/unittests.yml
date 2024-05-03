@@ -49,4 +49,6 @@ jobs:
 
     - name: Print top files
       if: always()
-      run: ls
+      run: |
+        apt install tree
+        tree ../ -L 3
