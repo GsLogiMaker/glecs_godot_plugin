@@ -6,6 +6,7 @@ edition = "2021"
 [features]
 default = ["compile_bindings"]
 compile_bindings = []
+godot_release = []
 
 [build-dependencies]
 bindgen = "0.68.1"
@@ -20,6 +21,10 @@ cstr = "0.2.12"
 ['cfg(compile_bindings)'.dependencies]
 flecs = { version = "0.1.4", features = ["export_bindings"] }
 
+[profile.release]
+strip = true
+lto = true
+opt-level = "z"
 
 [patch.crates-io]
 flecs = {path = "../flecs-rs"}
