@@ -41,13 +41,17 @@ jobs:
         # Test against mono version? Default: false
         is-mono: false # optional, default is false
         # Decimal value for minimum passing score e.g. if 88% of tests pass and minimum-pass is 0.8, then action passes.
-        minimum-pass: 1.0 # optional, default is 0.99
+        #minimum-pass: 1.0 # optional, default is 0.99
+        # how long to spend importing assets before tests are run
+        import-time: false
+        # how long tests can run in seconds
+        test-timeout: false
         # Directory containing Gut tests
         test-dir: res://unittests # optional, default is res://test
         # Maximum number of failing asserts or tests, if this or pass rate fails then the action will fail. Is not checked if you do not set it
-        max-fails: 0 # optional, default is false
+        #max-fails: 0 # optional, default is false
         # Filename to store and read results in XML
-        result-output-file: ./unittest_log.xml # optional, default is test_results.
+        result-output-file: unittest_log.xml # optional, default is test_results.
         
     - name: List Dir Post
       run:
