@@ -47,7 +47,7 @@ jobs:
         # Maximum number of failing asserts or tests, if this or pass rate fails then the action will fail. Is not checked if you do not set it
         max-fails: 0 # optional, default is false
         # Filename to store and read results in XML
-        result-output-file: unittest_log.xml # optional, default is test_results.
+        result-output-file: ./unittest_log.xml # optional, default is test_results.
         
     - name: List Dir Post
       run:
