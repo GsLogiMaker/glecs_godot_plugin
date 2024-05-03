@@ -17,10 +17,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - uses: actions/checkout@v4
     - name: Initialize submodules
       run: git submodule update --init --recursive
 
-    - uses: actions/checkout@v4
     - name: Build Glecs
       run: |
         cargo build --release --verbose \
