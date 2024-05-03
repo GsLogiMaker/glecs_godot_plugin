@@ -23,8 +23,17 @@ jobs:
 
     - uses: actions/checkout@v4
     - name: Build Glecs
-      run: cargo build --verbose --manifest-path \./addons/glecs/rust/glecs/Cargo.toml --features compile_bindings --target-dir ./addons/glecs/bin
+      run: |
+        cargo build --verbose \
+          --manifest-path \./addons/glecs/rust/glecs/Cargo.toml \
+          --features compile_bindings \
+          --target-dir ./addons/glecs/bin
       
+    - name: List Dir Pre
+      run:
+        ls
+          
+
     - uses: croconut/godot-tester@v5.1
       with:
         # Your Godot version number e.g. 3.2.2
@@ -38,5 +47,9 @@ jobs:
         # Maximum number of failing asserts or tests, if this or pass rate fails then the action will fail. Is not checked if you do not set it
         max-fails: 0 # optional, default is false
         # Filename to store and read results in XML
-        result-output-file: unittest_log.xml # optional, default is test_results.xml
+        result-output-file: unittest_log.xml # optional, default is test_results.
+        
+    - name: List Dir Post
+      run:
+        ls
           
