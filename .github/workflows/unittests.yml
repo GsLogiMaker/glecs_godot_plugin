@@ -29,6 +29,7 @@ jobs:
           --target-dir ./addons/glecs/bin
         
         cp ./addons/glecs/bin/release ./addons/glecs/bin/debug -r
+        touch test_results.xml
       
     - uses: croconut/godot-tester@v5.1
       with:
