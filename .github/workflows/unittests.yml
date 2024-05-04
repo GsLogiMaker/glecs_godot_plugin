@@ -25,14 +25,16 @@ jobs:
       with:
         workspaces: "./addons/glecs/rust/glecs"
 
-    - name: Build Glecs
+    - name: Update Rust
+      run: |
+        rustup update
+
+    - name: Build Rust code
       run: |
         cargo build \
           --manifest-path ./addons/glecs/rust/glecs/Cargo.toml \
           --features compile_bindings \
           --target-dir ./addons/glecs/bin
-        
-        tree ~/ -L 3
         cp ./addons/glecs/bin/debug ./addons/glecs/bin/release -r
     
     - uses: chickensoft-games/setup-godot@v1
@@ -66,8 +68,8 @@ jobs:
     #     result-output-file: test_results.xml # optional, default is test_results.
     #     config-file: "res://.gutconf.json"
 
-    - name: Print top files
-      if: always()
-      run: |
-        sudo apt install tree
-        tree ../../ -L 5 -a
+    # - name: Print top files
+    #   if: always()
+    #   run: |
+    #     sudo apt install tree
+    #     tree ../../ -L 5 -a
