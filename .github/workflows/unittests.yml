@@ -28,7 +28,6 @@ jobs:
           --features compile_bindings \
           --target-dir ./addons/glecs/bin
         
-        touch test_results.xml
         tree ./ -L 3
         cp ./addons/glecs/bin/debug ./addons/glecs/bin/release -r
       
