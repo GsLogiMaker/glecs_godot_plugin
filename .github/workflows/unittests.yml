@@ -29,7 +29,7 @@ jobs:
           --target-dir ./addons/glecs/bin
         
         touch test_results.xml
-        tree ../../ -L 3
+        tree ./ -L 3
         cp ./addons/glecs/bin/debug ./addons/glecs/bin/release -r
       
     - uses: croconut/godot-tester@v5.1
@@ -48,10 +48,29 @@ jobs:
         minimum-pass: 1.0 # optional, default is 0.99
         # Directory containing Gut tests
         test-dir: res://unittests # optional, default is res://test
-        
         # Maximum number of failing asserts or tests, if this or pass rate fails then the action will fail. Is not checked if you do not set it
         max-fails: 1 # optional, default is false
-        
+        # Filename to store and read results in XML
+        result-output-file: test_results.xml # optional, default is test_results.
+
+    - uses: croconut/godot-tester@v5.1
+      with:
+        # Your Godot version number e.g. 3.2.2
+        version: 4.2 # default is 3.2.2
+        # Test against mono version? Default: false
+        is-mono: false # optional, default is false
+        # the folder with your project.godot file in it
+        path: ""
+        # how long to spend importing assets before tests are run
+        import-time: "5"
+        # how long tests can run in seconds
+        test-timeout: "45"
+        # Decimal value for minimum passing score e.g. if 88% of tests pass and minimum-pass is 0.8, then action passes.
+        minimum-pass: 1.0 # optional, default is 0.99
+        # Directory containing Gut tests
+        test-dir: res://unittests # optional, default is res://test
+        # Maximum number of failing asserts or tests, if this or pass rate fails then the action will fail. Is not checked if you do not set it
+        max-fails: 1 # optional, default is false
         # Filename to store and read results in XML
         result-output-file: test_results.xml # optional, default is test_results.
 
