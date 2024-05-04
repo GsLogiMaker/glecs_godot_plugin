@@ -31,7 +31,8 @@ jobs:
         tree ~/ -L 3
         cp ./addons/glecs/bin/debug ./addons/glecs/bin/release -r
       
-    - uses: croconut/godot-tester@v5.1
+    # - uses: croconut/godot-tester@v5.1
+    - uses: GsLogiMaker/godot-tester@vmaster
       with:
         # Your Godot version number e.g. 3.2.2
         version: 4.2 # default is 3.2.2
@@ -53,4 +54,4 @@ jobs:
       if: always()
       run: |
         sudo apt install tree
-        tree ../../ -L 5
+        tree ../../ -L 5 -a
