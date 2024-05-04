@@ -17,12 +17,12 @@ func test_prefab():
 	world.new_system() \
 		.with(Foo) \
 		.with(Bar) \
-		.for_each(func(_delta:float, foo:Foo, bar:Bar):
-			foo.b += 1
-			foo.c += 1.3
-			bar.a.x += foo.c
-			bar.a.y += foo.c * 2
-			bar.b = PI
+		.for_each(func(_delta:float, f:Foo, b:Bar):
+			f.b += 1
+			f.c += 1.3
+			b.a.x += f.c
+			b.a.y += f.c * 2
+			b.b = PI
 			)
 			
 	var entity:= Glecs.Entity.spawn(world.as_object())
@@ -53,13 +53,17 @@ func test_prefab():
 #region Components
 
 class Foo extends Glecs.Component:
-	const _VAR_a:= false
-	const _VAR_b:= 0
-	const _VAR_c:= 0.0
+	static func _get_members() -> Dictionary: return {
+		a = false,
+		b = 0,
+		c = 0.0,
+	}
 
 class Bar extends Glecs.Component:
-	const _VAR_a:= Vector2.ZERO
-	const _VAR_b:= 0.0
+	static func _get_members() -> Dictionary: return {
+		a = Vector2.ZERO,
+		b = 0.0,
+	}
 	
 class MyPrefab extends Glecs.Entity:
 	

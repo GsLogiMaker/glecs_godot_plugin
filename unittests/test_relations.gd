@@ -16,7 +16,7 @@ func test_bools():
 	# TODO: Query for relations
 	world.new_system().for_each(func(_delta): pass)
 	var apple:= world.new_entity("Apple", [])
-	var eats:= world.new_entity("Eats", [])
+	world.new_entity("Eats", [])
 	
 	var man:= world.new_entity("Man", [])
 	man.add_relation("Eats", apple)
@@ -36,7 +36,9 @@ func test_bools():
 #region Components
 
 class Bools extends Glecs.Component:
-	const _VAR_a:= false
-	const _VAR_b:= false
+	static func _get_members() -> Dictionary: return {
+		a = false,
+		b = false,
+	}
 
 #endregion

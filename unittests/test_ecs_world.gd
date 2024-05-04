@@ -64,4 +64,6 @@ func test_simple_system():
 	assert_almost_eq(entity.get_component(Foo).getc(&"vec"), 2.67, 0.01)
 
 class Foo extends Glecs.Component:
-	const _VAR_vec:= 0.0
+	static func _get_members() -> Dictionary: return {
+		vec = 0.0,
+	}

@@ -18,39 +18,36 @@ pub(crate) struct ComponetDefinition {
     pub(crate) script_id: InstanceId,
     pub(crate) layout: Layout,
 } impl ComponetDefinition {
-    pub const PROPERTY_PREFIX:&'static str = "_VAR_";
-
     pub(crate) fn new(
-        mut component: Gd<Script>,
+        component: Gd<Script>,
         world: &mut _GlecsBaseWorld,
     ) -> Self {
+        
         // Assemble component properties
+        let members_map = Callable::from_object_method(
+            &component,
+            "_get_members",
+        ).callv(Array::default()).to::<Dictionary>();
         let mut component_properties = Vec::default();
         let mut offset = 0;
-        for (key, value) in component.get_script_constant_map().iter_shared() {
-            let key = key.to::<GString>();
-            let mut key_string = key.to_string();
-
-            if !(key_string.starts_with(Self::PROPERTY_PREFIX)) {
-                // Key is not a component variable definition
-                continue
-            }
-            if key.len() == Self::PROPERTY_PREFIX.len() {
-                // Key does not contain a variable name
-                continue
-            }            
-
-            let property_name = StringName::from(key_string.split_off(
-                Self::PROPERTY_PREFIX.len()
-            ));
+        for (key, value) in members_map.iter_shared() {
             let mut property_type = value.get_type();
             if property_type == VariantType::Nil {
                 property_type = VariantType::Object;
             }
 
+            let name = match key.get_type() {
+                VariantType::String => StringName::from(key.to::<String>()),
+                VariantType::StringName => key.to::<StringName>(),
+                _ => panic!(
+                    "Expected component member name to be a String or StringName, but got \"{}\"",
+                    key,
+                ),
+            };
+
             component_properties.push(
                 ComponetProperty {
-                    name: property_name,
+                    name,
                     gd_type_id: property_type,
                     offset,
                 },
@@ -60,6 +57,7 @@ pub(crate) struct ComponetDefinition {
         }
 
         // Assemble definition
+        let property_count = component_properties.len();
         let name = component.to_string();
         let layout = _GlecsBaseWorld::layout_from_properties(&component_properties);
         let comp_id = world.world
@@ -73,10 +71,12 @@ pub(crate) struct ComponetDefinition {
         };
 
         // Settup hooks
-        _GlecsBaseComponent::set_hooks_in_component(
-            world,
-            comp_id,
-        );
+        if property_count != 0 {
+            _GlecsBaseComponent::set_hooks_in_component(
+                world,
+                comp_id,
+            );
+        }
 
         component_def
     }
@@ -95,13 +95,15 @@ pub(crate) struct ComponetDefinition {
 
     pub(crate) fn get_property_default_value(
         &self,
-        property: impl std::fmt::Display,
+        property: Variant,
     ) -> Variant {
-        let mut script = Gd::<Script>::from_instance_id(self.script_id);
-        let key = format!("{}{}", Self::PROPERTY_PREFIX, property);
-        script.get_script_constant_map()
-            .get(key)
-            .unwrap()
+        let script = Gd::<Script>::from_instance_id(self.script_id);
+        let members_map = Callable::from_object_method(
+            &script,
+            "_get_members",
+        ).callv(Array::default()).to::<Dictionary>();
+        
+        members_map.get(property).unwrap()
     }
 
 }

@@ -20,23 +20,6 @@ pub struct _GlecsPrefab {
 }
 #[godot_api]
 impl _GlecsPrefab {
-	#[func]
-	fn add_component(
-		&mut self,
-		component: Variant,
-        data: Variant,
-	) -> Option<Gd<_GlecsBaseComponent>>{
-		EntityLike::add_component(self, component, data)
-	}
-}
-impl EntityLike for _GlecsPrefab {
-    fn get_world(&self) -> Gd<_GlecsBaseWorld> {
-        self.world.clone()
-    }
-
-    fn get_flecs_id(&self) -> EntityId {
-        self.flecs_id
-    }
 }
 
 

@@ -26,8 +26,8 @@ func test_world_deletion():
 	var e2:= w.new_entity("Test", [Foo])
 	var foo2:= e2.get_component(Foo)
 	
-	foo.setc(&"vec", 24.3)
-	foo2.setc(&"vec", 125.1)
+	foo.set_value(Vector2(24.3, 2.1))
+	foo2.set_value(Vector2(125.1, 3.3))
 	
 	e2.free()
 	assert_eq(e2.is_valid(), false)
@@ -89,7 +89,9 @@ func test_default_values():
 
 
 class Foo extends Glecs.Component:
-	const _VAR_value:= Vector2.ZERO
+	static func _get_members() -> Dictionary: return {
+		value = Vector2.ZERO
+	}
 	
 	func get_value() -> Vector2:
 		return getc(&"value")
@@ -103,6 +105,12 @@ class WithDefaults extends Glecs.Component:
 	const _VAR_string:= "Hello world!"
 	const _VAR_script:= WithDefaults
 	
+	static func _get_members() -> Dictionary: return {
+		int = 25,
+		string = "Hello world!",
+		script = WithDefaults,
+	}
+	
 	func get_int() -> int:
 		return getc(&"int")
 	func get_string() -> String:
@@ -112,8 +120,10 @@ class WithDefaults extends Glecs.Component:
 
 
 class RegisterationA extends Glecs.Component:
-	const _VAR_value:= 0.0
-	const _VAR_result:= 0.0
+	static func _get_members() -> Dictionary: return {
+		value = 0.0,
+		result = 0.0,
+	}
 	
 	func get_value() -> float:
 		return getc(&"value")
@@ -134,8 +144,11 @@ class RegisterationA extends Glecs.Component:
 
 
 class RegisterationB extends Glecs.Component:
-	const _VAR_value:= 0.0
-	const _VAR_result:= 0.0
+	
+	static func _get_members() -> Dictionary: return {
+		value = 0.0,
+		result = 0.0,
+	}
 	
 	func get_value() -> float:
 		return getc(&"value")

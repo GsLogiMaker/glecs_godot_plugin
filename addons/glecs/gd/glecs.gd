@@ -28,6 +28,9 @@ static var PHYSICS_PROCESS:= 0
 
 class Component extends _GlecsBaseComponent:
 
+	static func _get_members() -> Dictionary:
+		return {}
+
 	static func _registered(world: Glecs.World) -> void:
 		pass
 

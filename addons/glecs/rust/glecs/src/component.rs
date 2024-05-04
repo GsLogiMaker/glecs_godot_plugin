@@ -125,14 +125,14 @@ impl _GlecsBaseComponent {
                             // Parameter is wrong type, get value
                             // from component's default
                             def.get_property_default_value(
-                                property_meta.name.clone(),
+                                property_meta.name.to_variant(),
                             )
                         };
                         value
                     } else {
                         // Get value from component's default
                         def.get_property_default_value(
-                            property_meta.name.clone(),
+                            property_meta.name.to_variant(),
                         )
                     };
 
@@ -145,7 +145,7 @@ impl _GlecsBaseComponent {
             VariantType::Nil => {
                 for property_meta in def.parameters.iter() {
                     let default = def.get_property_default_value(
-                        property_meta.name.clone(),
+                        property_meta.name.to_variant(),
                     );
                     let nonnull_data = unsafe {
                         NonNull::new_unchecked(data.as_mut_ptr())
@@ -394,7 +394,7 @@ impl _GlecsBaseComponent {
     ) {
         for p in comp_def.parameters.iter() {
             let initial_value = comp_def
-                .get_property_default_value(p.name.clone());
+                .get_property_default_value(p.name.to_variant());
             Self::init_property_data(comp_data, initial_value, p);
         }
     }
@@ -831,15 +831,16 @@ impl EntityLike for _GlecsBaseComponent {
 
     fn is_valid(&self) -> bool{
         // Check world
-        let world_gd = self.get_world();
-        if !world_gd.is_instance_valid() {
+        if !self.world.is_instance_valid() {
             // World was deleted
             return false;
         }
 
+        let world_bind = self.world.bind();
+
         // Check master entity
         if !unsafe { flecs::ecs_is_alive(
-            world_gd.bind().raw(),
+            world_bind.raw(),
             self.entity_id,
         ) } {
             // Master entity was deleted
@@ -848,7 +849,7 @@ impl EntityLike for _GlecsBaseComponent {
 
         // Check component
         if !unsafe { flecs::ecs_is_alive(
-            world_gd.bind().raw(),
+            world_bind.raw(),
             self.component_definition.flecs_id,
         ) } {
             // Component was deleted
@@ -857,7 +858,7 @@ impl EntityLike for _GlecsBaseComponent {
 
         // Check that the entity has this component attached
         if !unsafe { flecs::ecs_has_id(
-            self.world.bind().raw(),
+            world_bind.raw(),
             self.entity_id,
             self.component_definition.flecs_id,
         ) } {

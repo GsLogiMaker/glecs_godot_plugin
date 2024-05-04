@@ -35,7 +35,7 @@ pub struct _GlecsBaseSystemBuilder {
 impl _GlecsBaseSystemBuilder {
     pub(crate) fn new(world:Gd<_GlecsBaseWorld>) -> Gd<Self> {
         let mut gd = Gd::from_init_fn(|base| {
-            _GlecsBaseSystemBuilder {
+            let builder = _GlecsBaseSystemBuilder {
                 base,
                 pipeline: Variant::nil(),
                 world,
@@ -43,7 +43,8 @@ impl _GlecsBaseSystemBuilder {
                 terms: Default::default(),
                 build_type: Default::default(),
                 observing_events: Default::default(),
-            }
+            };
+            builder
         });
         gd.set_script(load_system_builder_script());
         gd

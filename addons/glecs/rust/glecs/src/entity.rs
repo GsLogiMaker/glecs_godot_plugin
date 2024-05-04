@@ -196,6 +196,24 @@ impl IRefCounted for _GlecsBaseEntity {
     }
 }
 impl EntityLike for _GlecsBaseEntity {
+    fn is_valid(&self) -> bool {
+        if !self.world.is_instance_valid() {
+            // World was deleted
+            return false;
+        }
+
+        let flecs_id = self.get_flecs_id();
+        if !unsafe { flecs::ecs_is_alive(
+            self.world.bind().raw(),
+            flecs_id,
+        ) } {
+            // Entity was deleted
+            return false
+        }
+
+        return true;
+    }
+
     fn get_world(&self) -> Gd<_GlecsBaseWorld> {
         self.world.clone()
     }
@@ -205,6 +223,10 @@ impl EntityLike for _GlecsBaseEntity {
     }
 }
  impl EntityLike for Gd<_GlecsBaseEntity> {
+    fn is_valid(&self) -> bool {
+        return self.bind().is_valid();
+    }
+
     fn get_world(&self) -> Gd<_GlecsBaseWorld> {
         let world = self.bind()._get_world();
         world
@@ -217,27 +239,9 @@ impl EntityLike for _GlecsBaseEntity {
 }
 
 pub(crate) trait EntityLike: Debug {
+    fn is_valid(&self) -> bool;
     fn get_world(&self) -> Gd<_GlecsBaseWorld>;
     fn get_flecs_id(&self) -> EntityId;
-
-    fn is_valid(&self) -> bool {
-        let world_gd = self.get_world();
-        if !world_gd.is_instance_valid() {
-            // World was deleted
-            return false;
-        }
-
-        let flecs_id = self.get_flecs_id();
-        if !unsafe { flecs::ecs_is_alive(
-            world_gd.bind().raw(),
-            flecs_id,
-        ) } {
-            // Entity was deleted
-            return false
-        }
-
-        return true;
-    }
 
     fn add_component(
         &mut self,

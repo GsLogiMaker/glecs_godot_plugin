@@ -22,12 +22,12 @@ func test_pipelines():
 	world.new_system(&"first") \
 		.with(Ints) \
 		.for_each(func(x:Ints):
-			ints.a = 25
+			x.a = 25
 			)
 	world.new_system(&"second") \
 		.with(Ints) \
 		.for_each(func(x:Ints):
-			ints.b = 50
+			x.b = 50
 			)
 	
 	ints.a = 0
@@ -236,8 +236,10 @@ func test_dicts():
 #region Components
 
 class Bools extends Glecs.Component:
-	const _VAR_a:= false
-	const _VAR_b:= false
+	static func _get_members() -> Dictionary: return {
+		a = false,
+		b = false,
+	}
 	var a:bool:
 		get: return getc(&"a")
 		set(v): setc(&"a", v)
@@ -246,8 +248,10 @@ class Bools extends Glecs.Component:
 		set(v): setc(&"b", v)
 
 class Ints extends Glecs.Component:
-	const _VAR_a:= 0
-	const _VAR_b:= 0
+	static func _get_members() -> Dictionary: return {
+		a = 0,
+		b = 0,
+	}
 	var a:int:
 		get: return getc(&"a")
 		set(v): setc(&"a", v)
@@ -256,8 +260,10 @@ class Ints extends Glecs.Component:
 		set(v): setc(&"b", v)
 
 class Floats extends Glecs.Component:
-	const _VAR_a:= 0.0
-	const _VAR_b:= 0.0
+	static func _get_members() -> Dictionary: return {
+		a = 0.0,
+		b = 0.0,
+	}
 	var a:float:
 		get: return getc(&"a")
 		set(v): setc(&"a", v)
@@ -266,8 +272,10 @@ class Floats extends Glecs.Component:
 		set(v): setc(&"b", v)
 
 class Strings extends Glecs.Component:
-	const _VAR_a:= ""
-	const _VAR_b:= ""
+	static func _get_members() -> Dictionary: return {
+		a = "",
+		b = "",
+	}
 	var a:String:
 		get: return getc(&"a")
 		set(v): setc(&"a", v)
@@ -276,8 +284,10 @@ class Strings extends Glecs.Component:
 		set(v): setc(&"b", v)
 
 class ByteArrays extends Glecs.Component:
-	const _VAR_a:PackedByteArray = []
-	const _VAR_b:PackedByteArray = []
+	static func _get_members() -> Dictionary: return {
+		a = PackedByteArray([]),
+		b = PackedByteArray([]),
+	}
 	var a:PackedByteArray:
 		get: return getc(&"a")
 		set(v): setc(&"a", v)
@@ -286,8 +296,10 @@ class ByteArrays extends Glecs.Component:
 		set(v): setc(&"b", v)
 
 class Textures extends Glecs.Component:
-	const _VAR_a:Texture2D = null
-	const _VAR_b:Texture2D = null
+	static func _get_members() -> Dictionary: return {
+		a = null,
+		b = null,
+	}
 	var a:Texture2D:
 		get: return getc(&"a")
 		set(v): setc(&"a", v)
@@ -296,8 +308,10 @@ class Textures extends Glecs.Component:
 		set(v): setc(&"b", v)
 
 class RefCounts extends Glecs.Component:
-	const _VAR_a:RefCounted = null
-	const _VAR_b:RefCounted = null
+	static func _get_members() -> Dictionary: return {
+		a = null,
+		b = null,
+	}
 	var a:RefCounted:
 		get: return getc(&"a")
 		set(v): setc(&"a", v)
@@ -306,8 +320,10 @@ class RefCounts extends Glecs.Component:
 		set(v): setc(&"b", v)
 
 class Arrays extends Glecs.Component:
-	const _VAR_a:= []
-	const _VAR_b:= []
+	static func _get_members() -> Dictionary: return {
+		a = [],
+		b = [],
+	}
 	var a:Array:
 		get: return getc(&"a")
 		set(v): setc(&"a", v)
@@ -316,8 +332,10 @@ class Arrays extends Glecs.Component:
 		set(v): setc(&"b", v)
 
 class Dicts extends Glecs.Component:
-	const _VAR_a:= {}
-	const _VAR_b:= {}
+	static func _get_members() -> Dictionary: return {
+		a = {},
+		b = {},
+	}
 	var a:Dictionary:
 		get: return getc(&"a")
 		set(v): setc(&"a", v)

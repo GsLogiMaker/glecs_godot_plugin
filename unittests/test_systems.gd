@@ -16,8 +16,8 @@ func after_all():
 func test_stuff():
 	world.new_system(&"test_pipeline") \
 		.with(Bools) \
-		.for_each(func(bools:Bools):
-			bools.b = bools.a
+		.for_each(func(boo:Bools):
+			boo.b = boo.a
 			)
 	
 	var e:= world.new_entity("Test", [Bools])
@@ -39,8 +39,10 @@ func test_stuff():
 #region Components
 
 class Bools extends Glecs.Component:
-	const _VAR_a:= false
-	const _VAR_b:= false
+	static func _get_members() -> Dictionary: return {
+		a = false,
+		b = false,
+	}
 	var a:bool:
 		get: return getc(&"a")
 		set(v): setc(&"a", v)
