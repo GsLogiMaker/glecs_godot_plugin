@@ -21,34 +21,50 @@ jobs:
     - name: Initialize submodules
       run: git submodule update --init --recursive
 
+    - uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: "./addons/glecs/rust/glecs"
+
     - name: Build Glecs
       run: |
-        cargo build --verbose \
+        cargo build \
           --manifest-path ./addons/glecs/rust/glecs/Cargo.toml \
           --features compile_bindings \
           --target-dir ./addons/glecs/bin
         
         tree ~/ -L 3
         cp ./addons/glecs/bin/debug ./addons/glecs/bin/release -r
+    
+    - uses: chickensoft-games/setup-godot@v1
+      name: Setup Godot
+      with:
+        # Version must include major, minor, and patch, and be >= 4.0.0
+        # Pre-release label is optional.
+        version: 4.2.1
+
+    - name: Run unittests
+      run: |
+        godot4 -s res://addons/gut/gut_cmdln.gd --headless -gdir res://unittests -gexit
+          
       
     # - uses: croconut/godot-tester@v5.1
-    - uses: GsLogiMaker/godot-tester@master
-      with:
-        # Your Godot version number e.g. 3.2.2
-        version: 4.2 # default is 3.2.2
-        # Test against mono version? Default: false
-        is-mono: false # optional, default is false
-        # the folder with your project.godot file in it
-        path: ""
-        # Decimal value for minimum passing score e.g. if 88% of tests pass and minimum-pass is 0.8, then action passes.
-        minimum-pass: 1.0 # optional, default is 0.99
-        # Directory containing Gut tests
-        test-dir: res://unittests # optional, default is res://test
-        # Maximum number of failing asserts or tests, if this or pass rate fails then the action will fail. Is not checked if you do not set it
-        max-fails: 1 # optional, default is false
-        # Filename to store and read results in XML
-        result-output-file: test_results.xml # optional, default is test_results.
-        config-file: "res://.gutconf.json"
+    # - uses: GsLogiMaker/godot-tester@master
+    #   with:
+    #     # Your Godot version number e.g. 3.2.2
+    #     version: 4.2 # default is 3.2.2
+    #     # Test against mono version? Default: false
+    #     is-mono: false # optional, default is false
+    #     # the folder with your project.godot file in it
+    #     path: ""
+    #     # Decimal value for minimum passing score e.g. if 88% of tests pass and minimum-pass is 0.8, then action passes.
+    #     minimum-pass: 1.0 # optional, default is 0.99
+    #     # Directory containing Gut tests
+    #     test-dir: res://unittests # optional, default is res://test
+    #     # Maximum number of failing asserts or tests, if this or pass rate fails then the action will fail. Is not checked if you do not set it
+    #     max-fails: 1 # optional, default is false
+    #     # Filename to store and read results in XML
+    #     result-output-file: test_results.xml # optional, default is test_results.
+    #     config-file: "res://.gutconf.json"
 
     - name: Print top files
       if: always()
