@@ -30,6 +30,7 @@ jobs:
         
         cp ./addons/glecs/bin/release ./addons/glecs/bin/debug -r
         touch test_results.xml
+        ls
       
     - uses: croconut/godot-tester@v5.1
       with:
@@ -52,7 +53,7 @@ jobs:
         max-fails: 1 # optional, default is false
         
         # Filename to store and read results in XML
-        result-output-file: test_results # optional, default is test_results.
+        result-output-file: test_results.xml # optional, default is test_results.
 
     - name: Print top files
       if: always()
