@@ -24,6 +24,7 @@ jobs:
     - uses: Swatinem/rust-cache@v2
       with:
         workspaces: "./addons/glecs/rust/glecs"
+        cache-on-failure: true
 
     - name: Update Rust
       run: |
@@ -43,10 +44,11 @@ jobs:
         # Version must include major, minor, and patch, and be >= 4.0.0
         # Pre-release label is optional.
         version: 4.2.1
+        mono: false
 
     - name: Run Godot import
       run: |
-        godot --headless --editor addons gut .cli_support __rebuilder_scene.tscn
+        godot --headless --editor ./addons/gut/.cli_support/__rebuilder_scene.tscn
 
     - name: Run unittests
       run: |
