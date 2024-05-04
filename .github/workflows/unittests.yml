@@ -32,7 +32,7 @@ jobs:
         cp ./addons/glecs/bin/debug ./addons/glecs/bin/release -r
       
     # - uses: croconut/godot-tester@v5.1
-    - uses: GsLogiMaker/godot-tester@vmaster
+    - uses: GsLogiMaker/godot-tester@master
       with:
         # Your Godot version number e.g. 3.2.2
         version: 4.2 # default is 3.2.2
