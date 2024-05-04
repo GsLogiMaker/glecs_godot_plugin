@@ -28,7 +28,7 @@ jobs:
           --features compile_bindings \
           --target-dir ./addons/glecs/bin
         
-        tree ./ -L 3
+        tree ~/ -L 3
         cp ./addons/glecs/bin/debug ./addons/glecs/bin/release -r
       
     - uses: croconut/godot-tester@v5.1
