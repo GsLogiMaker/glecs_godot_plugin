@@ -23,5 +23,10 @@ text = "Run unit tests"
 layout_mode = 2
 text = "Play Asteroids example"
 
+[node name="ComposeRelease" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Compose Release"
+
 [connection signal="pressed" from="VBoxContainer/RunTests" to="." method="_on_run_tests_pressed"]
 [connection signal="pressed" from="VBoxContainer/PlayAsteroids" to="." method="_on_play_asteroids_pressed"]
+[connection signal="pressed" from="VBoxContainer/ComposeRelease" to="." method="_on_compose_release_pressed"]

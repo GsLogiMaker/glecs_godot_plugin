@@ -52,8 +52,8 @@ jobs:
         max-fails: 1 # optional, default is false
         # Filename to store and read results in XML
         result-output-file: test_results.xml # optional, default is test_results.
-        config-file: "res://.gut_editor_config.json" 
-        
+        direct-scene: "addons/gut/gui/GutRunner.tscn"
+
     - name: Print top files
       if: always()
       run: |
