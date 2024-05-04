@@ -16,7 +16,7 @@
  "ignore_pause": false,
  "include_subdirs": true,
  "inner_class": null,
- "junit_xml_file": "test_results.xml",
+ "junit_xml_file": "res://test_results.xml",
  "junit_xml_timestamp": false,
  "log_level": 1,
  "opacity": 100,

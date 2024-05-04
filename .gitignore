@@ -15,7 +15,7 @@ addons/glecs/.vscode/settings.json
 # Ignore Godot files
 .godot
 
-.gut_editor_config.json
+
 addons/gut/gui/GutSceneTheme.tres
 unittest_log.xml
 test_results.xml
