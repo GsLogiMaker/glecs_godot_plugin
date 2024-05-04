@@ -12,6 +12,10 @@
 # ------------------------------------------------------------------------------
 extends SceneTree
 
+static var _l = (func():
+	prints(" --- LOAD INIT --- ")
+	).call()
+
 var Optparse = load('res://addons/gut/optparse.gd')
 var Gut = load('res://addons/gut/gut.gd')
 var GutRunner = load('res://addons/gut/gui/GutRunner.tscn')
@@ -298,7 +302,6 @@ func _on_tests_finished(should_exit, should_exit_on_success):
 # MAIN
 # ------------------------------------------------------------------------------
 func _init():
-	prints(" --- IN INIT --- ")
 	var max_iter = 20
 	var iter = 0
 
