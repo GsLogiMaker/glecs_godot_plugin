@@ -46,7 +46,7 @@ jobs:
 
     - name: Run unittests
       run: |
-        godot4 -s res://addons/gut/gut_cmdln.gd --headless -gdir res://unittests -gexit
+        godot -s res://addons/gut/gut_cmdln.gd --headless -gdir res://unittests -gexit
           
       
     # - uses: croconut/godot-tester@v5.1
