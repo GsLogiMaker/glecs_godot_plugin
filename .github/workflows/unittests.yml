@@ -28,9 +28,9 @@ jobs:
           --features compile_bindings \
           --target-dir ./addons/glecs/bin
         
-        cp ./addons/glecs/bin/debug ./addons/glecs/bin/release -r
         touch test_results.xml
-        ls
+        tree ../../ -L 3
+        cp ./addons/glecs/bin/debug ./addons/glecs/bin/release -r
       
     - uses: croconut/godot-tester@v5.1
       with:
