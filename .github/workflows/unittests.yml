@@ -51,4 +51,4 @@ jobs:
       if: always()
       run: |
         sudo apt install tree
-        tree ../ -L 3
+        tree ../../ -L 5
