@@ -44,6 +44,10 @@ jobs:
         # Pre-release label is optional.
         version: 4.2.1
 
+    - name: Run Godot import
+      run: |
+        godot --headless --editor addons gut .cli_support __rebuilder_scene.tscn
+
     - name: Run unittests
       run: |
         godot -s res://addons/gut/gut_cmdln.gd --headless -gdir res://unittests -gexit
