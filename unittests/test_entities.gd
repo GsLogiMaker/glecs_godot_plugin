@@ -1,10 +1,10 @@
 
 extends GutTest
 
-var world:Glecs.WorldNode = null
+var world:GlecsWorldNode = null
 
 func before_all():
-	world = Glecs.WorldNode.new()
+	world = GlecsWorldNode.new()
 	add_child(world, true)
 
 func after_all():
@@ -13,7 +13,7 @@ func after_all():
 #region Tests
 
 func test_component_get_and_set():
-	var e:Glecs.Entity = world.new_entity("Test", [Foo])
+	var e:GlecsEntity = world.new_entity("Test", [Foo])
 	
 	var foo:Foo = e.get_component(Foo)
 	assert_almost_eq(foo.value, 0.0, 0.01)
@@ -22,7 +22,7 @@ func test_component_get_and_set():
 	assert_almost_eq(foo.value, 2.3, 0.01)
 
 func test_component_string_get_and_set():
-	var e:Glecs.Entity = world.new_entity("Test", [Stringy])
+	var e:GlecsEntity = world.new_entity("Test", [Stringy])
 	
 	var foo:Stringy = e.get_component(Stringy)
 	foo.a = "po"
@@ -35,19 +35,19 @@ func test_component_string_get_and_set():
 	assert_eq(foo.b, "em")
 
 func test_new_entity_with_unregistered_component():
-	var e:Glecs.Entity = world.new_entity("Test", [Unregistered])
+	var e:GlecsEntity = world.new_entity("Test", [Unregistered])
 	assert_eq(e.get_component(Unregistered).value, 0)
 
 func test_creating_entity_by_new():
 	# Test that an entity is invalidated by being deleted
-	var e:= Glecs.Entity.spawn(world.as_object())
+	var e:= GlecsEntity.spawn(world.as_object())
 	assert_eq(e.is_valid(), true)
 	e.delete()
 	assert_eq(e.is_valid(), false)
 	
 	# Test that an entity is invalidated by its world being deleted
-	var w:= Glecs.World.new()
-	var e2:= Glecs.Entity.spawn(w)
+	var w:= GlecsWorldObject.new()
+	var e2:= GlecsEntity.spawn(w)
 	assert_eq(e2.is_valid(), true)
 	w.free()
 	assert_eq(e2.is_valid(), false)
@@ -55,12 +55,12 @@ func test_creating_entity_by_new():
 func test_entity_from():
 	var id:= 0
 	if true:
-		var tmp_entity = Glecs.Entity.spawn(world.as_object())
+		var tmp_entity = GlecsEntity.spawn(world.as_object())
 		tmp_entity.set_name(&"Cool Name")
 		id = tmp_entity.get_id()
 	assert_ne(id, 0)
 	
-	var e:= Glecs.Entity.from(id, world.as_object())
+	var e:= GlecsEntity.from(id, world.as_object())
 	assert_ne(e, null)
 	assert_eq(e.get_name(), &"Cool Name")
 
@@ -68,7 +68,7 @@ func test_entity_from():
 
 #region Classes
 
-class Foo extends Glecs.Component:
+class Foo extends GlecsComponent:
 	static func _get_members() -> Dictionary: return {
 		value = 0.0,
 	}
@@ -76,7 +76,7 @@ class Foo extends Glecs.Component:
 		get: return getc(&"value")
 		set(v): setc(&"value", v)
 
-class Stringy extends Glecs.Component:
+class Stringy extends GlecsComponent:
 	static func _get_members() -> Dictionary: return {
 		a = "",
 		b = "",
@@ -88,7 +88,7 @@ class Stringy extends Glecs.Component:
 		get: return getc(&"b")
 		set(v): setc(&"b", v)
 
-class Unadded extends Glecs.Component:
+class Unadded extends GlecsComponent:
 	static func _get_members() -> Dictionary: return {
 		value = 0,
 	}
@@ -96,7 +96,7 @@ class Unadded extends Glecs.Component:
 		get: return getc(&"value")
 		set(v): setc(&"value", v)
 
-class Unregistered extends Glecs.Component:
+class Unregistered extends GlecsComponent:
 	static func _get_members() -> Dictionary: return {
 		value = 0,
 	}

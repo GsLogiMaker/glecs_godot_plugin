@@ -13,10 +13,7 @@ use crate::show_error;
 use crate::world::_GlecsBaseWorld;
 
 pub(crate) fn load_entity_script() -> Variant {
-    load::<Script>("res://addons/glecs/gd/glecs.gd")
-        .get_script_constant_map()
-        .get("Entity")
-        .unwrap()
+    load::<Script>("res://addons/glecs/gd/entity.gd")
         .to_variant()
 }
 

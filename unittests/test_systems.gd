@@ -1,10 +1,10 @@
 
 extends GutTest
 
-var world:Glecs.WorldNode
+var world:GlecsWorldNode
 
 func before_all():
-	world = Glecs.WorldNode.new()
+	world = GlecsWorldNode.new()
 	add_child(world)
 	world.new_pipeline(&"test_pipeline")
 
@@ -38,7 +38,7 @@ func test_stuff():
 
 #region Components
 
-class Bools extends Glecs.Component:
+class Bools extends GlecsComponent:
 	static func _get_members() -> Dictionary: return {
 		a = false,
 		b = false,

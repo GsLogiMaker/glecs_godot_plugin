@@ -49,7 +49,7 @@ func new_pipeline(
 func new_system(pipeline: Variant = PROCESS_PIPELINE) -> GlecsSystemBuilder:
 	return _new_system(pipeline)
 
-func new_entity(name:String, with_components:Array[Variant]=[]) -> Glecs.Entity:
+func new_entity(name:String, with_components:Array[Variant]=[]) -> GlecsEntity:
 	return _new_entity(name, with_components)
 	
 "

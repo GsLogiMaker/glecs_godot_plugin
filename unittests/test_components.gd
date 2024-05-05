@@ -1,10 +1,10 @@
 
 extends GutTest
 
-var world:Glecs.WorldNode = null
+var world:GlecsWorldNode = null
 
 func before_all():
-	world = Glecs.WorldNode.new()
+	world = GlecsWorldNode.new()
 	add_child(world, true)
 
 
@@ -20,7 +20,7 @@ func test_add_entity():
 
 
 func test_world_deletion():
-	var w:= Glecs.WorldNode.new()
+	var w:= GlecsWorldNode.new()
 	var e:= w.new_entity("Test", [Foo])
 	var foo:= e.get_component(Foo)
 	var e2:= w.new_entity("Test", [Foo])
@@ -44,7 +44,7 @@ func test_world_deletion():
 	
 
 func test_registeration():
-	var w:= Glecs.WorldNode.new()
+	var w:= GlecsWorldNode.new()
 	add_child(w)
 	
 	var e:= w.new_entity("Test", [RegisterationA, RegisterationB])
@@ -53,8 +53,8 @@ func test_registeration():
 	e.get_component(RegisterationB).set_value(11)
 	
 	# A system defined in RegistrationA's _registered function should run
-	# on Glecs.WorldNode's process pipeline
-	await get_tree().process_frame # Skip this frame (We are already past the trigger for Glecs.WorldNode's process pipeline)
+	# on GlecsWorldNode's process pipeline
+	await get_tree().process_frame # Skip this frame (We are already past the trigger for GlecsWorldNode's process pipeline)
 	await get_tree().process_frame # Pipeline process runs first time this frame
 	
 	assert_almost_eq(e.get_component(RegisterationA).get_result(), 14.0, .001)
@@ -79,7 +79,7 @@ func test_simple_system():
 
 
 func test_default_values():
-	var w:= Glecs.WorldNode.new()
+	var w:= GlecsWorldNode.new()
 	var e:= w.new_entity("Test", [WithDefaults])
 	assert_eq(e.get_component(WithDefaults).get_int(), WithDefaults._VAR_int)
 	assert_eq(e.get_component(WithDefaults).get_string(), WithDefaults._VAR_string)
@@ -88,7 +88,7 @@ func test_default_values():
 	w.queue_free()
 
 
-class Foo extends Glecs.Component:
+class Foo extends GlecsComponent:
 	static func _get_members() -> Dictionary: return {
 		value = Vector2.ZERO
 	}
@@ -100,7 +100,7 @@ class Foo extends Glecs.Component:
 		setc(&"value", v)
 
 
-class WithDefaults extends Glecs.Component:
+class WithDefaults extends GlecsComponent:
 	const _VAR_int:= 25
 	const _VAR_string:= "Hello world!"
 	const _VAR_script:= WithDefaults
@@ -119,7 +119,7 @@ class WithDefaults extends Glecs.Component:
 		return getc(&"script")
 
 
-class RegisterationA extends Glecs.Component:
+class RegisterationA extends GlecsComponent:
 	static func _get_members() -> Dictionary: return {
 		value = 0.0,
 		result = 0.0,
@@ -134,7 +134,7 @@ class RegisterationA extends Glecs.Component:
 	func set_result(v:float) -> void:
 		setc(&"result", v)
 	
-	static func _registered(world: Glecs.World):
+	static func _registered(world: GlecsWorldObject):
 		world.new_system() \
 			.with(RegisterationA) \
 			.with(RegisterationB) \
@@ -143,7 +143,7 @@ class RegisterationA extends Glecs.Component:
 				)
 
 
-class RegisterationB extends Glecs.Component:
+class RegisterationB extends GlecsComponent:
 	
 	static func _get_members() -> Dictionary: return {
 		value = 0.0,
@@ -159,7 +159,7 @@ class RegisterationB extends Glecs.Component:
 	func set_result(v:float) -> void:
 		setc(&"result", v)
 	
-	static func _registered(world:Glecs.World):
+	static func _registered(world:GlecsWorldObject):
 		world.new_system() \
 			.with(RegisterationA) \
 			.with(RegisterationB) \
@@ -168,7 +168,7 @@ class RegisterationB extends Glecs.Component:
 				)
 
 
-class NoDefine extends Glecs.Component:
+class NoDefine extends GlecsComponent:
 	pass
 
 

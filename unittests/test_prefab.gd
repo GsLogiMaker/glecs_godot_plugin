@@ -2,10 +2,10 @@
 @tool
 extends GutTest
 
-var world:Glecs.WorldNode
+var world:GlecsWorldNode
 
 func before_all():
-	world = Glecs.WorldNode.new()
+	world = GlecsWorldNode.new()
 	add_child(world)
 
 func after_all():
@@ -25,7 +25,7 @@ func test_prefab():
 			b.b = PI
 			)
 			
-	var entity:= Glecs.Entity.spawn(world.as_object())
+	var entity:= GlecsEntity.spawn(world.as_object())
 	entity.add_entity(world.pair(Glecs.IS_A, MyPrefab))
 	
 	# Test inhereted componets exist entity
@@ -52,23 +52,23 @@ func test_prefab():
 
 #region Components
 
-class Foo extends Glecs.Component:
+class Foo extends GlecsComponent:
 	static func _get_members() -> Dictionary: return {
 		a = false,
 		b = 0,
 		c = 0.0,
 	}
 
-class Bar extends Glecs.Component:
+class Bar extends GlecsComponent:
 	static func _get_members() -> Dictionary: return {
 		a = Vector2.ZERO,
 		b = 0.0,
 	}
 	
-class MyPrefab extends Glecs.Entity:
+class MyPrefab extends GlecsEntity:
 	
-	static func _registered(world:Glecs.World) -> void:
-		var p:= Glecs.Entity.from(MyPrefab, world)
+	static func _registered(world:GlecsWorldObject) -> void:
+		var p:= GlecsEntity.from(MyPrefab, world)
 		p.add_entity(Glecs.PREFAB)
 		p.add_component(Foo, [true, 23, 2.33])
 		p.add_component(Bar, [Vector2(2, 1.1), 5.6])

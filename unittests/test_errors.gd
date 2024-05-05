@@ -1,10 +1,10 @@
 
 extends GutTest
 
-var world:Glecs.WorldNode = null
+var world:GlecsWorldNode = null
 
 func before_all():
-	world = Glecs.WorldNode.new()
+	world = GlecsWorldNode.new()
 	add_child(world, true)
 
 func after_all():
@@ -30,12 +30,12 @@ func test_new_entity_with_unregistered_component():
 
 #region Classes
 
-class Foo extends Glecs.Component:
+class Foo extends GlecsComponent:
 	static func _get_members() -> Dictionary: return {
 		vec = 0.0,
 	}
 
-class Unregistered extends Glecs.Component:
+class Unregistered extends GlecsComponent:
 	static func _get_members() -> Dictionary: return {
 		vec = 0.0,
 	}

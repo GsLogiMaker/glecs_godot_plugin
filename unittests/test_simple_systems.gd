@@ -1,10 +1,10 @@
 
 extends GutTest
 
-var world:Glecs.WorldNode
+var world:GlecsWorldNode
 
 func before_all():
-	world = Glecs.WorldNode.new()
+	world = GlecsWorldNode.new()
 	add_child(world)
 
 func after_all():
@@ -235,7 +235,7 @@ func test_dicts():
 
 #region Components
 
-class Bools extends Glecs.Component:
+class Bools extends GlecsComponent:
 	static func _get_members() -> Dictionary: return {
 		a = false,
 		b = false,
@@ -247,7 +247,7 @@ class Bools extends Glecs.Component:
 		get: return getc(&"b")
 		set(v): setc(&"b", v)
 
-class Ints extends Glecs.Component:
+class Ints extends GlecsComponent:
 	static func _get_members() -> Dictionary: return {
 		a = 0,
 		b = 0,
@@ -259,7 +259,7 @@ class Ints extends Glecs.Component:
 		get: return getc(&"b")
 		set(v): setc(&"b", v)
 
-class Floats extends Glecs.Component:
+class Floats extends GlecsComponent:
 	static func _get_members() -> Dictionary: return {
 		a = 0.0,
 		b = 0.0,
@@ -271,7 +271,7 @@ class Floats extends Glecs.Component:
 		get: return getc(&"b")
 		set(v): setc(&"b", v)
 
-class Strings extends Glecs.Component:
+class Strings extends GlecsComponent:
 	static func _get_members() -> Dictionary: return {
 		a = "",
 		b = "",
@@ -283,7 +283,7 @@ class Strings extends Glecs.Component:
 		get: return getc(&"b")
 		set(v): setc(&"b", v)
 
-class ByteArrays extends Glecs.Component:
+class ByteArrays extends GlecsComponent:
 	static func _get_members() -> Dictionary: return {
 		a = PackedByteArray([]),
 		b = PackedByteArray([]),
@@ -295,7 +295,7 @@ class ByteArrays extends Glecs.Component:
 		get: return getc(&"b")
 		set(v): setc(&"b", v)
 
-class Textures extends Glecs.Component:
+class Textures extends GlecsComponent:
 	static func _get_members() -> Dictionary: return {
 		a = null,
 		b = null,
@@ -307,7 +307,7 @@ class Textures extends Glecs.Component:
 		get: return getc(&"b")
 		set(v): setc(&"b", v)
 
-class RefCounts extends Glecs.Component:
+class RefCounts extends GlecsComponent:
 	static func _get_members() -> Dictionary: return {
 		a = null,
 		b = null,
@@ -319,7 +319,7 @@ class RefCounts extends Glecs.Component:
 		get: return getc(&"b")
 		set(v): setc(&"b", v)
 
-class Arrays extends Glecs.Component:
+class Arrays extends GlecsComponent:
 	static func _get_members() -> Dictionary: return {
 		a = [],
 		b = [],
@@ -331,7 +331,7 @@ class Arrays extends Glecs.Component:
 		get: return getc(&"b")
 		set(v): setc(&"b", v)
 
-class Dicts extends Glecs.Component:
+class Dicts extends GlecsComponent:
 	static func _get_members() -> Dictionary: return {
 		a = {},
 		b = {},

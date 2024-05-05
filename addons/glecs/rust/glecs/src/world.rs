@@ -31,10 +31,7 @@ use crate::Int;
 use crate::TYPE_SIZES;
 
 pub(crate) fn load_world_obj_script() -> Variant {
-    load::<Script>("res://addons/glecs/gd/glecs.gd")
-        .get_script_constant_map()
-        .get("World")
-        .unwrap()
+    load::<Script>("res://addons/glecs/gd/world_object.gd")
         .to_variant()
 }
 

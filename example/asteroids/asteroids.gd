@@ -1,7 +1,7 @@
 
 extends Node2D
 
-@onready var world:Glecs.WorldNode = $Glecs.WorldNode
+@onready var world:GlecsWorldNode = $GlecsWorldNode
 
 var texture:= load("res://icon.png")
 
@@ -16,12 +16,12 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	pass
  
-class RenderableSprite2D extends Glecs.Component:
+class RenderableSprite2D extends GlecsComponent:
 	const _VAR_rid:RID = RID()
 	
-	static func _registered(world:Glecs.World):
+	static func _registered(world:GlecsWorldObject):
 		# Initialization
-		world.new_event_listener(Glecs.WorldNode.EVENT_ON_ADD) \
+		world.new_event_listener(Glecs.ON_ADD) \
 			.with(RenderableSprite2D) \
 			.for_each(func(sprite:RenderableSprite2D):
 				sprite.set_rid(RenderingServer.canvas_item_create())
@@ -35,7 +35,7 @@ class RenderableSprite2D extends Glecs.Component:
 				)
 		
 		# Set texture
-		world.new_event_listener(Glecs.WorldNode.EVENT_ON_ADD) \
+		world.new_event_listener(Glecs.ON_ADD) \
 			.with(RenderableSprite2D) \
 			.with(CompTexture2D) \
 			.for_each(func(sprite:RenderableSprite2D, c_texture:CompTexture2D):
@@ -53,7 +53,7 @@ class RenderableSprite2D extends Glecs.Component:
 	func set_rid(v:RID) -> void:
 		setc(&"rid", v)
 
-class CompTexture2D extends Glecs.Component:
+class CompTexture2D extends GlecsComponent:
 	const _VAR_texture:Texture2D = null
 	
 	func get_texture() -> Texture2D:
@@ -62,7 +62,7 @@ class CompTexture2D extends Glecs.Component:
 	func set_texture(v:Texture2D) -> void:
 		setc(&"texture", v)
 	
-	static func _registered(world:Glecs.World):
+	static func _registered(world:GlecsWorldObject):
 		world.new_event_listener(world.EVENT_ON_ADD) \
 			.with(CompTexture2D) \
 			.for_each(func(c:CompTexture2D):

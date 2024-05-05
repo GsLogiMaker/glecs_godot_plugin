@@ -1,11 +1,11 @@
 
 extends GutTest
 
-var world:Glecs.WorldNode
+var world:GlecsWorldNode
 var i:= 0
 
 func before_all():
-	world = Glecs.WorldNode.new()
+	world = GlecsWorldNode.new()
 	add_child(world)
 
 func after_all():
@@ -66,7 +66,7 @@ func test_on_add_event_with_objects():
 
 #region Components
 
-class Ints extends Glecs.Component:
+class Ints extends GlecsComponent:
 	static func _get_members() -> Dictionary: return {
 		a = 0,
 		b = 0,
@@ -78,7 +78,7 @@ class Ints extends Glecs.Component:
 		get: return getc(&"b")
 		set(v): setc(&"b", v)
 
-class Textures extends Glecs.Component:
+class Textures extends GlecsComponent:
 	static func _get_members() -> Dictionary: return {
 		a = null,
 		b = null,
