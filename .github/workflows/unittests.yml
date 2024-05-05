@@ -30,15 +30,15 @@ jobs:
         cache-on-failure: true
 
     - name: 🦀 Update Rust
-      run: |
-        rustup update
-
-    - name: 🦀 Build Rust code
       env:
         TARGET: ${{ env.LINUX_64_TARGET }}
       run: |
+        rustup update
+        rustup target add ${TARGET}
+
+    - name: 🦀 Build Rust code
+      run: |
         cargo build \
-          --release
           --target ${TARGET}
           --manifest-path ./addons/glecs/rust/glecs/Cargo.toml \
           --features compile_bindings \
