@@ -39,10 +39,10 @@ jobs:
     - name: 🦀 Build Rust code
       run: |
         cargo build \
-          --target="${TARGET}"
           --manifest-path ./addons/glecs/rust/glecs/Cargo.toml \
           --features compile_bindings \
           --target-dir ./addons/glecs/bin
+          --target="${TARGET}"
         
         # Copy library for use in test suite
         cp ./addons/glecs/bin/${TARGET}/release ./addons/glecs/bin/debug -r
