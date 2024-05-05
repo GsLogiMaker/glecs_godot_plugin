@@ -18,8 +18,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: 🐙 Initialize git
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
     - name: 🐙 Initialize submodules
       run: git submodule update --init --recursive
@@ -90,8 +89,7 @@ jobs:
         run: |
           exit 0
 
-      - name: 🐙 Initialize git
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: 🐧 Load compiled library, Linux x86_64
         uses: actions/cache/restore@v4.0.2
@@ -115,16 +113,14 @@ jobs:
           godot -s ./addons/glecs/_build_for_nightly.gd
 
       - name: 🌙 Clone nightly branch
-        env:
-          REPO: ${{ github.repository }}
         run: |
-          git clone ${{ github.repository }} ../nightly -b nightly
+          git clone https://github.com/${{ github.repository }} ../nightly -b nightly
       
-      - name: 🖨️ Copy dev branch plugin to nightly branch
+      - name: 🖨️ Copy dev branch plugin to nightly
         run: |
           cp ./addons/glecs/ ../nightly
       
       - name: 📤 Commit to nightly branch
         run: |
           cd ../nightly
-          git commit --all -m "AUTO ${{ github.event.head_commit.message }}"
+          git commit --all -m "(AUTO) ${{ github.event.head_commit.message }}"
