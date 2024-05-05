@@ -15,6 +15,7 @@ addons/glecs/.vscode/settings.json
 
 # Ignore some .godot files
 .godot/*/
+.godot/uid_cache.bin
 
 # Project files
 addons/gut/gui/GutSceneTheme.tres

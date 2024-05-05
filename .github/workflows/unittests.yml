@@ -46,13 +46,15 @@ jobs:
         version: 4.2.1
         mono: false
 
+      # This shouldn't be needed because the important files from .godot are
+      # included, but we run the import process just in case.
     - name: Run Godot import
       run: |
-        godot --headless --editor ./addons/gut/.cli_support/__rebuilder_scene.tscn
+        godot --headless --editor --quit-after 100
 
     - name: Run unittests
       run: |
-        godot -s res://addons/gut/gut_cmdln.gd --headless -gdir res://unittests -gexit
+        godot -s res://addons/gut/gut_cmdln.gd --headless -gdir="res://unittests" -gexit
           
       
     # - uses: croconut/godot-tester@v5.1
