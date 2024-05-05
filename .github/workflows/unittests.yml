@@ -30,11 +30,10 @@ jobs:
         cache-on-failure: true
 
     - name: 🦀 Update Rust
-      env:
-        TARGET: ${{ env.LINUX_64_TARGET }}
       run: |
+        TARGET=${{ env.LINUX_64_TARGET }}
         rustup update
-        rustup target add ${{ env.TARGET }}
+        rustup target add ${TARGET}
 
     - name: 🦀 Build Rust code
       run: |
