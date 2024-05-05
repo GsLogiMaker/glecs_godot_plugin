@@ -31,7 +31,7 @@ jobs:
 
     - name: 🦀 Update Rust
       run: |
-        TARGET=${{ env.LINUX_64_TARGET }}
+        echo "TARGET=${{ env.LINUX_64_TARGET }}" >> $GITHUB_ENV
         echo ---
         echo ${TARGET}
         echo ---
