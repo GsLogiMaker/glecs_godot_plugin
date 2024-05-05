@@ -122,12 +122,18 @@ jobs:
         run: |
           cp ./addons/glecs/ ../nightly
       
-      - name: 📤 Commit to nightly branch
+      - name: Set github name and email
         run: |
           cd ../nightly
-          git config user.name "github-actions[bot]"
-          git config user.email "gslogimaker@gmail.com"
+          git --global config user.name "github-actions[bot]"
+          git --global config user.email "gslogimaker@gmail.com"
+
+      - name: Commit
+        run: |
           git commit --all -m "(AUTO) ${{ github.event.head_commit.message }}"
+
+      - name: Push
+        run: |
           git push origin nightly
 
           
