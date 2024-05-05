@@ -2,20 +2,21 @@
 # Compiled binaries
 addons/glecs/bin/
 
-# Ignore rust files
+# Rust source code
 addons/glecs/rust/flecs-rs/target
 addons/glecs/rust/flecs-rs/Cargo.lock
 addons/glecs/rust/glecs/.vscode
 addons/glecs/rust/glecs/target
 addons/glecs/rust/glecs/Cargo.lock
 
+# Vs Code settings
 .vscode/settings.json
 addons/glecs/.vscode/settings.json
 
-# Ignore Godot files
-.godot
+# Ignore some .godot files
+.godot/*/
 
-
+# Project files
 addons/gut/gui/GutSceneTheme.tres
 unittest_log.xml
 test_results.xml
