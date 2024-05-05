@@ -41,7 +41,7 @@ jobs:
         cargo build \
           --manifest-path ./addons/glecs/rust/glecs/Cargo.toml \
           --features compile_bindings \
-          --target-dir ./addons/glecs/bin
+          --target-dir ./addons/glecs/bin \
           --target=${{ env.TARGET }}
         
         # Copy library for use in test suite
