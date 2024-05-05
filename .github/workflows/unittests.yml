@@ -34,7 +34,7 @@ jobs:
         TARGET: ${{ env.LINUX_64_TARGET }}
       run: |
         rustup update
-        rustup target add ${TARGET}
+        rustup target add ${{ env.TARGET }}
 
     - name: 🦀 Build Rust code
       run: |
@@ -42,7 +42,7 @@ jobs:
           --manifest-path ./addons/glecs/rust/glecs/Cargo.toml \
           --features compile_bindings \
           --target-dir ./addons/glecs/bin
-          --target="${TARGET}"
+          --target=${{ env.TARGET }}
         
         # Copy library for use in test suite
         cp ./addons/glecs/bin/${TARGET}/release ./addons/glecs/bin/debug -r
