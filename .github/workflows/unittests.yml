@@ -32,6 +32,9 @@ jobs:
     - name: 🦀 Update Rust
       run: |
         TARGET=${{ env.LINUX_64_TARGET }}
+        echo ---
+        echo ${TARGET}
+        echo ---
         rustup update
         rustup target add ${TARGET}
 
