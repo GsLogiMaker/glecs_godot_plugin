@@ -1,9 +1,4 @@
 
-# Ignore residual files in bin
-/bin/*/*/
-/bin/*/*.d
-/bin/*/.cargo-lock
-/bin/.rustc_info.json
-
-# Ignore Rust source code
-/rust
+# Files from dev branch
+/rust/*
+_build_for_nightly.gd
