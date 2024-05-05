@@ -128,5 +128,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "gslogimaker@gmail.com"
           git commit --all -m "(AUTO) ${{ github.event.head_commit.message }}"
+          git push origin nightly
 
           
