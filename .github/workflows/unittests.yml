@@ -123,4 +123,5 @@ jobs:
       - name: 📤 Commit to nightly branch
         run: |
           cd ../nightly
+          git config user.name "Glecs Bot"
           git commit --all -m "(AUTO) ${{ github.event.head_commit.message }}"
