@@ -31,12 +31,8 @@ jobs:
 
     - name: 🦀 Update Rust
       run: |
-        echo "TARGET=${{ env.LINUX_64_TARGET }}" >> $GITHUB_ENV
-        echo ---
-        echo ${TARGET}
-        echo ---
         rustup update
-        rustup target add ${TARGET}
+        rustup target add ${{ env.LINUX_64_TARGET }}
 
     - name: 🦀 Build Rust code
       run: |
@@ -47,7 +43,7 @@ jobs:
           --manifest-path ./addons/glecs/rust/glecs/Cargo.toml \
           --features compile_bindings \
           --target-dir ./addons/glecs/bin \
-          --target ${{ env.TARGET }}
+          --target ${{ env.LINUX_64_TARGET }}
         
         # Copy library for use in test suite
         cp ./addons/glecs/bin/${TARGET}/release ./addons/glecs/bin/debug -r
@@ -74,9 +70,9 @@ jobs:
       uses: actions/cache/save@v4.0.2
       with:
         # A list of files, directories, and wildcard patterns to cache and restore
-        path: ./addons/glecs/bin/${{ env.TARGET }}/release
+        path: ./addons/glecs/bin/${{ env.LINUX_64_TARGET }}/release
         # An explicit key for restoring and saving the cache
-        key: glecslib.${{ env.TARGET }}
+        key: glecslib.${{ env.LINUX_64_TARGET }}
         # An optional boolean when enabled, allows windows runners to save or restore caches that can be restored or saved respectively on other platforms
         enableCrossOsArchive: true
                 
