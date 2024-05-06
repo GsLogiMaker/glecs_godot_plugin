@@ -114,7 +114,7 @@ jobs:
       
       - name: 🖨️ Copy dev branch plugin to nightly
         run: |
-          cp ./addons/glecs/ ../nightly -r
+          cp ./addons/glecs/* ../nightly/ -rf
       
       - name: 📂 Add / commit
         run: |
@@ -132,7 +132,7 @@ jobs:
           branch: nightly
           directory: ../nightly
 
-          
+
   nightly_unittests_linux_x86_64:
 
     needs: update_nightly
