@@ -125,6 +125,10 @@ jobs:
           git config --global  user.name "github-actions[bot]"
           git config --global  user.email "gslogimaker@gmail.com"
 
+      - name: Add
+        run: |
+          git add .
+
       - name: Commit
         run: |
           git commit --all -m "(AUTO) ${{ github.event.head_commit.message }}"
