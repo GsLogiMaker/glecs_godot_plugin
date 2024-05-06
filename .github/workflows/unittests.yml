@@ -117,7 +117,7 @@ jobs:
       
       - name: 🖨️ Copy dev branch plugin to nightly
         run: |
-          cp ./addons/glecs/ ../nightly
+          cp ./addons/glecs/ ../nightly -r
       
       - name: Set github name and email
         run: |
