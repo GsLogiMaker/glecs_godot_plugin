@@ -113,6 +113,7 @@ jobs:
         run: |
           git clone https://github.com/${{ github.repository }} ../nightly_tmp -b nightly
           mkdir ../nightly
+          mkdir ../nightly/.git
           cp -r ../nightly_tmp/.git/* ../nightly/.git/
           cp ../nightly_tmp/README.md ../nightly/README.md
           cp ../nightly_tmp/.gitignore ../nightly/.gitignore
