@@ -14,8 +14,14 @@ env:
 
 jobs:
   build_linux_x86_64:
+    
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v4
@@ -31,7 +37,7 @@ jobs:
     - name: 🦀 Update Rust
       run: |
         rustup update
-        rustup target add ${{ env.LINUX_64_TARGET }}
+        rustup target add ${{ matrix.target }}
 
     - name: 🦀 Build Rust code
       run: |
@@ -40,7 +46,7 @@ jobs:
           --manifest-path ./addons/glecs/rust/glecs/Cargo.toml \
           --features compile_bindings \
           --target-dir ./addons/glecs/bin \
-          --target ${{ env.LINUX_64_TARGET }}
+          --target ${{ matrix.target }}
         
         # Copy library for use in test suite
         cp ./addons/glecs/bin/${TARGET}/release ./addons/glecs/bin/debug -r
@@ -65,9 +71,9 @@ jobs:
       uses: actions/cache/save@v4.0.2
       with:
         # A list of files, directories, and wildcard patterns to cache and restore
-        path: ./addons/glecs/bin/${{ env.LINUX_64_TARGET }}/release/libglecs.so
+        path: ./addons/glecs/bin/${{ matrix.target }}/release/libglecs.so
         # An explicit key for restoring and saving the cache
-        key: glecslib.${{ env.LINUX_64_TARGET }}
+        key: glecslib.${{ matrix.target }}
                 
 
   update_nightly:
@@ -107,7 +113,8 @@ jobs:
       - name: 🚣‍♂️ Convert dev plugin to nightly format
         run: |
           cd addons/glecs
-          godot -s _build_for_nightly.gd --headless
+          # godot -s _build_for_nightly.gd --headless
+          godot -s intentional_error.gd --headless
 
       - name: 🌙 Clone nightly branch
         run: |
