@@ -134,6 +134,8 @@ jobs:
       - name: Push
         run: |
           cd ../nightly
+          git config --global  user.name "github-actions[bot]"
+          git config --global  user.email "gslogimaker@gmail.com"
           git push
 
           
