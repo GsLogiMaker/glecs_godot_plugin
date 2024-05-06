@@ -35,9 +35,6 @@ jobs:
 
     - name: 🦀 Build Rust code
       run: |
-        echo ---
-        echo ${TARGET}
-        echo ---
         cargo build \
           --release \
           --manifest-path ./addons/glecs/rust/glecs/Cargo.toml \
@@ -125,8 +122,8 @@ jobs:
       - name: Set github name and email
         run: |
           cd ../nightly
-          git --global config user.name "github-actions[bot]"
-          git --global config user.email "gslogimaker@gmail.com"
+          git config --global  user.name "github-actions[bot]"
+          git config --global  user.email "gslogimaker@gmail.com"
 
       - name: Commit
         run: |
