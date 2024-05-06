@@ -70,8 +70,6 @@ jobs:
         path: ./addons/glecs/bin/${{ env.LINUX_64_TARGET }}/release
         # An explicit key for restoring and saving the cache
         key: glecslib.${{ env.LINUX_64_TARGET }}
-        # An optional boolean when enabled, allows windows runners to save or restore caches that can be restored or saved respectively on other platforms
-        enableCrossOsArchive: true
                 
 
   update_nightly:
@@ -88,6 +86,7 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           persist-credentials: false
 
       - name: 🐧 Load compiled library, Linux x86_64
@@ -122,8 +121,8 @@ jobs:
       - name: Git add
         run: |
           cd ../nightly
-          git config --global  user.name "github-actions[bot]"
-          git config --global  user.email "gslogimaker@gmail.com"
+          git config --global user.name github-actions[bot]
+          git config --global user.email gslogimaker@gmail.com
           git add .
 
       - name: Commit
@@ -134,8 +133,6 @@ jobs:
       - name: Push
         run: |
           cd ../nightly
-          git config --global  user.name "github-actions[bot]"
-          git config --global  user.email "gslogimaker@gmail.com"
           git push
 
           
