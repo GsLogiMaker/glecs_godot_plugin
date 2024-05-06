@@ -133,6 +133,7 @@ jobs:
       - name: Push
         run: |
           cd ../nightly
+          git remote set-url origin https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
           git push
 
           
