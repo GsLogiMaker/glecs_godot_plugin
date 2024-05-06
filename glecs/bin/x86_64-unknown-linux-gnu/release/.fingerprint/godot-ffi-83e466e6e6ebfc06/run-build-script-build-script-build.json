@@ -1,0 +1,1 @@
+{"rustc":1059629350237521597,"features":"","declared_features":"","target":0,"profile":0,"path":0,"deps":[[10578190141342732039,"build_script_build",false,15894848606870229083]],"local":[{"RerunIfChanged":{"output":"x86_64-unknown-linux-gnu/release/build/godot-ffi-83e466e6e6ebfc06/output","paths":["build.rs"]}}],"rustflags":[],"metadata":0,"config":0,"compile_kind":0}

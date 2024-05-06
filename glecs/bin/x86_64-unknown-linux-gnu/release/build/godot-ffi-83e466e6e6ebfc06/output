@@ -1,0 +1,1682 @@
+Parsed extension_api.json for version JsonHeader { version_major: 4, version_minor: 2, version_patch: 0, version_status: "stable", version_build: "official", version_full_name: "Godot Engine v4.2.stable.official" }
+-- add engine class AESContext  [renamed AesContext]
+  -- inherits RefCounted
+-- add engine class AStar2D
+  -- inherits RefCounted
+-- add engine class AStar3D
+  -- inherits RefCounted
+-- add engine class AStarGrid2D
+  -- inherits RefCounted
+-- add engine class AcceptDialog
+  -- inherits Window
+-- add engine class AnimatableBody2D
+  -- inherits StaticBody2D
+-- add engine class AnimatableBody3D
+  -- inherits StaticBody3D
+-- add engine class AnimatedSprite2D
+  -- inherits Node2D
+-- add engine class AnimatedSprite3D
+  -- inherits SpriteBase3D
+-- add engine class AnimatedTexture
+  -- inherits Texture2D
+-- add engine class Animation
+  -- inherits Resource
+-- add engine class AnimationLibrary
+  -- inherits Resource
+-- add engine class AnimationMixer
+  -- inherits Node
+-- add engine class AnimationNode
+  -- inherits Resource
+-- add engine class AnimationNodeAdd2
+  -- inherits AnimationNodeSync
+-- add engine class AnimationNodeAdd3
+  -- inherits AnimationNodeSync
+-- add engine class AnimationNodeAnimation
+  -- inherits AnimationRootNode
+-- add engine class AnimationNodeBlend2
+  -- inherits AnimationNodeSync
+-- add engine class AnimationNodeBlend3
+  -- inherits AnimationNodeSync
+-- add engine class AnimationNodeBlendSpace1D
+  -- inherits AnimationRootNode
+-- add engine class AnimationNodeBlendSpace2D
+  -- inherits AnimationRootNode
+-- add engine class AnimationNodeBlendTree
+  -- inherits AnimationRootNode
+-- add engine class AnimationNodeOneShot
+  -- inherits AnimationNodeSync
+-- add engine class AnimationNodeOutput
+  -- inherits AnimationNode
+-- add engine class AnimationNodeStateMachine
+  -- inherits AnimationRootNode
+-- add engine class AnimationNodeStateMachinePlayback
+  -- inherits Resource
+-- add engine class AnimationNodeStateMachineTransition
+  -- inherits Resource
+-- add engine class AnimationNodeSub2
+  -- inherits AnimationNodeSync
+-- add engine class AnimationNodeSync
+  -- inherits AnimationNode
+-- add engine class AnimationNodeTimeScale
+  -- inherits AnimationNode
+-- add engine class AnimationNodeTimeSeek
+  -- inherits AnimationNode
+-- add engine class AnimationNodeTransition
+  -- inherits AnimationNodeSync
+-- add engine class AnimationPlayer
+  -- inherits AnimationMixer
+-- add engine class AnimationRootNode
+  -- inherits AnimationNode
+-- add engine class AnimationTree
+  -- inherits AnimationMixer
+-- add engine class Area2D
+  -- inherits CollisionObject2D
+-- add engine class Area3D
+  -- inherits CollisionObject3D
+-- add engine class ArrayMesh
+  -- inherits Mesh
+-- add engine class ArrayOccluder3D
+  -- inherits Occluder3D
+-- add engine class AspectRatioContainer
+  -- inherits Container
+-- add engine class AtlasTexture
+  -- inherits Texture2D
+-- add engine class AudioBusLayout
+  -- inherits Resource
+-- add engine class AudioEffect
+  -- inherits Resource
+-- add engine class AudioEffectAmplify
+  -- inherits AudioEffect
+-- add engine class AudioEffectBandLimitFilter
+  -- inherits AudioEffectFilter
+-- add engine class AudioEffectBandPassFilter
+  -- inherits AudioEffectFilter
+-- add engine class AudioEffectCapture
+  -- inherits AudioEffect
+-- add engine class AudioEffectChorus
+  -- inherits AudioEffect
+-- add engine class AudioEffectCompressor
+  -- inherits AudioEffect
+-- add engine class AudioEffectDelay
+  -- inherits AudioEffect
+-- add engine class AudioEffectDistortion
+  -- inherits AudioEffect
+-- add engine class AudioEffectEQ  [renamed AudioEffectEq]
+  -- inherits AudioEffect
+-- add engine class AudioEffectEQ10  [renamed AudioEffectEq10]
+  -- inherits AudioEffectEQ  [renamed AudioEffectEq]
+-- add engine class AudioEffectEQ21  [renamed AudioEffectEq21]
+  -- inherits AudioEffectEQ  [renamed AudioEffectEq]
+-- add engine class AudioEffectEQ6  [renamed AudioEffectEq6]
+  -- inherits AudioEffectEQ  [renamed AudioEffectEq]
+-- add engine class AudioEffectFilter
+  -- inherits AudioEffect
+-- add engine class AudioEffectHighPassFilter
+  -- inherits AudioEffectFilter
+-- add engine class AudioEffectHighShelfFilter
+  -- inherits AudioEffectFilter
+-- add engine class AudioEffectInstance
+  -- inherits RefCounted
+-- add engine class AudioEffectLimiter
+  -- inherits AudioEffect
+-- add engine class AudioEffectLowPassFilter
+  -- inherits AudioEffectFilter
+-- add engine class AudioEffectLowShelfFilter
+  -- inherits AudioEffectFilter
+-- add engine class AudioEffectNotchFilter
+  -- inherits AudioEffectFilter
+-- add engine class AudioEffectPanner
+  -- inherits AudioEffect
+-- add engine class AudioEffectPhaser
+  -- inherits AudioEffect
+-- add engine class AudioEffectPitchShift
+  -- inherits AudioEffect
+-- add engine class AudioEffectRecord
+  -- inherits AudioEffect
+-- add engine class AudioEffectReverb
+  -- inherits AudioEffect
+-- add engine class AudioEffectSpectrumAnalyzer
+  -- inherits AudioEffect
+-- add engine class AudioEffectSpectrumAnalyzerInstance
+  -- inherits AudioEffectInstance
+-- add engine class AudioEffectStereoEnhance
+  -- inherits AudioEffect
+-- add engine class AudioListener2D
+  -- inherits Node2D
+-- add engine class AudioListener3D
+  -- inherits Node3D
+-- add engine class AudioServer
+  -- inherits Object
+-- add engine class AudioStream
+  -- inherits Resource
+-- add engine class AudioStreamGenerator
+  -- inherits AudioStream
+-- add engine class AudioStreamGeneratorPlayback
+  -- inherits AudioStreamPlaybackResampled
+-- add engine class AudioStreamMP3  [renamed AudioStreamMp3]
+  -- inherits AudioStream
+-- add engine class AudioStreamMicrophone
+  -- inherits AudioStream
+-- add engine class AudioStreamOggVorbis
+  -- inherits AudioStream
+-- add engine class AudioStreamPlayback
+  -- inherits RefCounted
+-- add engine class AudioStreamPlaybackOggVorbis
+  -- inherits AudioStreamPlaybackResampled
+-- add engine class AudioStreamPlaybackPolyphonic
+  -- inherits AudioStreamPlayback
+-- add engine class AudioStreamPlaybackResampled
+  -- inherits AudioStreamPlayback
+-- add engine class AudioStreamPlayer
+  -- inherits Node
+-- add engine class AudioStreamPlayer2D
+  -- inherits Node2D
+-- add engine class AudioStreamPlayer3D
+  -- inherits Node3D
+-- add engine class AudioStreamPolyphonic
+  -- inherits AudioStream
+-- add engine class AudioStreamRandomizer
+  -- inherits AudioStream
+-- add engine class AudioStreamWAV  [renamed AudioStreamWav]
+  -- inherits AudioStream
+-- add engine class BackBufferCopy
+  -- inherits Node2D
+-- add engine class BaseButton
+  -- inherits Control
+-- add engine class BaseMaterial3D
+  -- inherits Material
+-- add engine class BitMap
+  -- inherits Resource
+-- add engine class Bone2D
+  -- inherits Node2D
+-- add engine class BoneAttachment3D
+  -- inherits Node3D
+-- add engine class BoneMap
+  -- inherits Resource
+-- add engine class BoxContainer
+  -- inherits Container
+-- add engine class BoxMesh
+  -- inherits PrimitiveMesh
+-- add engine class BoxOccluder3D
+  -- inherits Occluder3D
+-- add engine class BoxShape3D
+  -- inherits Shape3D
+-- add engine class Button
+  -- inherits BaseButton
+-- add engine class ButtonGroup
+  -- inherits Resource
+-- add engine class CPUParticles2D  [renamed CpuParticles2D]
+  -- inherits Node2D
+-- add engine class CPUParticles3D  [renamed CpuParticles3D]
+  -- inherits GeometryInstance3D
+-- add engine class CSGBox3D  [renamed CsgBox3D]
+  -- inherits CSGPrimitive3D  [renamed CsgPrimitive3D]
+-- add engine class CSGCombiner3D  [renamed CsgCombiner3D]
+  -- inherits CSGShape3D  [renamed CsgShape3D]
+-- add engine class CSGCylinder3D  [renamed CsgCylinder3D]
+  -- inherits CSGPrimitive3D  [renamed CsgPrimitive3D]
+-- add engine class CSGMesh3D  [renamed CsgMesh3D]
+  -- inherits CSGPrimitive3D  [renamed CsgPrimitive3D]
+-- add engine class CSGPolygon3D  [renamed CsgPolygon3D]
+  -- inherits CSGPrimitive3D  [renamed CsgPrimitive3D]
+-- add engine class CSGPrimitive3D  [renamed CsgPrimitive3D]
+  -- inherits CSGShape3D  [renamed CsgShape3D]
+-- add engine class CSGShape3D  [renamed CsgShape3D]
+  -- inherits GeometryInstance3D
+-- add engine class CSGSphere3D  [renamed CsgSphere3D]
+  -- inherits CSGPrimitive3D  [renamed CsgPrimitive3D]
+-- add engine class CSGTorus3D  [renamed CsgTorus3D]
+  -- inherits CSGPrimitive3D  [renamed CsgPrimitive3D]
+-- add engine class CallbackTweener
+  -- inherits Tweener
+-- add engine class Camera2D
+  -- inherits Node2D
+-- add engine class Camera3D
+  -- inherits Node3D
+-- add engine class CameraAttributes
+  -- inherits Resource
+-- add engine class CameraAttributesPhysical
+  -- inherits CameraAttributes
+-- add engine class CameraAttributesPractical
+  -- inherits CameraAttributes
+-- add engine class CameraFeed
+  -- inherits RefCounted
+-- add engine class CameraServer
+  -- inherits Object
+-- add engine class CameraTexture
+  -- inherits Texture2D
+-- add engine class CanvasGroup
+  -- inherits Node2D
+-- add engine class CanvasItem
+  -- inherits Node
+-- add engine class CanvasItemMaterial
+  -- inherits Material
+-- add engine class CanvasLayer
+  -- inherits Node
+-- add engine class CanvasModulate
+  -- inherits Node2D
+-- add engine class CanvasTexture
+  -- inherits Texture2D
+-- add engine class CapsuleMesh
+  -- inherits PrimitiveMesh
+-- add engine class CapsuleShape2D
+  -- inherits Shape2D
+-- add engine class CapsuleShape3D
+  -- inherits Shape3D
+-- add engine class CenterContainer
+  -- inherits Container
+-- add engine class CharFXTransform  [renamed CharFxTransform]
+  -- inherits RefCounted
+-- add engine class CharacterBody2D
+  -- inherits PhysicsBody2D
+-- add engine class CharacterBody3D
+  -- inherits PhysicsBody3D
+-- add engine class CheckBox
+  -- inherits Button
+-- add engine class CheckButton
+  -- inherits Button
+-- add engine class CircleShape2D
+  -- inherits Shape2D
+-- add engine class ClassDB  [renamed ClassDb]
+  -- inherits Object
+-- add engine class CodeEdit
+  -- inherits TextEdit
+-- add engine class CodeHighlighter
+  -- inherits SyntaxHighlighter
+-- add engine class CollisionObject2D
+  -- inherits Node2D
+-- add engine class CollisionObject3D
+  -- inherits Node3D
+-- add engine class CollisionPolygon2D
+  -- inherits Node2D
+-- add engine class CollisionPolygon3D
+  -- inherits Node3D
+-- add engine class CollisionShape2D
+  -- inherits Node2D
+-- add engine class CollisionShape3D
+  -- inherits Node3D
+-- add engine class ColorPicker
+  -- inherits VBoxContainer
+-- add engine class ColorPickerButton
+  -- inherits Button
+-- add engine class ColorRect
+  -- inherits Control
+-- add engine class CompressedCubemap
+  -- inherits CompressedTextureLayered
+-- add engine class CompressedCubemapArray
+  -- inherits CompressedTextureLayered
+-- add engine class CompressedTexture2D
+  -- inherits Texture2D
+-- add engine class CompressedTexture2DArray
+  -- inherits CompressedTextureLayered
+-- add engine class CompressedTexture3D
+  -- inherits Texture3D
+-- add engine class CompressedTextureLayered
+  -- inherits TextureLayered
+-- add engine class ConcavePolygonShape2D
+  -- inherits Shape2D
+-- add engine class ConcavePolygonShape3D
+  -- inherits Shape3D
+-- add engine class ConeTwistJoint3D
+  -- inherits Joint3D
+-- add engine class ConfigFile
+  -- inherits RefCounted
+-- add engine class ConfirmationDialog
+  -- inherits AcceptDialog
+-- add engine class Container
+  -- inherits Control
+-- add engine class Control
+  -- inherits CanvasItem
+-- add engine class ConvexPolygonShape2D
+  -- inherits Shape2D
+-- add engine class ConvexPolygonShape3D
+  -- inherits Shape3D
+-- add engine class Crypto
+  -- inherits RefCounted
+-- add engine class CryptoKey
+  -- inherits Resource
+-- add engine class Cubemap
+  -- inherits ImageTextureLayered
+-- add engine class CubemapArray
+  -- inherits ImageTextureLayered
+-- add engine class Curve
+  -- inherits Resource
+-- add engine class Curve2D
+  -- inherits Resource
+-- add engine class Curve3D
+  -- inherits Resource
+-- add engine class CurveTexture
+  -- inherits Texture2D
+-- add engine class CurveXYZTexture  [renamed CurveXyzTexture]
+  -- inherits Texture2D
+-- add engine class CylinderMesh
+  -- inherits PrimitiveMesh
+-- add engine class CylinderShape3D
+  -- inherits Shape3D
+-- add engine class DTLSServer  [renamed DtlsServer]
+  -- inherits RefCounted
+-- add engine class DampedSpringJoint2D
+  -- inherits Joint2D
+-- add engine class Decal
+  -- inherits VisualInstance3D
+-- add engine class DirAccess
+  -- inherits RefCounted
+-- add engine class DirectionalLight2D
+  -- inherits Light2D
+-- add engine class DirectionalLight3D
+  -- inherits Light3D
+-- add engine class DisplayServer
+  -- inherits Object
+-- add engine class ENetConnection
+  -- inherits RefCounted
+-- add engine class ENetMultiplayerPeer
+  -- inherits MultiplayerPeer
+-- add engine class ENetPacketPeer
+  -- inherits PacketPeer
+-- add engine class EditorCommandPalette
+  -- inherits ConfirmationDialog
+-- add engine class EditorDebuggerPlugin
+  -- inherits RefCounted
+-- add engine class EditorDebuggerSession
+  -- inherits RefCounted
+-- add engine class EditorExportPlatform
+  -- inherits RefCounted
+-- add engine class EditorExportPlatformAndroid
+  -- inherits EditorExportPlatform
+-- add engine class EditorExportPlatformIOS  [renamed EditorExportPlatformIos]
+  -- inherits EditorExportPlatform
+-- add engine class EditorExportPlatformLinuxBSD  [renamed EditorExportPlatformLinuxBsd]
+  -- inherits EditorExportPlatformPC  [renamed EditorExportPlatformPc]
+-- add engine class EditorExportPlatformMacOS  [renamed EditorExportPlatformMacOs]
+  -- inherits EditorExportPlatform
+-- add engine class EditorExportPlatformPC  [renamed EditorExportPlatformPc]
+  -- inherits EditorExportPlatform
+-- add engine class EditorExportPlatformWeb
+  -- inherits EditorExportPlatform
+-- add engine class EditorExportPlatformWindows
+  -- inherits EditorExportPlatformPC  [renamed EditorExportPlatformPc]
+-- add engine class EditorExportPlugin
+  -- inherits RefCounted
+-- add engine class EditorFeatureProfile
+  -- inherits RefCounted
+-- add engine class EditorFileDialog
+  -- inherits ConfirmationDialog
+-- add engine class EditorFileSystem
+  -- inherits Node
+-- add engine class EditorFileSystemDirectory
+  -- inherits Object
+-- add engine class EditorFileSystemImportFormatSupportQuery
+  -- inherits RefCounted
+-- add engine class EditorImportPlugin
+  -- inherits ResourceImporter
+-- add engine class EditorInspector
+  -- inherits ScrollContainer
+-- add engine class EditorInspectorPlugin
+  -- inherits RefCounted
+-- add engine class EditorInterface
+  -- inherits Object
+-- add engine class EditorNode3DGizmo
+  -- inherits Node3DGizmo
+-- add engine class EditorNode3DGizmoPlugin
+  -- inherits Resource
+-- add engine class EditorPaths
+  -- inherits Object
+-- add engine class EditorPlugin
+  -- inherits Node
+-- add engine class EditorProperty
+  -- inherits Container
+-- add engine class EditorResourceConversionPlugin
+  -- inherits RefCounted
+-- add engine class EditorResourcePicker
+  -- inherits HBoxContainer
+-- add engine class EditorResourcePreview
+  -- inherits Node
+-- add engine class EditorResourcePreviewGenerator
+  -- inherits RefCounted
+-- add engine class EditorResourceTooltipPlugin
+  -- inherits RefCounted
+-- add engine class EditorSceneFormatImporter
+  -- inherits RefCounted
+-- add engine class EditorSceneFormatImporterBlend
+  -- inherits EditorSceneFormatImporter
+-- add engine class EditorSceneFormatImporterFBX  [renamed EditorSceneFormatImporterFbx]
+  -- inherits EditorSceneFormatImporter
+-- add engine class EditorSceneFormatImporterGLTF  [renamed EditorSceneFormatImporterGltf]
+  -- inherits EditorSceneFormatImporter
+-- add engine class EditorScenePostImport
+  -- inherits RefCounted
+-- add engine class EditorScenePostImportPlugin
+  -- inherits RefCounted
+-- add engine class EditorScript
+  -- inherits RefCounted
+-- add engine class EditorScriptPicker
+  -- inherits EditorResourcePicker
+-- add engine class EditorSelection
+  -- inherits Object
+-- add engine class EditorSettings
+  -- inherits Resource
+-- add engine class EditorSpinSlider
+  -- inherits Range
+-- add engine class EditorSyntaxHighlighter
+  -- inherits SyntaxHighlighter
+-- add engine class EditorTranslationParserPlugin
+  -- inherits RefCounted
+-- add engine class EditorUndoRedoManager
+  -- inherits Object
+-- add engine class EditorVCSInterface  [renamed EditorVcsInterface]
+  -- inherits Object
+-- add engine class EncodedObjectAsID  [renamed EncodedObjectAsId]
+  -- inherits RefCounted
+-- add engine class Engine
+  -- inherits Object
+-- add engine class EngineDebugger
+  -- inherits Object
+-- add engine class EngineProfiler
+  -- inherits RefCounted
+-- add engine class Environment
+  -- inherits Resource
+-- add engine class Expression
+  -- inherits RefCounted
+-- add engine class FastNoiseLite
+  -- inherits Noise
+-- add engine class FileAccess
+  -- inherits RefCounted
+-- add engine class FileDialog
+  -- inherits ConfirmationDialog
+-- add engine class FileSystemDock
+  -- inherits VBoxContainer
+-- add engine class FlowContainer
+  -- inherits Container
+-- add engine class FogMaterial
+  -- inherits Material
+-- add engine class FogVolume
+  -- inherits VisualInstance3D
+-- add engine class Font
+  -- inherits Resource
+-- add engine class FontFile
+  -- inherits Font
+-- add engine class FontVariation
+  -- inherits Font
+-- add engine class GDExtension
+  -- inherits Resource
+-- add engine class GDExtensionManager
+  -- inherits Object
+-- add engine class GDScript
+  -- inherits Script
+-- add engine class GLTFAccessor  [renamed GltfAccessor]
+  -- inherits Resource
+-- add engine class GLTFAnimation  [renamed GltfAnimation]
+  -- inherits Resource
+-- add engine class GLTFBufferView  [renamed GltfBufferView]
+  -- inherits Resource
+-- add engine class GLTFCamera  [renamed GltfCamera]
+  -- inherits Resource
+-- add engine class GLTFDocument  [renamed GltfDocument]
+  -- inherits Resource
+-- add engine class GLTFDocumentExtension  [renamed GltfDocumentExtension]
+  -- inherits Resource
+-- add engine class GLTFDocumentExtensionConvertImporterMesh  [renamed GltfDocumentExtensionConvertImporterMesh]
+  -- inherits GLTFDocumentExtension  [renamed GltfDocumentExtension]
+-- add engine class GLTFLight  [renamed GltfLight]
+  -- inherits Resource
+-- add engine class GLTFMesh  [renamed GltfMesh]
+  -- inherits Resource
+-- add engine class GLTFNode  [renamed GltfNode]
+  -- inherits Resource
+-- add engine class GLTFPhysicsBody  [renamed GltfPhysicsBody]
+  -- inherits Resource
+-- add engine class GLTFPhysicsShape  [renamed GltfPhysicsShape]
+  -- inherits Resource
+-- add engine class GLTFSkeleton  [renamed GltfSkeleton]
+  -- inherits Resource
+-- add engine class GLTFSkin  [renamed GltfSkin]
+  -- inherits Resource
+-- add engine class GLTFSpecGloss  [renamed GltfSpecGloss]
+  -- inherits Resource
+-- add engine class GLTFState  [renamed GltfState]
+  -- inherits Resource
+-- add engine class GLTFTexture  [renamed GltfTexture]
+  -- inherits Resource
+-- add engine class GLTFTextureSampler  [renamed GltfTextureSampler]
+  -- inherits Resource
+-- add engine class GPUParticles2D  [renamed GpuParticles2D]
+  -- inherits Node2D
+-- add engine class GPUParticles3D  [renamed GpuParticles3D]
+  -- inherits GeometryInstance3D
+-- add engine class GPUParticlesAttractor3D  [renamed GpuParticlesAttractor3D]
+  -- inherits VisualInstance3D
+-- add engine class GPUParticlesAttractorBox3D  [renamed GpuParticlesAttractorBox3D]
+  -- inherits GPUParticlesAttractor3D  [renamed GpuParticlesAttractor3D]
+-- add engine class GPUParticlesAttractorSphere3D  [renamed GpuParticlesAttractorSphere3D]
+  -- inherits GPUParticlesAttractor3D  [renamed GpuParticlesAttractor3D]
+-- add engine class GPUParticlesAttractorVectorField3D  [renamed GpuParticlesAttractorVectorField3D]
+  -- inherits GPUParticlesAttractor3D  [renamed GpuParticlesAttractor3D]
+-- add engine class GPUParticlesCollision3D  [renamed GpuParticlesCollision3D]
+  -- inherits VisualInstance3D
+-- add engine class GPUParticlesCollisionBox3D  [renamed GpuParticlesCollisionBox3D]
+  -- inherits GPUParticlesCollision3D  [renamed GpuParticlesCollision3D]
+-- add engine class GPUParticlesCollisionHeightField3D  [renamed GpuParticlesCollisionHeightField3D]
+  -- inherits GPUParticlesCollision3D  [renamed GpuParticlesCollision3D]
+-- add engine class GPUParticlesCollisionSDF3D  [renamed GpuParticlesCollisionSdf3d]
+  -- inherits GPUParticlesCollision3D  [renamed GpuParticlesCollision3D]
+-- add engine class GPUParticlesCollisionSphere3D  [renamed GpuParticlesCollisionSphere3D]
+  -- inherits GPUParticlesCollision3D  [renamed GpuParticlesCollision3D]
+-- add engine class Generic6DOFJoint3D  [renamed Generic6DofJoint3D]
+  -- inherits Joint3D
+-- add engine class Geometry2D
+  -- inherits Object
+-- add engine class Geometry3D
+  -- inherits Object
+-- add engine class GeometryInstance3D
+  -- inherits VisualInstance3D
+-- add engine class Gradient
+  -- inherits Resource
+-- add engine class GradientTexture1D
+  -- inherits Texture2D
+-- add engine class GradientTexture2D
+  -- inherits Texture2D
+-- add engine class GraphElement
+  -- inherits Container
+-- add engine class GridContainer
+  -- inherits Container
+-- add engine class GridMap
+  -- inherits Node3D
+-- add engine class GrooveJoint2D
+  -- inherits Joint2D
+-- add engine class HBoxContainer
+  -- inherits BoxContainer
+-- add engine class HFlowContainer
+  -- inherits FlowContainer
+-- add engine class HMACContext  [renamed HmacContext]
+  -- inherits RefCounted
+-- add engine class HScrollBar
+  -- inherits ScrollBar
+-- add engine class HSeparator
+  -- inherits Separator
+-- add engine class HSlider
+  -- inherits Slider
+-- add engine class HSplitContainer
+  -- inherits SplitContainer
+-- add engine class HTTPClient  [renamed HttpClient]
+  -- inherits RefCounted
+-- add engine class HTTPRequest  [renamed HttpRequest]
+  -- inherits Node
+-- add engine class HashingContext
+  -- inherits RefCounted
+-- add engine class HeightMapShape3D
+  -- inherits Shape3D
+-- add engine class HingeJoint3D
+  -- inherits Joint3D
+-- add engine class IP  [renamed Ip]
+  -- inherits Object
+-- add engine class Image
+  -- inherits Resource
+-- add engine class ImageFormatLoader
+  -- inherits RefCounted
+-- add engine class ImageFormatLoaderExtension
+  -- inherits ImageFormatLoader
+-- add engine class ImageTexture
+  -- inherits Texture2D
+-- add engine class ImageTexture3D
+  -- inherits Texture3D
+-- add engine class ImageTextureLayered
+  -- inherits TextureLayered
+-- add engine class ImmediateMesh
+  -- inherits Mesh
+-- add engine class ImporterMesh
+  -- inherits Resource
+-- add engine class ImporterMeshInstance3D
+  -- inherits Node3D
+-- add engine class Input
+  -- inherits Object
+-- add engine class InputEvent
+  -- inherits Resource
+-- add engine class InputEventAction
+  -- inherits InputEvent
+-- add engine class InputEventFromWindow
+  -- inherits InputEvent
+-- add engine class InputEventGesture
+  -- inherits InputEventWithModifiers
+-- add engine class InputEventJoypadButton
+  -- inherits InputEvent
+-- add engine class InputEventJoypadMotion
+  -- inherits InputEvent
+-- add engine class InputEventKey
+  -- inherits InputEventWithModifiers
+-- add engine class InputEventMIDI  [renamed InputEventMidi]
+  -- inherits InputEvent
+-- add engine class InputEventMagnifyGesture
+  -- inherits InputEventGesture
+-- add engine class InputEventMouse
+  -- inherits InputEventWithModifiers
+-- add engine class InputEventMouseButton
+  -- inherits InputEventMouse
+-- add engine class InputEventMouseMotion
+  -- inherits InputEventMouse
+-- add engine class InputEventPanGesture
+  -- inherits InputEventGesture
+-- add engine class InputEventScreenDrag
+  -- inherits InputEventFromWindow
+-- add engine class InputEventScreenTouch
+  -- inherits InputEventFromWindow
+-- add engine class InputEventShortcut
+  -- inherits InputEvent
+-- add engine class InputEventWithModifiers
+  -- inherits InputEventFromWindow
+-- add engine class InputMap
+  -- inherits Object
+-- add engine class InstancePlaceholder
+  -- inherits Node
+-- add engine class IntervalTweener
+  -- inherits Tweener
+-- add engine class ItemList
+  -- inherits Control
+-- add engine class JSON  [renamed Json]
+  -- inherits Resource
+-- add engine class JSONRPC  [renamed JsonRpc]
+  -- inherits Object
+-- add engine class Joint2D
+  -- inherits Node2D
+-- add engine class Joint3D
+  -- inherits Node3D
+-- add engine class KinematicCollision2D
+  -- inherits RefCounted
+-- add engine class KinematicCollision3D
+  -- inherits RefCounted
+-- add engine class Label
+  -- inherits Control
+-- add engine class Label3D
+  -- inherits GeometryInstance3D
+-- add engine class LabelSettings
+  -- inherits Resource
+-- add engine class Light2D
+  -- inherits Node2D
+-- add engine class Light3D
+  -- inherits VisualInstance3D
+-- add engine class LightOccluder2D
+  -- inherits Node2D
+-- add engine class LightmapGI  [renamed LightmapGi]
+  -- inherits VisualInstance3D
+-- add engine class LightmapGIData  [renamed LightmapGiData]
+  -- inherits Resource
+-- add engine class LightmapProbe
+  -- inherits Node3D
+-- add engine class Lightmapper
+  -- inherits RefCounted
+-- add engine class LightmapperRD  [renamed LightmapperRd]
+  -- inherits Lightmapper
+-- add engine class Line2D
+  -- inherits Node2D
+-- add engine class LineEdit
+  -- inherits Control
+-- add engine class LinkButton
+  -- inherits BaseButton
+-- add engine class MainLoop
+  -- inherits Object
+-- add engine class MarginContainer
+  -- inherits Container
+-- add engine class Marker2D
+  -- inherits Node2D
+-- add engine class Marker3D
+  -- inherits Node3D
+-- add engine class Marshalls
+  -- inherits Object
+-- add engine class Material
+  -- inherits Resource
+-- add engine class MenuBar
+  -- inherits Control
+-- add engine class MenuButton
+  -- inherits Button
+-- add engine class Mesh
+  -- inherits Resource
+-- add engine class MeshConvexDecompositionSettings
+  -- inherits RefCounted
+-- add engine class MeshDataTool
+  -- inherits RefCounted
+-- add engine class MeshInstance2D
+  -- inherits Node2D
+-- add engine class MeshInstance3D
+  -- inherits GeometryInstance3D
+-- add engine class MeshLibrary
+  -- inherits Resource
+-- add engine class MeshTexture
+  -- inherits Texture2D
+-- add engine class MethodTweener
+  -- inherits Tweener
+-- add engine class MissingNode
+  -- inherits Node
+-- add engine class MissingResource
+  -- inherits Resource
+-- add engine class MobileVRInterface  [renamed MobileVrInterface]
+  -- inherits XRInterface  [renamed XrInterface]
+-- add engine class MovieWriter
+  -- inherits Object
+-- add engine class MultiMesh
+  -- inherits Resource
+-- add engine class MultiMeshInstance2D
+  -- inherits Node2D
+-- add engine class MultiMeshInstance3D
+  -- inherits GeometryInstance3D
+-- add engine class MultiplayerAPI  [renamed MultiplayerApi]
+  -- inherits RefCounted
+-- add engine class MultiplayerAPIExtension  [renamed MultiplayerApiExtension]
+  -- inherits MultiplayerAPI  [renamed MultiplayerApi]
+-- add engine class MultiplayerPeer
+  -- inherits PacketPeer
+-- add engine class MultiplayerPeerExtension
+  -- inherits MultiplayerPeer
+-- add engine class MultiplayerSpawner
+  -- inherits Node
+-- add engine class MultiplayerSynchronizer
+  -- inherits Node
+-- add engine class NavigationMeshGenerator
+  -- inherits Object
+-- add engine class NavigationMeshSourceGeometryData2D
+  -- inherits Resource
+-- add engine class NinePatchRect
+  -- inherits Control
+-- add engine class Node
+  -- inherits Object
+-- add engine class Node2D
+  -- inherits CanvasItem
+-- add engine class Node3D
+  -- inherits Node
+-- add engine class Node3DGizmo
+  -- inherits RefCounted
+-- add engine class Noise
+  -- inherits Resource
+-- add engine class NoiseTexture2D
+  -- inherits Texture2D
+-- add engine class NoiseTexture3D
+  -- inherits Texture3D
+-- add engine class ORMMaterial3D  [renamed OrmMaterial3D]
+  -- inherits BaseMaterial3D
+-- add engine class OS  [renamed Os]
+  -- inherits Object
+-- add engine class Object
+-- add engine class Occluder3D
+  -- inherits Resource
+-- add engine class OccluderInstance3D
+  -- inherits Node3D
+-- add engine class OccluderPolygon2D
+  -- inherits Resource
+-- add engine class OfflineMultiplayerPeer
+  -- inherits MultiplayerPeer
+-- add engine class OggPacketSequence
+  -- inherits Resource
+-- add engine class OggPacketSequencePlayback
+  -- inherits RefCounted
+-- add engine class OmniLight3D
+  -- inherits Light3D
+-- add engine class OpenXRAPIExtension  [renamed OpenXrApiExtension]
+  -- inherits RefCounted
+-- add engine class OpenXRAction  [renamed OpenXrAction]
+  -- inherits Resource
+-- add engine class OpenXRActionMap  [renamed OpenXrActionMap]
+  -- inherits Resource
+-- add engine class OpenXRActionSet  [renamed OpenXrActionSet]
+  -- inherits Resource
+-- add engine class OpenXRExtensionWrapperExtension  [renamed OpenXrExtensionWrapperExtension]
+  -- inherits Object
+-- add engine class OpenXRHand  [renamed OpenXrHand]
+  -- inherits Node3D
+-- add engine class OpenXRIPBinding  [renamed OpenXrIpBinding]
+  -- inherits Resource
+-- add engine class OpenXRInteractionProfile  [renamed OpenXrInteractionProfile]
+  -- inherits Resource
+-- add engine class OpenXRInteractionProfileMetadata  [renamed OpenXrInteractionProfileMetadata]
+  -- inherits Object
+-- add engine class OpenXRInterface  [renamed OpenXrInterface]
+  -- inherits XRInterface  [renamed XrInterface]
+-- add engine class OptimizedTranslation
+  -- inherits Translation
+-- add engine class OptionButton
+  -- inherits Button
+-- add engine class PCKPacker  [renamed PckPacker]
+  -- inherits RefCounted
+-- add engine class PackedDataContainer
+  -- inherits Resource
+-- add engine class PackedDataContainerRef
+  -- inherits RefCounted
+-- add engine class PackedScene
+  -- inherits Resource
+-- add engine class PacketPeer
+  -- inherits RefCounted
+-- add engine class PacketPeerDTLS  [renamed PacketPeerDtls]
+  -- inherits PacketPeer
+-- add engine class PacketPeerExtension
+  -- inherits PacketPeer
+-- add engine class PacketPeerStream
+  -- inherits PacketPeer
+-- add engine class PacketPeerUDP  [renamed PacketPeerUdp]
+  -- inherits PacketPeer
+-- add engine class Panel
+  -- inherits Control
+-- add engine class PanelContainer
+  -- inherits Container
+-- add engine class PanoramaSkyMaterial
+  -- inherits Material
+-- add engine class ParallaxBackground
+  -- inherits CanvasLayer
+-- add engine class ParallaxLayer
+  -- inherits Node2D
+-- add engine class ParticleProcessMaterial
+  -- inherits Material
+-- add engine class Path2D
+  -- inherits Node2D
+-- add engine class Path3D
+  -- inherits Node3D
+-- add engine class PathFollow2D
+  -- inherits Node2D
+-- add engine class PathFollow3D
+  -- inherits Node3D
+-- add engine class Performance
+  -- inherits Object
+-- add engine class PhysicalBone2D
+  -- inherits RigidBody2D
+-- add engine class PhysicalBone3D
+  -- inherits PhysicsBody3D
+-- add engine class PhysicalSkyMaterial
+  -- inherits Material
+-- add engine class PhysicsBody2D
+  -- inherits CollisionObject2D
+-- add engine class PhysicsBody3D
+  -- inherits CollisionObject3D
+-- add engine class PhysicsDirectBodyState2D
+  -- inherits Object
+-- add engine class PhysicsDirectBodyState2DExtension
+  -- inherits PhysicsDirectBodyState2D
+-- add engine class PhysicsDirectBodyState3D
+  -- inherits Object
+-- add engine class PhysicsDirectBodyState3DExtension
+  -- inherits PhysicsDirectBodyState3D
+-- add engine class PhysicsDirectSpaceState2D
+  -- inherits Object
+-- add engine class PhysicsDirectSpaceState2DExtension
+  -- inherits PhysicsDirectSpaceState2D
+-- add engine class PhysicsDirectSpaceState3D
+  -- inherits Object
+-- add engine class PhysicsDirectSpaceState3DExtension
+  -- inherits PhysicsDirectSpaceState3D
+-- add engine class PhysicsMaterial
+  -- inherits Resource
+-- add engine class PhysicsPointQueryParameters2D
+  -- inherits RefCounted
+-- add engine class PhysicsPointQueryParameters3D
+  -- inherits RefCounted
+-- add engine class PhysicsRayQueryParameters2D
+  -- inherits RefCounted
+-- add engine class PhysicsRayQueryParameters3D
+  -- inherits RefCounted
+-- add engine class PhysicsServer2D
+  -- inherits Object
+-- add engine class PhysicsServer2DExtension
+  -- inherits PhysicsServer2D
+-- add engine class PhysicsServer2DManager
+  -- inherits Object
+-- add engine class PhysicsServer3D
+  -- inherits Object
+-- add engine class PhysicsServer3DExtension
+  -- inherits PhysicsServer3D
+-- add engine class PhysicsServer3DManager
+  -- inherits Object
+-- add engine class PhysicsServer3DRenderingServerHandler
+  -- inherits Object
+-- add engine class PhysicsShapeQueryParameters2D
+  -- inherits RefCounted
+-- add engine class PhysicsShapeQueryParameters3D
+  -- inherits RefCounted
+-- add engine class PhysicsTestMotionParameters2D
+  -- inherits RefCounted
+-- add engine class PhysicsTestMotionParameters3D
+  -- inherits RefCounted
+-- add engine class PhysicsTestMotionResult2D
+  -- inherits RefCounted
+-- add engine class PhysicsTestMotionResult3D
+  -- inherits RefCounted
+-- add engine class PinJoint2D
+  -- inherits Joint2D
+-- add engine class PinJoint3D
+  -- inherits Joint3D
+-- add engine class PlaceholderCubemap
+  -- inherits PlaceholderTextureLayered
+-- add engine class PlaceholderCubemapArray
+  -- inherits PlaceholderTextureLayered
+-- add engine class PlaceholderMaterial
+  -- inherits Material
+-- add engine class PlaceholderMesh
+  -- inherits Mesh
+-- add engine class PlaceholderTexture2D
+  -- inherits Texture2D
+-- add engine class PlaceholderTexture2DArray
+  -- inherits PlaceholderTextureLayered
+-- add engine class PlaceholderTexture3D
+  -- inherits Texture3D
+-- add engine class PlaceholderTextureLayered
+  -- inherits TextureLayered
+-- add engine class PlaneMesh
+  -- inherits PrimitiveMesh
+-- add engine class PointLight2D
+  -- inherits Light2D
+-- add engine class PointMesh
+  -- inherits PrimitiveMesh
+-- add engine class Polygon2D
+  -- inherits Node2D
+-- add engine class PolygonOccluder3D
+  -- inherits Occluder3D
+-- add engine class PolygonPathFinder
+  -- inherits Resource
+-- add engine class Popup
+  -- inherits Window
+-- add engine class PopupMenu
+  -- inherits Popup
+-- add engine class PopupPanel
+  -- inherits Popup
+-- add engine class PortableCompressedTexture2D
+  -- inherits Texture2D
+-- add engine class PrimitiveMesh
+  -- inherits Mesh
+-- add engine class PrismMesh
+  -- inherits PrimitiveMesh
+-- add engine class ProceduralSkyMaterial
+  -- inherits Material
+-- add engine class ProgressBar
+  -- inherits Range
+-- add engine class ProjectSettings
+  -- inherits Object
+-- add engine class PropertyTweener
+  -- inherits Tweener
+-- add engine class QuadMesh
+  -- inherits PlaneMesh
+-- add engine class QuadOccluder3D
+  -- inherits Occluder3D
+-- add engine class RDAttachmentFormat  [renamed RdAttachmentFormat]
+  -- inherits RefCounted
+-- add engine class RDFramebufferPass  [renamed RdFramebufferPass]
+  -- inherits RefCounted
+-- add engine class RDPipelineColorBlendState  [renamed RdPipelineColorBlendState]
+  -- inherits RefCounted
+-- add engine class RDPipelineColorBlendStateAttachment  [renamed RdPipelineColorBlendStateAttachment]
+  -- inherits RefCounted
+-- add engine class RDPipelineDepthStencilState  [renamed RdPipelineDepthStencilState]
+  -- inherits RefCounted
+-- add engine class RDPipelineMultisampleState  [renamed RdPipelineMultisampleState]
+  -- inherits RefCounted
+-- add engine class RDPipelineRasterizationState  [renamed RdPipelineRasterizationState]
+  -- inherits RefCounted
+-- add engine class RDPipelineSpecializationConstant  [renamed RdPipelineSpecializationConstant]
+  -- inherits RefCounted
+-- add engine class RDSamplerState  [renamed RdSamplerState]
+  -- inherits RefCounted
+-- add engine class RDShaderFile  [renamed RdShaderFile]
+  -- inherits Resource
+-- add engine class RDShaderSPIRV  [renamed RdShaderSpirv]
+  -- inherits Resource
+-- add engine class RDShaderSource  [renamed RdShaderSource]
+  -- inherits RefCounted
+-- add engine class RDTextureFormat  [renamed RdTextureFormat]
+  -- inherits RefCounted
+-- add engine class RDTextureView  [renamed RdTextureView]
+  -- inherits RefCounted
+-- add engine class RDUniform  [renamed RdUniform]
+  -- inherits RefCounted
+-- add engine class RDVertexAttribute  [renamed RdVertexAttribute]
+  -- inherits RefCounted
+-- add engine class RandomNumberGenerator
+  -- inherits RefCounted
+-- add engine class Range
+  -- inherits Control
+-- add engine class RayCast2D
+  -- inherits Node2D
+-- add engine class RayCast3D
+  -- inherits Node3D
+-- add engine class RectangleShape2D
+  -- inherits Shape2D
+-- add engine class RefCounted
+  -- inherits Object
+-- add engine class ReferenceRect
+  -- inherits Control
+-- add engine class ReflectionProbe
+  -- inherits VisualInstance3D
+-- add engine class RegEx
+  -- inherits RefCounted
+-- add engine class RegExMatch
+  -- inherits RefCounted
+-- add engine class RemoteTransform2D
+  -- inherits Node2D
+-- add engine class RemoteTransform3D
+  -- inherits Node3D
+-- add engine class RenderSceneBuffers
+  -- inherits RefCounted
+-- add engine class RenderSceneBuffersConfiguration
+  -- inherits RefCounted
+-- add engine class RenderSceneBuffersExtension
+  -- inherits RenderSceneBuffers
+-- add engine class RenderSceneBuffersRD  [renamed RenderSceneBuffersRd]
+  -- inherits RenderSceneBuffers
+-- add engine class RenderingDevice
+  -- inherits Object
+-- add engine class RenderingServer
+  -- inherits Object
+-- add engine class Resource
+  -- inherits RefCounted
+-- add engine class ResourceFormatLoader
+  -- inherits RefCounted
+-- add engine class ResourceFormatSaver
+  -- inherits RefCounted
+-- add engine class ResourceImporter
+  -- inherits RefCounted
+-- add engine class ResourceImporterBMFont  [renamed ResourceImporterBmFont]
+  -- inherits ResourceImporter
+-- add engine class ResourceImporterBitMap
+  -- inherits ResourceImporter
+-- add engine class ResourceImporterCSVTranslation  [renamed ResourceImporterCsvTranslation]
+  -- inherits ResourceImporter
+-- add engine class ResourceImporterDynamicFont
+  -- inherits ResourceImporter
+-- add engine class ResourceImporterImage
+  -- inherits ResourceImporter
+-- add engine class ResourceImporterImageFont
+  -- inherits ResourceImporter
+-- add engine class ResourceImporterLayeredTexture
+  -- inherits ResourceImporter
+-- add engine class ResourceImporterMP3  [renamed ResourceImporterMp3]
+  -- inherits ResourceImporter
+-- add engine class ResourceImporterOBJ  [renamed ResourceImporterObj]
+  -- inherits ResourceImporter
+-- add engine class ResourceImporterOggVorbis
+  -- inherits ResourceImporter
+-- add engine class ResourceImporterScene
+  -- inherits ResourceImporter
+-- add engine class ResourceImporterShaderFile
+  -- inherits ResourceImporter
+-- add engine class ResourceImporterTexture
+  -- inherits ResourceImporter
+-- add engine class ResourceImporterTextureAtlas
+  -- inherits ResourceImporter
+-- add engine class ResourceImporterWAV  [renamed ResourceImporterWav]
+  -- inherits ResourceImporter
+-- add engine class ResourceLoader
+  -- inherits Object
+-- add engine class ResourcePreloader
+  -- inherits Node
+-- add engine class ResourceSaver
+  -- inherits Object
+-- add engine class ResourceUID  [renamed ResourceUid]
+  -- inherits Object
+-- add engine class RibbonTrailMesh
+  -- inherits PrimitiveMesh
+-- add engine class RichTextEffect
+  -- inherits Resource
+-- add engine class RichTextLabel
+  -- inherits Control
+-- add engine class RigidBody2D
+  -- inherits PhysicsBody2D
+-- add engine class RigidBody3D
+  -- inherits PhysicsBody3D
+-- add engine class RootMotionView
+  -- inherits VisualInstance3D
+-- add engine class SceneMultiplayer
+  -- inherits MultiplayerAPI  [renamed MultiplayerApi]
+-- add engine class SceneReplicationConfig
+  -- inherits Resource
+-- add engine class SceneState
+  -- inherits RefCounted
+-- add engine class SceneTree
+  -- inherits MainLoop
+-- add engine class SceneTreeTimer
+  -- inherits RefCounted
+-- add engine class Script
+  -- inherits Resource
+-- add engine class ScriptCreateDialog
+  -- inherits ConfirmationDialog
+-- add engine class ScriptEditor
+  -- inherits PanelContainer
+-- add engine class ScriptEditorBase
+  -- inherits VBoxContainer
+-- add engine class ScriptExtension
+  -- inherits Script
+-- add engine class ScriptLanguage
+  -- inherits Object
+-- add engine class ScriptLanguageExtension
+  -- inherits ScriptLanguage
+-- add engine class ScrollBar
+  -- inherits Range
+-- add engine class ScrollContainer
+  -- inherits Container
+-- add engine class SegmentShape2D
+  -- inherits Shape2D
+-- add engine class SeparationRayShape2D
+  -- inherits Shape2D
+-- add engine class SeparationRayShape3D
+  -- inherits Shape3D
+-- add engine class Separator
+  -- inherits Control
+-- add engine class Shader
+  -- inherits Resource
+-- add engine class ShaderGlobalsOverride
+  -- inherits Node
+-- add engine class ShaderInclude
+  -- inherits Resource
+-- add engine class ShaderMaterial
+  -- inherits Material
+-- add engine class Shape2D
+  -- inherits Resource
+-- add engine class Shape3D
+  -- inherits Resource
+-- add engine class ShapeCast2D
+  -- inherits Node2D
+-- add engine class ShapeCast3D
+  -- inherits Node3D
+-- add engine class Shortcut
+  -- inherits Resource
+-- add engine class Skeleton2D
+  -- inherits Node2D
+-- add engine class Skeleton3D
+  -- inherits Node3D
+-- add engine class SkeletonIK3D  [renamed SkeletonIk3d]
+  -- inherits Node
+-- add engine class SkeletonProfile
+  -- inherits Resource
+-- add engine class SkeletonProfileHumanoid
+  -- inherits SkeletonProfile
+-- add engine class Skin
+  -- inherits Resource
+-- add engine class SkinReference
+  -- inherits RefCounted
+-- add engine class Sky
+  -- inherits Resource
+-- add engine class Slider
+  -- inherits Range
+-- add engine class SliderJoint3D
+  -- inherits Joint3D
+-- add engine class SoftBody3D
+  -- inherits MeshInstance3D
+-- add engine class SphereMesh
+  -- inherits PrimitiveMesh
+-- add engine class SphereOccluder3D
+  -- inherits Occluder3D
+-- add engine class SphereShape3D
+  -- inherits Shape3D
+-- add engine class SpinBox
+  -- inherits Range
+-- add engine class SplitContainer
+  -- inherits Container
+-- add engine class SpotLight3D
+  -- inherits Light3D
+-- add engine class SpringArm3D
+  -- inherits Node3D
+-- add engine class Sprite2D
+  -- inherits Node2D
+-- add engine class Sprite3D
+  -- inherits SpriteBase3D
+-- add engine class SpriteBase3D
+  -- inherits GeometryInstance3D
+-- add engine class SpriteFrames
+  -- inherits Resource
+-- add engine class StandardMaterial3D
+  -- inherits BaseMaterial3D
+-- add engine class StaticBody2D
+  -- inherits PhysicsBody2D
+-- add engine class StaticBody3D
+  -- inherits PhysicsBody3D
+-- add engine class StreamPeer
+  -- inherits RefCounted
+-- add engine class StreamPeerBuffer
+  -- inherits StreamPeer
+-- add engine class StreamPeerExtension
+  -- inherits StreamPeer
+-- add engine class StreamPeerTCP  [renamed StreamPeerTcp]
+  -- inherits StreamPeer
+-- add engine class StreamPeerTLS  [renamed StreamPeerTls]
+  -- inherits StreamPeer
+-- add engine class StyleBox
+  -- inherits Resource
+-- add engine class StyleBoxEmpty
+  -- inherits StyleBox
+-- add engine class StyleBoxFlat
+  -- inherits StyleBox
+-- add engine class StyleBoxLine
+  -- inherits StyleBox
+-- add engine class StyleBoxTexture
+  -- inherits StyleBox
+-- add engine class SubViewport
+  -- inherits Viewport
+-- add engine class SubViewportContainer
+  -- inherits Container
+-- add engine class SurfaceTool
+  -- inherits RefCounted
+-- add engine class SyntaxHighlighter
+  -- inherits Resource
+-- add engine class SystemFont
+  -- inherits Font
+-- add engine class TCPServer  [renamed TcpServer]
+  -- inherits RefCounted
+-- add engine class TLSOptions  [renamed TlsOptions]
+  -- inherits RefCounted
+-- add engine class TabBar
+  -- inherits Control
+-- add engine class TabContainer
+  -- inherits Container
+-- add engine class TextEdit
+  -- inherits Control
+-- add engine class TextLine
+  -- inherits RefCounted
+-- add engine class TextMesh
+  -- inherits PrimitiveMesh
+-- add engine class TextParagraph
+  -- inherits RefCounted
+-- add engine class TextServer
+  -- inherits RefCounted
+-- add engine class TextServerAdvanced
+  -- inherits TextServerExtension
+-- add engine class TextServerDummy
+  -- inherits TextServerExtension
+-- add engine class TextServerExtension
+  -- inherits TextServer
+-- add engine class TextServerManager
+  -- inherits Object
+-- add engine class Texture
+  -- inherits Resource
+-- add engine class Texture2D
+  -- inherits Texture
+-- add engine class Texture2DArray
+  -- inherits ImageTextureLayered
+-- add engine class Texture2DArrayRD  [renamed Texture2DArrayRd]
+  -- inherits TextureLayeredRD  [renamed TextureLayeredRd]
+-- add engine class Texture2DRD  [renamed Texture2Drd]
+  -- inherits Texture2D
+-- add engine class Texture3D
+  -- inherits Texture
+-- add engine class Texture3DRD  [renamed Texture3Drd]
+  -- inherits Texture3D
+-- add engine class TextureButton
+  -- inherits BaseButton
+-- add engine class TextureCubemapArrayRD  [renamed TextureCubemapArrayRd]
+  -- inherits TextureLayeredRD  [renamed TextureLayeredRd]
+-- add engine class TextureCubemapRD  [renamed TextureCubemapRd]
+  -- inherits TextureLayeredRD  [renamed TextureLayeredRd]
+-- add engine class TextureLayered
+  -- inherits Texture
+-- add engine class TextureLayeredRD  [renamed TextureLayeredRd]
+  -- inherits TextureLayered
+-- add engine class TextureProgressBar
+  -- inherits Range
+-- add engine class Theme
+  -- inherits Resource
+-- add engine class ThemeDB  [renamed ThemeDb]
+  -- inherits Object
+-- add engine class TileData
+  -- inherits Object
+-- add engine class TileMap
+  -- inherits Node2D
+-- add engine class TileMapPattern
+  -- inherits Resource
+-- add engine class TileSet
+  -- inherits Resource
+-- add engine class TileSetAtlasSource
+  -- inherits TileSetSource
+-- add engine class TileSetScenesCollectionSource
+  -- inherits TileSetSource
+-- add engine class TileSetSource
+  -- inherits Resource
+-- add engine class Time
+  -- inherits Object
+-- add engine class Timer
+  -- inherits Node
+-- add engine class TorusMesh
+  -- inherits PrimitiveMesh
+-- add engine class TouchScreenButton
+  -- inherits Node2D
+-- add engine class Translation
+  -- inherits Resource
+-- add engine class TranslationServer
+  -- inherits Object
+-- add engine class Tree
+  -- inherits Control
+-- add engine class TreeItem
+  -- inherits Object
+-- add engine class TriangleMesh
+  -- inherits RefCounted
+-- add engine class TubeTrailMesh
+  -- inherits PrimitiveMesh
+-- add engine class Tween
+  -- inherits RefCounted
+-- add engine class Tweener
+  -- inherits RefCounted
+-- add engine class UDPServer  [renamed UdpServer]
+  -- inherits RefCounted
+-- add engine class UPNP  [renamed Upnp]
+  -- inherits RefCounted
+-- add engine class UPNPDevice  [renamed UpnpDevice]
+  -- inherits RefCounted
+-- add engine class UndoRedo
+  -- inherits Object
+-- add engine class VBoxContainer
+  -- inherits BoxContainer
+-- add engine class VFlowContainer
+  -- inherits FlowContainer
+-- add engine class VScrollBar
+  -- inherits ScrollBar
+-- add engine class VSeparator
+  -- inherits Separator
+-- add engine class VSlider
+  -- inherits Slider
+-- add engine class VSplitContainer
+  -- inherits SplitContainer
+-- add engine class VehicleBody3D
+  -- inherits RigidBody3D
+-- add engine class VehicleWheel3D
+  -- inherits Node3D
+-- add engine class VideoStream
+  -- inherits Resource
+-- add engine class VideoStreamPlayback
+  -- inherits Resource
+-- add engine class VideoStreamPlayer
+  -- inherits Control
+-- add engine class VideoStreamTheora
+  -- inherits VideoStream
+-- add engine class Viewport
+  -- inherits Node
+-- add engine class ViewportTexture
+  -- inherits Texture2D
+-- add engine class VisibleOnScreenEnabler2D
+  -- inherits VisibleOnScreenNotifier2D
+-- add engine class VisibleOnScreenEnabler3D
+  -- inherits VisibleOnScreenNotifier3D
+-- add engine class VisibleOnScreenNotifier2D
+  -- inherits Node2D
+-- add engine class VisibleOnScreenNotifier3D
+  -- inherits VisualInstance3D
+-- add engine class VisualInstance3D
+  -- inherits Node3D
+-- add engine class VisualShader
+  -- inherits Shader
+-- add engine class VisualShaderNode
+  -- inherits Resource
+-- add engine class VisualShaderNodeBillboard
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeBooleanConstant
+  -- inherits VisualShaderNodeConstant
+-- add engine class VisualShaderNodeBooleanParameter
+  -- inherits VisualShaderNodeParameter
+-- add engine class VisualShaderNodeClamp
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeColorConstant
+  -- inherits VisualShaderNodeConstant
+-- add engine class VisualShaderNodeColorFunc
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeColorOp
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeColorParameter
+  -- inherits VisualShaderNodeParameter
+-- add engine class VisualShaderNodeComment
+  -- inherits VisualShaderNodeResizableBase
+-- add engine class VisualShaderNodeCompare
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeConstant
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeCubemap
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeCubemapParameter
+  -- inherits VisualShaderNodeTextureParameter
+-- add engine class VisualShaderNodeCurveTexture
+  -- inherits VisualShaderNodeResizableBase
+-- add engine class VisualShaderNodeCurveXYZTexture  [renamed VisualShaderNodeCurveXyzTexture]
+  -- inherits VisualShaderNodeResizableBase
+-- add engine class VisualShaderNodeCustom
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeDerivativeFunc
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeDeterminant
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeDistanceFade
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeDotProduct
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeExpression
+  -- inherits VisualShaderNodeGroupBase
+-- add engine class VisualShaderNodeFaceForward
+  -- inherits VisualShaderNodeVectorBase
+-- add engine class VisualShaderNodeFloatConstant
+  -- inherits VisualShaderNodeConstant
+-- add engine class VisualShaderNodeFloatFunc
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeFloatOp
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeFloatParameter
+  -- inherits VisualShaderNodeParameter
+-- add engine class VisualShaderNodeFresnel
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeGlobalExpression
+  -- inherits VisualShaderNodeExpression
+-- add engine class VisualShaderNodeGroupBase
+  -- inherits VisualShaderNodeResizableBase
+-- add engine class VisualShaderNodeIf
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeInput
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeIntConstant
+  -- inherits VisualShaderNodeConstant
+-- add engine class VisualShaderNodeIntFunc
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeIntOp
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeIntParameter
+  -- inherits VisualShaderNodeParameter
+-- add engine class VisualShaderNodeIs
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeLinearSceneDepth
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeMix
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeMultiplyAdd
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeOuterProduct
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeOutput
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeParameter
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeParameterRef
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeParticleAccelerator
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeParticleBoxEmitter
+  -- inherits VisualShaderNodeParticleEmitter
+-- add engine class VisualShaderNodeParticleConeVelocity
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeParticleEmit
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeParticleEmitter
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeParticleMeshEmitter
+  -- inherits VisualShaderNodeParticleEmitter
+-- add engine class VisualShaderNodeParticleMultiplyByAxisAngle
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeParticleOutput
+  -- inherits VisualShaderNodeOutput
+-- add engine class VisualShaderNodeParticleRandomness
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeParticleRingEmitter
+  -- inherits VisualShaderNodeParticleEmitter
+-- add engine class VisualShaderNodeParticleSphereEmitter
+  -- inherits VisualShaderNodeParticleEmitter
+-- add engine class VisualShaderNodeProximityFade
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeRandomRange
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeRemap
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeResizableBase
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeRotationByAxis
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeSDFRaymarch  [renamed VisualShaderNodeSdfRaymarch]
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeSDFToScreenUV  [renamed VisualShaderNodeSdfToScreenUv]
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeSample3D
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeScreenNormalWorldSpace
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeScreenUVToSDF  [renamed VisualShaderNodeScreenUvToSdf]
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeSmoothStep
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeStep
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeSwitch
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeTexture
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeTexture2DArray
+  -- inherits VisualShaderNodeSample3D
+-- add engine class VisualShaderNodeTexture2DArrayParameter
+  -- inherits VisualShaderNodeTextureParameter
+-- add engine class VisualShaderNodeTexture2DParameter
+  -- inherits VisualShaderNodeTextureParameter
+-- add engine class VisualShaderNodeTexture3D
+  -- inherits VisualShaderNodeSample3D
+-- add engine class VisualShaderNodeTexture3DParameter
+  -- inherits VisualShaderNodeTextureParameter
+-- add engine class VisualShaderNodeTextureParameter
+  -- inherits VisualShaderNodeParameter
+-- add engine class VisualShaderNodeTextureParameterTriplanar
+  -- inherits VisualShaderNodeTextureParameter
+-- add engine class VisualShaderNodeTextureSDF  [renamed VisualShaderNodeTextureSdf]
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeTextureSDFNormal  [renamed VisualShaderNodeTextureSdfNormal]
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeTransformCompose
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeTransformConstant
+  -- inherits VisualShaderNodeConstant
+-- add engine class VisualShaderNodeTransformDecompose
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeTransformFunc
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeTransformOp
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeTransformParameter
+  -- inherits VisualShaderNodeParameter
+-- add engine class VisualShaderNodeTransformVecMult
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeUIntConstant
+  -- inherits VisualShaderNodeConstant
+-- add engine class VisualShaderNodeUIntFunc
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeUIntOp
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeUIntParameter
+  -- inherits VisualShaderNodeParameter
+-- add engine class VisualShaderNodeUVFunc  [renamed VisualShaderNodeUvFunc]
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeUVPolarCoord  [renamed VisualShaderNodeUvPolarCoord]
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeVarying
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeVaryingGetter
+  -- inherits VisualShaderNodeVarying
+-- add engine class VisualShaderNodeVaryingSetter
+  -- inherits VisualShaderNodeVarying
+-- add engine class VisualShaderNodeVec2Constant
+  -- inherits VisualShaderNodeConstant
+-- add engine class VisualShaderNodeVec2Parameter
+  -- inherits VisualShaderNodeParameter
+-- add engine class VisualShaderNodeVec3Constant
+  -- inherits VisualShaderNodeConstant
+-- add engine class VisualShaderNodeVec3Parameter
+  -- inherits VisualShaderNodeParameter
+-- add engine class VisualShaderNodeVec4Constant
+  -- inherits VisualShaderNodeConstant
+-- add engine class VisualShaderNodeVec4Parameter
+  -- inherits VisualShaderNodeParameter
+-- add engine class VisualShaderNodeVectorBase
+  -- inherits VisualShaderNode
+-- add engine class VisualShaderNodeVectorCompose
+  -- inherits VisualShaderNodeVectorBase
+-- add engine class VisualShaderNodeVectorDecompose
+  -- inherits VisualShaderNodeVectorBase
+-- add engine class VisualShaderNodeVectorDistance
+  -- inherits VisualShaderNodeVectorBase
+-- add engine class VisualShaderNodeVectorFunc
+  -- inherits VisualShaderNodeVectorBase
+-- add engine class VisualShaderNodeVectorLen
+  -- inherits VisualShaderNodeVectorBase
+-- add engine class VisualShaderNodeVectorOp
+  -- inherits VisualShaderNodeVectorBase
+-- add engine class VisualShaderNodeVectorRefract
+  -- inherits VisualShaderNodeVectorBase
+-- add engine class VisualShaderNodeWorldPositionFromDepth
+  -- inherits VisualShaderNode
+-- add engine class VoxelGI  [renamed VoxelGi]
+  -- inherits VisualInstance3D
+-- add engine class VoxelGIData  [renamed VoxelGiData]
+  -- inherits Resource
+-- add engine class WeakRef
+  -- inherits RefCounted
+-- add engine class WebRTCDataChannel  [renamed WebRtcDataChannel]
+  -- inherits PacketPeer
+-- add engine class WebRTCDataChannelExtension  [renamed WebRtcDataChannelExtension]
+  -- inherits WebRTCDataChannel  [renamed WebRtcDataChannel]
+-- add engine class WebRTCMultiplayerPeer  [renamed WebRtcMultiplayerPeer]
+  -- inherits MultiplayerPeer
+-- add engine class WebRTCPeerConnection  [renamed WebRtcPeerConnection]
+  -- inherits RefCounted
+-- add engine class WebRTCPeerConnectionExtension  [renamed WebRtcPeerConnectionExtension]
+  -- inherits WebRTCPeerConnection  [renamed WebRtcPeerConnection]
+-- add engine class WebSocketMultiplayerPeer
+  -- inherits MultiplayerPeer
+-- add engine class WebSocketPeer
+  -- inherits PacketPeer
+-- add engine class WebXRInterface  [renamed WebXrInterface]
+  -- inherits XRInterface  [renamed XrInterface]
+-- add engine class Window
+  -- inherits Viewport
+-- add engine class WorkerThreadPool
+  -- inherits Object
+-- add engine class World2D
+  -- inherits Resource
+-- add engine class World3D
+  -- inherits Resource
+-- add engine class WorldBoundaryShape2D
+  -- inherits Shape2D
+-- add engine class WorldBoundaryShape3D
+  -- inherits Shape3D
+-- add engine class WorldEnvironment
+  -- inherits Node
+-- add engine class X509Certificate
+  -- inherits Resource
+-- add engine class XMLParser  [renamed XmlParser]
+  -- inherits RefCounted
+-- add engine class XRAnchor3D  [renamed XrAnchor3D]
+  -- inherits XRNode3D  [renamed XrNode3D]
+-- add engine class XRCamera3D  [renamed XrCamera3D]
+  -- inherits Camera3D
+-- add engine class XRController3D  [renamed XrController3D]
+  -- inherits XRNode3D  [renamed XrNode3D]
+-- add engine class XRInterface  [renamed XrInterface]
+  -- inherits RefCounted
+-- add engine class XRInterfaceExtension  [renamed XrInterfaceExtension]
+  -- inherits XRInterface  [renamed XrInterface]
+-- add engine class XRNode3D  [renamed XrNode3D]
+  -- inherits Node3D
+-- add engine class XROrigin3D  [renamed XrOrigin3D]
+  -- inherits Node3D
+-- add engine class XRPose  [renamed XrPose]
+  -- inherits RefCounted
+-- add engine class XRPositionalTracker  [renamed XrPositionalTracker]
+  -- inherits RefCounted
+-- add engine class XRServer  [renamed XrServer]
+  -- inherits Object
+-- add engine class ZIPPacker  [renamed ZipPacker]
+  -- inherits RefCounted
+-- add engine class ZIPReader  [renamed ZipReader]
+  -- inherits RefCounted
+cargo:rerun-if-changed=build.rs
+cargo:rustc-cfg=since_api="4.1"
+cargo:rustc-cfg=since_api="4.2"
+cargo:rustc-cfg=before_api="4.3"
+cargo:rustc-cfg=gdextension_minor_api="4.2"
+cargo:rustc-cfg=gdextension_exact_api="4.2"
