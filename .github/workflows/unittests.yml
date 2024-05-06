@@ -65,7 +65,7 @@ jobs:
       uses: actions/cache/save@v4.0.2
       with:
         # A list of files, directories, and wildcard patterns to cache and restore
-        path: ./addons/glecs/bin/${{ env.LINUX_64_TARGET }}/release
+        path: ./addons/glecs/bin/${{ env.LINUX_64_TARGET }}/release/libglecs.so
         # An explicit key for restoring and saving the cache
         key: glecslib.${{ env.LINUX_64_TARGET }}
                 
@@ -91,7 +91,7 @@ jobs:
         uses: actions/cache/restore@v4.0.2
         with:
           # A list of files, directories, and wildcard patterns to cache and restore
-          path: ./addons/glecs/bin/${{ env.LINUX_64_TARGET }}/release
+          path: ./addons/glecs/bin/${{ env.LINUX_64_TARGET }}/release/libglecs.so
           # An explicit key for restoring and saving the cache
           key: glecslib.${{ env.LINUX_64_TARGET }}
           # An optional boolean when enabled, allows windows runners to save or restore caches that can be restored or saved respectively on other platforms
@@ -102,7 +102,6 @@ jobs:
         with:
           # Version must include major, minor, and patch, and be >= 4.0.0
           version: 4.2.1
-          mono: false
 
       - name: 🚣‍♂️ Convert dev plugin to nightly format
         run: |
@@ -114,7 +113,7 @@ jobs:
       
       - name: 🖨️ Copy dev branch plugin to nightly
         run: |
-          cp -rf ./addons/glecs/* ../nightly/
+          cp -r ./addons/glecs/* ../nightly/
       
       - name: 📂 Add / commit
         run: |
