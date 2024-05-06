@@ -3,12 +3,10 @@ extends SceneTree
 
 const NIGHTLY_NAME:= "GlecsNightly"
 
-const GLECS:= "res://addons/glecs/"
+const GLECS:= "res://"
 const OLD_EXTENSION:= "glecs.gdextension"
 const NEW_EXTENSION:= "glecs.gdextension.release"
-const SOURCE:= "rust"
 const CFG:= "plugin.cfg"
-const THIS:= "_build_for_nightly.cfg"
 
 func _init() -> void:
 	var dir:= DirAccess.open(GLECS)
@@ -21,37 +19,20 @@ func _init() -> void:
 	var has_error:= false
 	if not dir.file_exists(OLD_EXTENSION):
 		push_error(
-			"Unexpected file structure. Failed to find \"%s/%s\"",
-			GLECS,
-			OLD_EXTENSION,
+			"Unexpected file structure. Failed to find \"%s%s\"" %
+			[GLECS, OLD_EXTENSION],
 		)
 		has_error = true
 	if not dir.file_exists(NEW_EXTENSION):
 		push_error(
-			"Unexpected file structure. Failed to find \"%s/%s\"",
-			GLECS,
-			NEW_EXTENSION,
-		)
-		has_error = true
-	if not dir.file_exists(SOURCE):
-		push_error(
-			"Unexpected file structure. Failed to find \"%s/%s\"",
-			GLECS,
-			SOURCE,
+			"Unexpected file structure. Failed to find \"%s%s\"" %
+			[GLECS, NEW_EXTENSION],
 		)
 		has_error = true
 	if not dir.file_exists(CFG):
 		push_error(
-			"Unexpected file structure. Failed to find \"%s/%s\"",
-			GLECS,
-			CFG,
-		)
-		has_error = true
-	if not dir.file_exists(THIS):
-		push_error(
-			"Unexpected file structure. Failed to find \"%s/%s\"",
-			GLECS,
-			THIS,
+			"Unexpected file structure. Failed to find \"%s%s\"" %
+			[GLECS, CFG],
 		)
 		has_error = true
 
@@ -69,7 +50,7 @@ func _init() -> void:
 		return
 
 	err = dir.rename(NEW_EXTENSION, OLD_EXTENSION)
-	prints("Rename %s to %s"% [OLD_EXTENSION, NEW_EXTENSION])
+	prints("Rename %s to %s"% [NEW_EXTENSION, OLD_EXTENSION])
 	if err != OK:
 		push_error("Error while renaming new extension:", error_string(err))
 		quit(1)
@@ -78,7 +59,7 @@ func _init() -> void:
 	var plugin_cfg:= ConfigFile.new()
 
 	err = plugin_cfg.load("%s/%s" % [GLECS, CFG])
-	prints("Set plung.cfg")
+	prints("Set plungin.cfg")
 	if err != OK:
 		push_error("Error while loading plugin.cfg:", error_string(err))
 		quit(1)

@@ -106,7 +106,9 @@ jobs:
 
       - name: 🚣‍♂️ Convert dev plugin to nightly format
         run: |
-          godot -s ./addons/glecs/_build_for_nightly.gd
+          cd addons/glecs
+          godot -s _build_for_nightly.gd
+          cd ../..
 
       - name: 🌙 Clone nightly branch
         run: |
