@@ -119,15 +119,11 @@ jobs:
         run: |
           cp ./addons/glecs/ ../nightly -r
       
-      - name: Set github name and email
+      - name: Git add
         run: |
           cd ../nightly
           git config --global  user.name "github-actions[bot]"
           git config --global  user.email "gslogimaker@gmail.com"
-
-      - name: Add
-        run: |
-          cd ../nightly
           git add .
 
       - name: Commit
