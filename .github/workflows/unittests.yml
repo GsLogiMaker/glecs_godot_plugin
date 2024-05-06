@@ -13,7 +13,7 @@ env:
   LINUX_64_TARGET: x86_64-unknown-linux-gnu
 
 jobs:
-  unittests_linux_x86_64:
+  build_linux_x86_64:
 
     runs-on: ubuntu-latest
 
@@ -50,8 +50,6 @@ jobs:
       with:
         # Version must include major, minor, and patch, and be >= 4.0.0
         version: 4.2.1
-        mono: false
-      
 
       # This shouldn't be needed because the important files from .godot are
       # included, but we run the import process just in case.
@@ -74,7 +72,7 @@ jobs:
 
   update_nightly:
 
-    needs: unittests_linux_x86_64
+    needs: build_linux_x86_64
     runs-on: windows-latest
 
     steps:
@@ -135,3 +133,29 @@ jobs:
           directory: ../nightly
 
           
+  nightly_unittests_linux_x86_64:
+
+    needs: update_nightly
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: 🐙 Checkout nightly branch
+      run: git checkout nightly
+    
+    - name: 🤖 Setup Godot
+      uses: chickensoft-games/setup-godot@v1
+      with:
+        # Version must include major, minor, and patch, and be >= 4.0.0
+        version: 4.2.1
+
+      # This shouldn't be needed because the important files from .godot are
+      # included, but we run the import process just in case.
+    - name: 📧 Run Godot import
+      run: |
+        godot --headless --editor --quit-after 100
+
+    - name: ✏️ Run unittests
+      run: |
+        godot -s res://addons/gut/gut_cmdln.gd --headless -gdir="res://unittests" -gexit
