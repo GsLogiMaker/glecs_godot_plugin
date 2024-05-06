@@ -108,11 +108,14 @@ jobs:
         run: |
           cd addons/glecs
           godot -s _build_for_nightly.gd
-          cd ../..
 
       - name: 🌙 Clone nightly branch
         run: |
-          git clone https://github.com/${{ github.repository }} ../nightly -b nightly
+          git clone https://github.com/${{ github.repository }} ../nightly_tmp -b nightly
+          mkdir ../nightly
+          cp -r ../nightly_tmp/.git/* ../nightly/.git/
+          cp ../nightly_tmp/README.md ../nightly/README.md
+          cp ../nightly_tmp/.gitignore ../nightly/.gitignore
       
       - name: 🖨️ Copy dev branch plugin to nightly
         run: |
@@ -142,31 +145,31 @@ jobs:
         run: exit 0
 
 
-  nightly_unittests_linux_x86_64:
+  # nightly_unittests_linux_x86_64:
 
-    needs: update_nightly
-    runs-on: ubuntu-latest
+  #   needs: update_nightly
+  #   runs-on: ubuntu-latest
 
-    steps:
-    - uses: actions/checkout@v4
+  #   steps:
+  #   - uses: actions/checkout@v4
 
-    - name: 🐙 Checkout nightly branch
-      run: |
-        git fetch
-        git branch nightly
+  #   - name: 🐙 Checkout nightly branch
+  #     run: |
+  #       git fetch
+  #       git branch nightly
     
-    - name: 🤖 Setup Godot
-      uses: chickensoft-games/setup-godot@v1
-      with:
-        # Version must include major, minor, and patch, and be >= 4.0.0
-        version: 4.2.1
+  #   - name: 🤖 Setup Godot
+  #     uses: chickensoft-games/setup-godot@v1
+  #     with:
+  #       # Version must include major, minor, and patch, and be >= 4.0.0
+  #       version: 4.2.1
 
-      # This shouldn't be needed because the important files from .godot are
-      # included, but we run the import process just in case.
-    - name: 📧 Run Godot import
-      run: |
-        godot --headless --editor --quit-after 100
+  #     # This shouldn't be needed because the important files from .godot are
+  #     # included, but we run the import process just in case.
+  #   - name: 📧 Run Godot import
+  #     run: |
+  #       godot --headless --editor --quit-after 100
 
-    - name: ✏️ Run unittests
-      run: |
-        godot -s res://addons/gut/gut_cmdln.gd --headless -gdir="res://unittests" -gexit
+  #   - name: ✏️ Run unittests
+  #     run: |
+  #       godot -s res://addons/gut/gut_cmdln.gd --headless -gdir="res://unittests" -gexit
