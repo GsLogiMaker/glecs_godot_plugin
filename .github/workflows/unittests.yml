@@ -116,7 +116,8 @@ jobs:
         run: |
           cp -r -force ./addons/glecs/* ../nightly/
       
-      - name: 📂 Add / commit
+      - name: add-and-commit
+        continue-on-error: true
         run: |
           cd ../nightly
           git config --global user.name github-actions[bot]
@@ -127,12 +128,16 @@ jobs:
           echo ""
 
       - name: 📤 Push
+        if: steps.add-and-commit.outcome == 'success'
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
           branch: nightly
           directory: ../nightly
+        
+      - name: finish
+        run: exit 0
 
 
   nightly_unittests_linux_x86_64:
