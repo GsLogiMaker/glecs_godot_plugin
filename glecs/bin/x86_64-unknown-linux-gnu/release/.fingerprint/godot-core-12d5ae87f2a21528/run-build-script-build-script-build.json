@@ -1,1 +1,0 @@
-{"rustc":1059629350237521597,"features":"","declared_features":"","target":0,"profile":0,"path":0,"deps":[[5735229413574923162,"build_script_build",false,9074837830515631242]],"local":[{"RerunIfChanged":{"output":"x86_64-unknown-linux-gnu/release/build/godot-core-12d5ae87f2a21528/output","paths":["build.rs"]}}],"rustflags":[],"metadata":0,"config":0,"compile_kind":0}
