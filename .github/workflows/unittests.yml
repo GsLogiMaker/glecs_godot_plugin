@@ -114,7 +114,7 @@ jobs:
       
       - name: 🖨️ Copy dev branch plugin to nightly
         run: |
-          cp ./addons/glecs/* ../nightly/ -rf
+          cp -rf ./addons/glecs/* ../nightly/
       
       - name: 📂 Add / commit
         run: |
