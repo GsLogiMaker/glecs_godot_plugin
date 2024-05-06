@@ -113,8 +113,10 @@ jobs:
       - name: 🚣‍♂️ Convert dev plugin to nightly format
         run: |
           cd addons/glecs
+          ls
           # godot -s _build_for_nightly.gd --headless
           godot -s intentional_error.gd --headless
+          echo hello
 
       - name: 🌙 Clone nightly branch
         run: |
