@@ -124,20 +124,20 @@ jobs:
           cd ../nightly
           git config --global  user.name "github-actions[bot]"
           git config --global  user.email "gslogimaker@gmail.com"
-          ls
 
       - name: Add
         run: |
-          ls
+          cd ../nightly
           git add .
 
       - name: Commit
         run: |
-          ls
+          cd ../nightly
           git commit --all -m "(AUTO) ${{ github.event.head_commit.message }}"
 
       - name: Push
         run: |
+          cd ../nightly
           git push origin nightly
 
           
