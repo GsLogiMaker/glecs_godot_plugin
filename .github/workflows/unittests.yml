@@ -124,7 +124,7 @@ jobs:
           git add .
           git commit --all -m "(AUTO) ${{ github.event.head_commit.message }}"
           # Prevent error
-          echo
+          echo ""
 
       - name: 📤 Push
         uses: ad-m/github-push-action@master
