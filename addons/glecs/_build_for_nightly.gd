@@ -62,12 +62,14 @@ func _init() -> void:
 	var err:= 0
 
 	err = dir.remove(OLD_EXTENSION)
+	prints("Remove %s" % OLD_EXTENSION)
 	if err != OK:
 		push_error("Error while deleting old extension:", error_string(err))
 		quit(1)
 		return
 
 	err = dir.rename(NEW_EXTENSION, OLD_EXTENSION)
+	prints("Rename %s to %s"% [OLD_EXTENSION, NEW_EXTENSION])
 	if err != OK:
 		push_error("Error while renaming new extension:", error_string(err))
 		quit(1)
@@ -76,6 +78,7 @@ func _init() -> void:
 	var plugin_cfg:= ConfigFile.new()
 
 	err = plugin_cfg.load("%s/%s" % [GLECS, CFG])
+	prints("Set plung.cfg")
 	if err != OK:
 		push_error("Error while loading plugin.cfg:", error_string(err))
 		quit(1)

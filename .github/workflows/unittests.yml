@@ -78,7 +78,8 @@ jobs:
     steps:
 
         # Run only if new commits were pushed
-      - if: ${{ github.action }} != "push"
+      - name: 📍 Proceed if action is "push"
+        if: ${{ github.action }} != "push"
         run: |
           exit 0
 
@@ -122,6 +123,8 @@ jobs:
           git config --global user.email gslogimaker@gmail.com
           git add .
           git commit --all -m "(AUTO) ${{ github.event.head_commit.message }}"
+          # Prevent error
+          echo
 
       - name: 📤 Push
         uses: ad-m/github-push-action@master
