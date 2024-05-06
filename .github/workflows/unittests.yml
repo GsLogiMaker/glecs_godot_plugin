@@ -79,8 +79,8 @@ jobs:
 
     steps:
 
-      - name: 📍 Run only if new commits were pushed
-        if: ${{ github.action }} != "push"
+        # Run only if new commits were pushed
+      - if: ${{ github.action }} != "push"
         run: |
           exit 0
 
@@ -118,22 +118,19 @@ jobs:
         run: |
           cp ./addons/glecs/ ../nightly -r
       
-      - name: Git add
+      - name: 📂 Add / commit
         run: |
           cd ../nightly
           git config --global user.name github-actions[bot]
           git config --global user.email gslogimaker@gmail.com
           git add .
-
-      - name: Commit
-        run: |
-          cd ../nightly
           git commit --all -m "(AUTO) ${{ github.event.head_commit.message }}"
 
-      - name: Push
-        run: |
-          cd ../nightly
-          git remote set-url origin https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-          git push
+      - name: 📤 Push
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          branch: nightly
 
           
