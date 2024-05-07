@@ -104,20 +104,18 @@ jobs:
           key: glecslib.${{ env.LINUX_64_TARGET }}
           # An optional boolean when enabled, allows windows runners to save or restore caches that can be restored or saved respectively on other platforms
           enableCrossOsArchive: true
-      
-      - name: 🤖 Setup Godot
-        uses: chickensoft-games/setup-godot@v1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5.1.0
         with:
-          # Version must include major, minor, and patch, and be >= 4.0.0
-          version: 4.2.1
+            python-version: 3.11.2
+            cache: pip
 
       - name: 🚣‍♂️ Convert dev plugin to nightly format
         run: |
           cd addons/glecs
-          ls
-          godot -s="_build_for_nightly.gd" --headless
-          godot --version
-          echo hello
+          pip install regex
+          python _build_for_nightly.py
 
       - name: 🌙 Clone nightly branch
         run: |
