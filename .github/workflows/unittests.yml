@@ -25,17 +25,20 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v4
 
-    - name: 🐙 Initialize submodules
+    - name: 🐙 Settup git environment
+      uses: actions/checkout@v4
+
+    - name: 🗳️ Initialize submodules
       run: git submodule update --init --recursive
 
-    - uses: Swatinem/rust-cache@v2
+    - name: 💾 Rust cache
+      uses: Swatinem/rust-cache@v2
       with:
         workspaces: "./addons/glecs/rust/glecs"
         cache-on-failure: true
 
-    - name: 🦀 Update Rust
+    - name: 🏗️ Update Rust
       run: |
         rustup update
         rustup target add ${{ matrix.target }}
@@ -68,7 +71,7 @@ jobs:
       run: |
         godot -s res://addons/gut/gut_cmdln.gd --headless -gdir="res://unittests" -gexit
 
-    - name: Cache compiled library
+    - name: 💾 Cache compiled library
       uses: actions/cache/save@v4.0.2
       with:
         # A list of files, directories, and wildcard patterns to cache and restore
@@ -90,7 +93,8 @@ jobs:
         run: |
           exit 0
 
-      - uses: actions/checkout@v4
+      - name: 🐙 Settup git environment
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           persist-credentials: false
@@ -105,7 +109,7 @@ jobs:
           # An optional boolean when enabled, allows windows runners to save or restore caches that can be restored or saved respectively on other platforms
           enableCrossOsArchive: true
 
-      - name: Setup Python
+      - name: 🐍 Setup Python
         uses: actions/setup-python@v5.1.0
         with:
             python-version: 3.11.2
@@ -130,7 +134,8 @@ jobs:
         run: |
           cp -r -force ./addons/glecs/* ../nightly/
       
-      - name: add-and-commit
+      - name: ➕ Add / Commit to nightly
+        id: add-and-commit
         continue-on-error: true
         run: |
           cd ../nightly
@@ -141,7 +146,7 @@ jobs:
           # Prevent error
           echo ""
 
-      - name: 📤 Push
+      - name: 📤 Push to nightly
         if: steps.add-and-commit.outcome == 'success'
         uses: ad-m/github-push-action@master
         with:
@@ -150,35 +155,5 @@ jobs:
           branch: nightly
           directory: ../nightly
         
-      - name: finish
+      - name: 🏁 Finish
         run: exit 0
-
-
-  # nightly_unittests_linux_x86_64:
-
-  #   needs: update_nightly
-  #   runs-on: ubuntu-latest
-
-  #   steps:
-  #   - uses: actions/checkout@v4
-
-  #   - name: 🐙 Checkout nightly branch
-  #     run: |
-  #       git fetch
-  #       git branch nightly
-    
-  #   - name: 🤖 Setup Godot
-  #     uses: chickensoft-games/setup-godot@v1
-  #     with:
-  #       # Version must include major, minor, and patch, and be >= 4.0.0
-  #       version: 4.2.1
-
-  #     # This shouldn't be needed because the important files from .godot are
-  #     # included, but we run the import process just in case.
-  #   - name: 📧 Run Godot import
-  #     run: |
-  #       godot --headless --editor --quit-after 100
-
-  #   - name: ✏️ Run unittests
-  #     run: |
-  #       godot -s res://addons/gut/gut_cmdln.gd --headless -gdir="res://unittests" -gexit
