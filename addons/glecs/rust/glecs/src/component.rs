@@ -12,6 +12,7 @@ use godot::prelude::*;
 use crate::component_definitions::ComponetDefinition;
 use crate::component_definitions::ComponetProperty;
 use crate::entity::EntityLike;
+use crate::gd_bindings::_GlecsBindings;
 use crate::show_error;
 use crate::world::_GlecsBaseWorld;
 use crate::Float;
@@ -25,6 +26,7 @@ pub struct _GlecsBaseComponent {
     pub(crate) world: Gd<_GlecsBaseWorld>,
     /// The ID that this component is attatached to.
     pub(crate) entity_id: EntityId,
+    pub(crate) component_id: EntityId,
     pub(crate) component_definition: Rc<ComponetDefinition>,
 }
 #[godot_api]
@@ -647,13 +649,13 @@ impl _GlecsBaseComponent {
         unsafe { NonNull::new_unchecked(flecs::ecs_get_mut_id(
             self.world.bind().raw(),
             self.entity_id,
-            self.component_definition.flecs_id,
+            self.get_flecs_id(),
         ).cast::<u8>()) }
     }
 
     /// Returns the Flecs ID of this component's type.
     pub(crate) fn get_flecs_id(&self) -> EntityId {
-        self.component_definition.flecs_id
+        self.component_id
     }
 
     // --- Hooks ---
@@ -818,65 +820,143 @@ impl EntityLike for _GlecsBaseComponent {
     }
 
     fn get_flecs_id(&self) -> EntityId {
-        self.component_definition.flecs_id
+        self.component_id
     }
 
     fn delete(&self) {
         unsafe { flecs::ecs_remove_id(
             self.world.bind().raw(),
             self.entity_id,
-            self.component_definition.flecs_id,
+            self.get_flecs_id(),
         ) };
     }
 
     fn is_valid(&self) -> bool{
         // Check world
-        if !self.world.is_instance_valid() {
-            // World was deleted
-            return false;
-        }
+        let Some(_) = self.world.is_instance_valid()
+            .then_some(())
+            else { return false };
 
         let world_bind = self.world.bind();
 
         // Check master entity
-        if !unsafe { flecs::ecs_is_alive(
-            world_bind.raw(),
-            self.entity_id,
-        ) } {
-            // Master entity was deleted
-            return false;
-        }
+        let Some(_) = _GlecsBindings::id_is_alive(self.world.clone(), self.entity_id)
+            .then_some(())
+            else { return false };
 
-        // Check component
-        if !unsafe { flecs::ecs_is_alive(
-            world_bind.raw(),
-            self.component_definition.flecs_id,
-        ) } {
-            // Component was deleted
-            return false;
+        // Check component type is alive
+        match self.get_flecs_id() {
+            c if
+                _GlecsBindings::id_is_pair(c)
+                && _GlecsBindings::has_id(
+                    self.world.clone(),
+                    _GlecsBindings::pair_first(c),
+                    unsafe { flecs::FLECS_IDEcsComponentID_ },
+                )
+            => {
+                // ID is a pair, and the first part is a component
+                let id = _GlecsBindings::pair_first(c);
+                let Some(_) = _GlecsBindings::id_is_alive(self.world.clone(), id)
+                    .then_some(())
+                    else { return false };
+            },
+
+            c if
+                _GlecsBindings::id_is_pair(c)
+                && _GlecsBindings::has_id(
+                    self.world.clone(),
+                    _GlecsBindings::pair_second(c),
+                    unsafe { flecs::FLECS_IDEcsComponentID_ },
+                )
+            => {
+                // ID is a pair, and the second part is a component
+                let id = _GlecsBindings::pair_second(c);
+                let Some(_) = _GlecsBindings::id_is_alive(self.world.clone(), id)
+                    .then_some(())
+                    else { return false };
+            },
+
+            c => {
+                // ID is a normal component
+                let Some(_) = _GlecsBindings::id_is_alive(self.world.clone(), c)
+                    .then_some(())
+                    else { return false };
+            },
+
         }
 
         // Check that the entity has this component attached
-        if !unsafe { flecs::ecs_has_id(
-            world_bind.raw(),
-            self.entity_id,
-            self.component_definition.flecs_id,
-        ) } {
-            // The entity does not have the component attached, this
-            // reference is invalid
-            return false;
-        }
+        let ett_id = self.entity_id;
+        let comp_id = self.get_flecs_id();
+        let Some(_) = _GlecsBindings::has_id(self.world.clone(), ett_id, comp_id)
+            .then_some(())
+            else { return false };
 
         return true;
     }
 
     fn validate(&self) {
-        if !self._is_valid() {
-            show_error!(
-                "Component validation failed",
-                "Component, its world, or its entity was deleted.",
-            );
+        // Check world
+        self.world.is_instance_valid()
+            .then_some(())
+            .expect("Component's world was deleted");
+
+        // Check master entity
+        _GlecsBindings::id_is_alive(self.world.clone(), self.entity_id)
+            .then_some(())
+            .expect("The entity this component was attached to was delted.");
+
+        // Check component type is alive
+        match self.get_flecs_id() {
+            c if
+                _GlecsBindings::id_is_pair(c)
+                && _GlecsBindings::has_id(
+                    self.world.clone(),
+                    _GlecsBindings::pair_first(c),
+                    unsafe { flecs::FLECS_IDEcsComponentID_ },
+                )
+            => {
+                // ID is a pair, and the first part is a component
+                let id = _GlecsBindings::pair_first(c);
+                _GlecsBindings::id_is_alive(self.world.clone(), id)
+                    .then_some(())
+                    .expect("Component type was deleted.");
+            },
+
+            c if
+                _GlecsBindings::id_is_pair(c)
+                && _GlecsBindings::has_id(
+                    self.world.clone(),
+                    _GlecsBindings::pair_second(c),
+                    unsafe { flecs::FLECS_IDEcsComponentID_ },
+                )
+            => {
+                // ID is a pair, and the second part is a component
+                let id = _GlecsBindings::pair_second(c);
+                _GlecsBindings::id_is_alive(self.world.clone(), id)
+                    .then_some(())
+                    .expect("Component type was deleted.");
+            },
+
+            c => {
+                // ID is a normal component
+                _GlecsBindings::id_is_alive(self.world.clone(), c)
+                    .then_some(())
+                    .expect("Component type was deleted.");
+            },
+
         }
+
+        // Check that the entity has this component attached
+        let ett_id = self.entity_id;
+        let comp_id = self.get_flecs_id();
+        _GlecsBindings::has_id(self.world.clone(), ett_id, comp_id)
+            .then_some(())
+            .expect(&format!(
+                "Component was removed from its entity. Component ID: {}, Entity ID: {}",
+                comp_id,
+                ett_id,
+            ));
     }
 }
 

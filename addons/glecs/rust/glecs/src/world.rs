@@ -378,6 +378,13 @@ impl _GlecsBaseWorld {
         &self,
         key: EntityId,
     ) -> Option<Rc<ComponetDefinition>> {
+        if _GlecsBindings::id_is_pair(key) {
+            let first = _GlecsBindings::pair_first(key);
+            let second = _GlecsBindings::pair_second(key);
+            let d = self.components.get(&first);
+            let d = d.or_else(|| self.components.get(&second));
+            return d.map(|x| x.clone());
+        }
         self.components.get(&key).map(|x| x.clone())
     }
 
@@ -973,6 +980,7 @@ pub(crate) struct ScriptSystemContext {
                 let base_comp = _GlecsBaseComponent {
                     base,
                     entity_id: 0, // ID should be changed by the system
+                    component_id: term.id,
                     world: world.clone(),
                     component_definition: term_description.clone(),
                 };

@@ -2,7 +2,7 @@
 use std::ffi::CString;
 use std::ffi::CStr;
 
-use flecs::EntityId;
+use flecs::*;
 use godot::prelude::*;
 
 use crate::world::_GlecsBaseWorld;
@@ -34,6 +34,44 @@ impl _GlecsBindings {
         name: GString,
     ) -> EntityId {
         Self::set_name_from_ref(&world.bind(), entity, name)
+    }
+
+    #[func]
+    pub(crate) fn pair_first(
+        pair: EntityId,
+    ) -> EntityId {
+        ((pair & ECS_COMPONENT_MASK) >> 32) as u32 as EntityId
+    }
+
+    #[func]
+    pub(crate) fn pair_second(
+        pair: EntityId,
+    ) -> EntityId {
+        pair as u32 as EntityId
+    }
+
+    #[func]
+    pub(crate) fn id_is_alive(
+        world: Gd<_GlecsBaseWorld>,
+        id: EntityId,
+    ) -> bool {
+        unsafe { ecs_is_alive(world.bind().raw(), id) }
+    }
+
+    #[func]
+    pub(crate) fn id_is_pair(
+        entity: EntityId,
+    ) -> bool {
+        unsafe { ecs_id_is_pair(entity) }
+    }
+
+    #[func]
+    pub(crate) fn has_id(
+        world: Gd<_GlecsBaseWorld>,
+        entity: EntityId,
+        id: EntityId,
+    ) -> bool {
+        unsafe { ecs_has_id(world.bind().raw(), entity, id) }
     }
 
     #[func]

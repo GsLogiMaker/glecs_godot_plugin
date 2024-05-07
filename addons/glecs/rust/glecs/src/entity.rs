@@ -266,6 +266,7 @@ pub(crate) trait EntityLike: Debug {
             let base_comp = _GlecsBaseComponent {
                 base,
                 entity_id: flecs_id,
+                component_id,
                 world: world_gd.clone(),
                 component_definition: world_gd.bind()
                     .get_component_description(component_id)
@@ -337,7 +338,6 @@ pub(crate) trait EntityLike: Debug {
                     component,
                     self,
                 );
-                return None;
             };
 
         // Get flecs entity
@@ -348,18 +348,16 @@ pub(crate) trait EntityLike: Debug {
                     "Entity {:?} was freed.",
                     self,
                 );
-                unreachable!();
             };
         
         // Get component data
-        if !entt.has_id(component_definition.flecs_id) {
+        if !entt.has_id(c_id) {
             show_error!(
                 "Failed to get component from entity",
                 "Component {} has not been added to entity {:?}.",
                     component,
                     self,
             );
-            return None;
         }
 
 
@@ -369,11 +367,17 @@ pub(crate) trait EntityLike: Debug {
                 base,
                 world: world_gd_clone,
                 entity_id: flecs_id,
-                component_definition,
+                component_id: c_id,
+                component_definition: component_definition.clone(),
             };
             base_comp
         });
-        comp.bind_mut().base_mut().set_script(component.to_variant());
+        comp.bind_mut()
+            .base_mut()
+            .set_script(
+                Gd::<Script>::from_instance_id(component_definition.script_id)
+                    .to_variant()
+            );
 
         Some(comp)
     }
