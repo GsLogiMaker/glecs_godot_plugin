@@ -5,6 +5,9 @@ func _init() -> void:
 	Glecs.PROCESS = id_from_variant("Glecs/process")
 	Glecs.PHYSICS_PROCESS = id_from_variant("Glecs/physics_process")
 
+func get_child(path: String) -> GlecsEntity:
+	return GlecsEntity.from(_GlecsBindings.lookup(self, path), self)
+
 func new_event_listener(
 	event:Variant,
 ) -> GlecsSystemBuilder:
@@ -36,6 +39,9 @@ func new_pipeline(
 	additional_parameters:Array[Callable]=[],
 ) -> void:
 	_new_pipeline(identifier, additional_parameters)
+
+func register(module:Script, name: String = "") -> void:
+	_register_script(module, name)
 
 func new_system(pipeline: Variant = Glecs.PROCESS) -> GlecsSystemBuilder:
 	return _new_system(pipeline)
