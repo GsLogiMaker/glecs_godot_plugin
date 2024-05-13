@@ -2,6 +2,7 @@
 use std::ffi::CString;
 use std::ffi::CStr;
 
+use flecs::ecs_module_init;
 use flecs::EntityId;
 use godot::prelude::*;
 
@@ -17,6 +18,15 @@ impl _GlecsBindings {
     #[func]
     pub(crate) fn new_id(world: Gd<_GlecsBaseWorld>) -> EntityId {
         Self::new_id_from_ref(&world.bind())
+    }
+
+    #[func]
+    pub(crate) fn module_init(
+        world: Gd<_GlecsBaseWorld>,
+        name: GString,
+        source_id: EntityId,
+    ) -> EntityId {
+        Self::module_init_from_ref(&world.bind(), name, source_id)
     }
 
     #[func]
@@ -54,7 +64,16 @@ impl _GlecsBindings {
     }
 
     #[func]
-    pub(crate) fn _add_pair(
+    pub(crate) fn lookup_child(
+        world: Gd<_GlecsBaseWorld>,
+        parent: EntityId,
+        name: GString,
+    ) -> EntityId {
+        Self::lookup_child_from_ref(&world.bind(), parent, name)
+    }
+
+    #[func]
+    pub(crate) fn add_pair(
         world: Gd<_GlecsBaseWorld>,
         entity: EntityId,
         relation: EntityId,
@@ -118,6 +137,20 @@ impl _GlecsBindings {
 
     pub(crate) fn new_id_from_ref(world: &_GlecsBaseWorld) -> EntityId {
         unsafe { flecs::ecs_new_id(world.raw()) }
+    }
+
+    pub(crate) fn module_init_from_ref(
+        world: &_GlecsBaseWorld,
+        name: GString,
+        source_id: EntityId,
+    ) -> EntityId {
+        let mut desc = flecs::ecs_component_desc_t::default();
+        desc.entity = source_id;
+        unsafe { ecs_module_init(
+            world.raw(),
+            gstring_to_cstring(name).as_ptr(),
+            &desc,
+        ) }
     }
 
     pub(crate) fn get_name_from_ref(
@@ -189,7 +222,24 @@ impl _GlecsBindings {
                 false,
             )
         };
-        if false {dbg!();}
+        
+        got
+    }
+
+    pub(crate) fn lookup_child_from_ref(
+        world: &_GlecsBaseWorld,
+        parent: EntityId,
+        name: GString,
+    ) -> EntityId {
+        let path = gstring_to_cstring(name);
+        let got = unsafe {
+            flecs::ecs_lookup_child(
+                world.raw(),
+                parent,
+                path.as_ptr(),
+            )
+        };
+        
         got
     }
 

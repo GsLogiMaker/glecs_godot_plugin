@@ -3,10 +3,14 @@ use std::alloc::Layout;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::c_void;
+use std::ffi::CStr;
+use std::ffi::CString;
 use std::hash::Hash;
 use std::mem::MaybeUninit;
 use std::rc::Rc;
 
+use flecs::bindings::*;
+use flecs::ecs_pair;
 use flecs::EntityId;
 use flecs::Iter;
 use flecs::World as FlWorld;
@@ -20,19 +24,24 @@ use crate::component_definitions::ComponetProperty;
 use crate::entity::load_entity_script;
 use crate::entity::EntityLike;
 use crate::entity::_GlecsBaseEntity;
-use crate::event::_GlecsEvent;
 use crate::gd_bindings::_GlecsBindings;
+use crate::module::_GlecsBaseModule;
 use crate::prefab::PrefabDefinition;
-use crate::prefab::_GlecsPrefab;
 use crate::prefab::PREFAB_COMPONENTS;
 use crate::queries::BuildType;
 use crate::queries::_GlecsBaseSystemBuilder;
+use crate::util;
+use crate::util::script_inherets;
 use crate::Int;
 use crate::TYPE_SIZES;
 
 pub(crate) fn load_world_obj_script() -> Variant {
     load::<Script>("res://addons/glecs/gd/world_object.gd")
         .to_variant()
+}
+
+pub(crate) fn load_module_script() -> Gd<Script> {
+    load::<Script>("res://addons/glecs/gd/module.gd")
 }
 
 #[derive(GodotClass)]
@@ -74,7 +83,6 @@ impl _GlecsBaseWorld {
 
         gd_entity
     }
-
 
     /// Creates a new entity in the world.
     #[func(gd_self)]
@@ -184,6 +192,11 @@ impl _GlecsBaseWorld {
     }
 
     #[func(gd_self)]
+    fn _register_script(this: Gd<Self>, to_register: Gd<Script>, name: GString) {
+        Self::register_script_and_get(this, to_register, name);
+    }
+
+    #[func(gd_self)]
     fn _new_system(this: Gd<Self>, pipeline: Variant) -> Gd<_GlecsBaseSystemBuilder> {
         let mut builder = _GlecsBaseSystemBuilder::new(this);
         builder.bind_mut().pipeline = pipeline;
@@ -260,42 +273,23 @@ impl _GlecsBaseWorld {
                 {
                     return e.bind().id
                 }
-                if let Ok(e) =
+                if let Ok(e) = entity.try_to::<Gd<Script>>() {
+                    if let Some(e) =  Self::get_tag_entity(
+                        &this.bind(),
+                        entity,
+                    ) {
+                        return e
+                    }
+                    return Self::register_script_and_get(
+                        this,
+                        e,
+                        "".into(),
+                    )
+                }
+                if let Ok(_) =
                     entity.try_to::<Gd<_GlecsBaseComponent>>()
                 {
-                    return e.bind().component_definition.flecs_id
-                }
-                if let Ok(e) =
-                    entity.try_to::<Gd<_GlecsEvent>>()
-                {
-                    return e.bind()._id
-                }
-                if let Ok(e) =
-                    entity.try_to::<Gd<_GlecsPrefab>>()
-                {
-                    return e.bind().flecs_id
-                }
-                if let Ok(e) = entity.try_to::<Gd<Script>>() {
-                    let component_type = _GlecsBaseComponent::class_name()
-                        .to_string_name();
-                    let entity_type = _GlecsBaseEntity::class_name()
-                        .to_string_name();
-                    match e.get_instance_base_type() {
-                        type_name if type_name == component_type => {
-                            // Component script
-                            return Self::get_or_add_component_gd(this, e)
-                        },
-                        type_name if type_name == entity_type => {
-                            // Entity script
-                            return Self::get_or_add_tag_entity(
-                                this,
-                                e.to_variant(),
-                            )
-                        },
-                        _ => {},
-                    }
-                    if e.get_instance_base_type() == component_type {
-                    }
+                    panic!("Too ambiguous to get an ID from a component.")
                 }
                 
                 0
@@ -493,6 +487,190 @@ impl _GlecsBaseWorld {
         self.pipelines.get(&pipeline_id).expect("Could not find pipeline")
     }
 
+    fn register_script_and_get(
+        this: Gd<Self>,
+        mut script: Gd<Script>,
+        name: GString,
+    )-> EntityId {
+        let world_ptr = this.bind().raw();
+
+        let pre_fn_scope = unsafe { ecs_get_scope(world_ptr) };
+
+        let name_gstring = match () {
+            _ if name.len() != 0 => {
+                // A name was provided, no assumptions needed
+                let curr_scope = unsafe { ecs_get_scope(world_ptr) };
+                if curr_scope == 0 {
+                    let scripts = Self::_id_from_variant(
+                        this.clone(),
+                        "Glecs/Scripts".to_variant(),
+                    );
+                    unsafe { ecs_set_scope(world_ptr, scripts)  };
+                }
+                name
+            },
+
+            _ if script.get_path().len() == 0 => {
+                // Script has no name, and no path, use ID of script instance
+                format!("Script#{}", script.instance_id().to_i64()).into()
+            },
+
+            _ => {
+                // No name was provided, assume script is a .gd file
+                let path = script.get_path();
+    
+                let scripts = Self::_id_from_variant(
+                    this.clone(),
+                    "Glecs/Scripts".to_variant(),
+                );
+                
+                let path_string = path.to_string();
+                let path = path_string
+                    .split("res://")
+                    .nth(1)
+                    .unwrap()
+                    .split("/");
+                unsafe { ecs_set_scope(world_ptr, scripts) }; // This path should leak forward to when the entity for this script is created, then be reverted at the end of the function
+                for folder in path {
+                    if folder.contains(".") {
+                        break;
+                    }
+                    let cstring = CString::new(folder).unwrap();
+                    let mut found = unsafe { ecs_lookup_child(
+                        world_ptr,
+                        ecs_get_scope(world_ptr),
+                        cstring.as_ptr(),
+                    )};
+                    if found == 0 {
+                        found = _GlecsBindings::module_init(
+                            this.clone(),
+                            folder.into(),
+                            0,
+                        );
+                        _GlecsBindings::add_pair(
+                            this.clone(),
+                            found,
+                            unsafe { EcsChildOf },
+                            unsafe { ecs_get_scope(world_ptr) },
+                        );
+                    }
+                    // This scope is reset at the end of the funciton
+                    unsafe { ecs_set_scope(world_ptr, found) };
+                }
+    
+                let name_str =  path_string
+                    .split("/")
+                    .last()
+                    .unwrap();
+                GString::from(name_str)
+            },
+        };
+
+        let pre_check_scope = unsafe { ecs_get_scope(world_ptr) };
+        unsafe { ecs_set_scope(world_ptr, 0) };
+        let lookup = _GlecsBindings::lookup_child(
+            this.clone(),
+            pre_check_scope,
+            name_gstring.clone(),
+        );
+        if lookup != 0 {
+            panic!(
+                "Failed to register the script {}. An entity with the name \"{}\" has already been defined.",
+                script,
+                name_gstring,
+            );
+        }
+        unsafe { ecs_set_scope(world_ptr, pre_check_scope) };
+        
+        let script_type = script.get_instance_base_type()
+            .to_string();
+
+        let item_id = match script_type {
+            t if t == _GlecsBaseComponent::class_name().as_str() => {
+                // Script is a component
+                Self::get_or_add_component_gd(
+                    this.clone(),
+                    script.clone(),
+                )
+            },
+            t if t == _GlecsBaseEntity::class_name().as_str() => {
+                // Script is an entity or module
+                if script_inherets(script.clone(), load_module_script()) {
+                    // Script is a module
+                    let has_id = Self::get_tag_entity(
+                        &this.bind(),
+                        script.to_variant(),
+                    ).is_some();
+                    let id = Self::get_or_add_tag_entity(
+                        this.clone(),
+                        script.to_variant(),
+                    );
+                    if !has_id {
+                        _GlecsBindings::module_init(
+                            this.clone(),
+                            name_gstring.clone(),
+                            id,
+                        );
+                        _GlecsBindings::add_pair(
+                            this.clone(),
+                            id,
+                            unsafe { EcsChildOf },
+                            unsafe { ecs_get_scope(world_ptr) },
+                        );
+
+                        // Register sub-classes and imported scripts
+                        let old_scope = unsafe { ecs_get_scope(world_ptr) };
+                        unsafe { ecs_set_scope(world_ptr, id) };
+                        for (key, value) in
+                            script.get_script_constant_map().iter_shared()
+                        {
+                            let Ok(sub_script) = value
+                                .try_to::<Gd<Script>>()
+                                else { continue };
+                            Self::_register_script(
+                                this.clone(),
+                                sub_script,
+                                key.to::<GString>(),
+                            );
+                        }
+                        unsafe { ecs_set_scope(world_ptr, old_scope) };
+                    }
+
+                    id
+                } else {
+                    // Script is an entity
+                    let entity = Self::get_or_add_tag_entity(
+                        this.clone(),
+                        script.to_variant(),
+                    );
+                    unsafe { ecs_add_id(
+                        world_ptr,
+                        entity,
+                        ecs_pair(
+                            EcsChildOf,
+                            ecs_get_scope(world_ptr),
+                        ),
+                    ) };
+                    entity
+                }
+            },
+            _ => panic!(
+                "Attempted to register a non-entity script in a Glecs world. Only {}, {}, and {} scritps can be registed.",
+                _GlecsBaseComponent::class_name(),
+                _GlecsBaseEntity::class_name(),
+                _GlecsBaseModule::class_name(),
+            ),
+        };
+
+        _GlecsBindings::set_name(
+            this.clone(),
+            item_id, name_gstring.clone(),
+        );
+        
+        unsafe { ecs_set_scope(world_ptr, pre_fn_scope) };
+        item_id
+    }
+
     pub(crate) fn new_system_from_builder(
         this: Gd<Self>,
         builder: &mut _GlecsBaseSystemBuilder,
@@ -585,7 +763,7 @@ impl _GlecsBaseWorld {
             .map(|x| *x);
         
         id_opt.unwrap_or_else(|| {
-            let new_id = this.bind_mut().world.entity().id();
+            let new_id = _GlecsBindings::new_id(this.clone());
             Self::add_tag_entity(this, key, new_id);
             new_id
         })
@@ -740,6 +918,20 @@ impl IObject for _GlecsBaseWorld {
             _GlecsBindings::_flecs_child_of(),
             glecs_id,
         );
+
+        // Add Scripts entity
+        let scripts = _GlecsBindings::new_id_from_ref(&world);
+        _GlecsBindings::set_name_from_ref(
+            &world,
+            scripts,
+            "Scripts".into(),
+        );
+        _GlecsBindings::add_pair_from_ref(
+            &world,
+            scripts,
+            _GlecsBindings::_flecs_child_of(),
+            glecs_id,
+        );
         
         world
     }
@@ -823,6 +1015,15 @@ impl _GlecsBaseWorldNode {
                 identifier,
                 extra_parameters,
             )
+        }
+
+        #[func]
+        fn _register_script(&self, to_register: Gd<Script>, name: GString) {
+            _GlecsBaseWorld::_register_script(
+                self.glecs_world.clone(),
+                to_register,
+                name,
+            );
         }
     
         /// Runs all processess associated with the given pipeline.

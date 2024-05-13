@@ -10,3 +10,5 @@ func get_dict() -> Dictionary:
 
 func set_dict(v:Dictionary) -> void:
 	return setc(&"dict", v)
+
+class OtherClass extends GlecsComponent: pass
