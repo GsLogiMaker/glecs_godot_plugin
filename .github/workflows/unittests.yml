@@ -9,8 +9,13 @@ on:
   workflow_dispatch:
 
 env:
-  CARGO_TERM_COLOR: always
+  CARGO_TERM_COLOR: 
+    
   LINUX_64_TARGET: x86_64-unknown-linux-gnu
+  LINUX_64_LIB: libglecs.so
+
+  WINDOWS_64_TARGET: x86_64-pc-windows-gnu
+  WINDOWS_64_LIB: libglecs.dll
 
 jobs:
   build_linux_x86_64:
@@ -18,15 +23,18 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
+          - os: x86_64-unknown-linux-gnu
+            target: libglecs.so
             glecs_lib: libglecs.so
+          - os: windows-latest
+            target: x86_64-pc-windows-gnu
+            glecs_lib: libglecs.dll
 
     runs-on: ${{ matrix.os }}
 
     steps:
 
-    - name: 🐙 Settup git environment
+    - name: 🐙 Settup git environment ${{ runner.arch }}
       uses: actions/checkout@v4
 
     - name: 🗳️ Initialize submodules
@@ -103,9 +111,19 @@ jobs:
         uses: actions/cache/restore@v4.0.2
         with:
           # A list of files, directories, and wildcard patterns to cache and restore
-          path: ./addons/glecs/bin/${{ env.LINUX_64_TARGET }}/release/libglecs.so
+          path: ./addons/glecs/bin/${{ env.LINUX_64_TARGET }}/release/${{ env.LINUX_64_LIB }}
           # An explicit key for restoring and saving the cache
           key: glecslib.${{ env.LINUX_64_TARGET }}
+          # An optional boolean when enabled, allows windows runners to save or restore caches that can be restored or saved respectively on other platforms
+          enableCrossOsArchive: true
+
+      - name: 🪟 Load compiled library, Windows x86_64
+        uses: actions/cache/restore@v4.0.2
+        with:
+          # A list of files, directories, and wildcard patterns to cache and restore
+          path: ./addons/glecs/bin/${{ env.WINDOWS_64_TARGET }}/release/${{ env.WINDOWS_64_LIB }}
+          # An explicit key for restoring and saving the cache
+          key: glecslib.${{ env.WINDOWS_64_TARGET }}
           # An optional boolean when enabled, allows windows runners to save or restore caches that can be restored or saved respectively on other platforms
           enableCrossOsArchive: true
 
