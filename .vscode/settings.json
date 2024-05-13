@@ -1,0 +1,7 @@
+{
+	"rust-analyzer.linkedProjects": [
+		"./addons/glecs/rust/glecs/Cargo.toml",
+		"./addons/glecs/rust/flecs-rs/Cargo.toml",
+	],
+	"godot-rust.environment.godotProjectPath": "${workspaceFolder}"
+}

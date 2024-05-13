@@ -9,15 +9,12 @@ addons/glecs/rust/glecs/.vscode
 addons/glecs/rust/glecs/target
 addons/glecs/rust/glecs/Cargo.lock
 
-# Vs Code settings
-.vscode/settings.json
-addons/glecs/.vscode/settings.json
-
 # Ignore some .godot files
 .godot/*/
 .godot/uid_cache.bin
 
 # Project files
 addons/gut/gui/GutSceneTheme.tres
+.gut_editor_config.json
 unittest_log.xml
 test_results.xml

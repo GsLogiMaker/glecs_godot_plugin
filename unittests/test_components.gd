@@ -86,6 +86,26 @@ func test_default_values():
 	assert_eq(e.get_component(WithDefaults).get_script_2(), WithDefaults._VAR_script)
 
 	w.queue_free()
+	
+	
+func test_components_in_relationships():
+	var w:= GlecsWorldNode.new()
+	add_child(w)
+	
+	var e:= GlecsEntity.spawn(w.as_object())
+	var foo:= e.add_relation(Targets, Foo) \
+		.get_component(w.pair(Targets, Foo)) as Foo
+	
+	foo.set_value(Vector2(54, 6))
+	assert_almost_eq(foo.get_value(), Vector2(54, 6), Vector2(.001, .001))
+	
+	foo = e.get_component(w.pair(Targets, Foo))
+	assert_almost_eq(foo.get_value(), Vector2(54, 6), Vector2(.001, .001))
+	
+	w.queue_free()
+
+
+class Targets extends GlecsEntity: pass
 
 
 class Foo extends GlecsComponent:
