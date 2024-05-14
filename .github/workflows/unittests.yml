@@ -32,7 +32,7 @@ jobs:
 
     steps:
 
-    - name: 🐙 Settup git environment ${{ runner.arch }}
+    - name: 🐙 Settup git environment
       uses: actions/checkout@v4
 
     - name: 🗳️ Initialize git submodules
@@ -45,6 +45,12 @@ jobs:
         cache-on-failure: true
 
     - name: 🏗️ Update Rust
+      run: |
+        rustup update
+        rustup target add ${{ matrix.target }}
+
+    - name: 🪟 Install mingw for Windows build
+      if: ${{ matrix.target }} == x86_64-pc-windows-gnu
       run: |
         rustup update
         rustup target add ${{ matrix.target }}
