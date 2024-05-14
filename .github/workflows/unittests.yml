@@ -9,8 +9,6 @@ on:
   workflow_dispatch:
 
 env:
-  CARGO_TERM_COLOR: 
-    
   LINUX_64_TARGET: x86_64-unknown-linux-gnu
   LINUX_64_LIB: libglecs.so
 
