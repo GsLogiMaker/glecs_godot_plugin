@@ -96,7 +96,7 @@ jobs:
       runs-on: ${{ matrix.os }}
   
       steps:
-        - name: Load compiled library
+        - name: ⏳ Load compiled library
           uses: actions/cache/restore@v4.0.2
           with:
             # A list of files, directories, and wildcard patterns to cache and restore
@@ -113,7 +113,7 @@ jobs:
             version: "4.2"
             is-mono: "false"
             # the folder with your project.godot file in it
-            path: ""
+            path: "glecs_godot_plugin"
             # the ratio of tests that must pass for this action to pass
             # e.g. 0.6 means 60% of your tests must pass
             minimum-pass: "1.0"
