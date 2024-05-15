@@ -15,6 +15,5 @@ addons/glecs/rust/glecs/Cargo.lock
 
 # Project files
 addons/gut/gui/GutSceneTheme.tres
-.gut_editor_config.json
 unittest_log.xml
 test_results.xml

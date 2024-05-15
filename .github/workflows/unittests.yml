@@ -69,7 +69,8 @@ jobs:
         # Copy library for use in test suite
         cp -r ./addons/glecs/bin/${TARGET}/release ./addons/glecs/bin/debug
 
-    - uses: croconut/godot-tester@v5
+    - name: 🤖 Run Godot unit tests
+      uses: croconut/godot-tester@v5
       with:
         # required
         version: "4.2"
@@ -82,7 +83,7 @@ jobs:
         # the directory containing Gut tests
         test-dir: "res://unittests"
         # default is GUTs default: 'res://.gutconfig.json'; set this to load a different config file
-        config-file: "res://.myconfig.json" 
+        config-file: "res://.gut_editor_config.json" 
         # designate a custom url to download the godot binary from
         custom-godot-dl-url: ""
         # relative path to the xml file to read / write GUT's results from, recommended
