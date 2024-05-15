@@ -16,17 +16,17 @@ env:
   WINDOWS_64_LIB: libglecs.dll
 
 jobs:
-  build_linux_x86_64:
+  compile_glecs:
     
     strategy:
       matrix:
         include:
-          # - os: ubuntu-latest
-          #   target: x86_64-unknown-linux-gnu
-          #   glecs_lib: libglecs.so
           - os: ubuntu-latest
-            target: x86_64-pc-windows-gnu
-            glecs_lib: libglecs.dll
+            target: x86_64-unknown-linux-gnu
+            glecs_lib: libglecs.so
+          # - os: ubuntu-latest
+          #   target: x86_64-pc-windows-gnu
+          #   glecs_lib: libglecs.dll
           # - os: ubuntu-latest
           #   target: x86_64-pc-windows-gnu
           #   glecs_lib: libglecs.dll
@@ -69,27 +69,6 @@ jobs:
         # Copy library for use in test suite
         cp -r ./addons/glecs/bin/${TARGET}/release ./addons/glecs/bin/debug
 
-    - name: 🤖 Run Godot unit tests
-      uses: croconut/godot-tester@v5
-      with:
-        # required
-        version: "4.2"
-        is-mono: "false"
-        # the folder with your project.godot file in it
-        path: ""
-        # the ratio of tests that must pass for this action to pass
-        # e.g. 0.6 means 60% of your tests must pass
-        minimum-pass: "1.0"
-        # the directory containing Gut tests
-        test-dir: "res://unittests"
-        # default is GUTs default: 'res://.gutconfig.json'; set this to load a different config file
-        config-file: "res://.gut_editor_config.json" 
-        # designate a custom url to download the godot binary from
-        custom-godot-dl-url: ""
-        # relative path to the xml file to read / write GUT's results from, recommended
-        # for direct-scene users to check this file if you have issues
-        result-output-file: "test_results.xml"
-
     - name: 💾 Cache compiled library
       uses: actions/cache/save@v4.0.2
       with:
@@ -97,11 +76,60 @@ jobs:
         path: ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }}
         # An explicit key for restoring and saving the cache
         key: glecslib.${{ matrix.target }}
-                
+
+  run_godot_test_suite:
+      needs: compile_glecs
+
+      strategy:
+        matrix:
+          include:
+            - os: ubuntu-latest
+              target: x86_64-unknown-linux-gnu
+              glecs_lib: libglecs.so
+            # - os: ubuntu-latest
+            #   target: x86_64-pc-windows-gnu
+            #   glecs_lib: libglecs.dll
+            # - os: ubuntu-latest
+            #   target: x86_64-pc-windows-gnu
+            #   glecs_lib: libglecs.dll
+  
+      runs-on: ${{ matrix.os }}
+  
+      steps:
+        - name: Load compiled library
+          uses: actions/cache/restore@v4.0.2
+          with:
+            # A list of files, directories, and wildcard patterns to cache and restore
+            path: ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }}
+            # An explicit key for restoring and saving the cache
+            key: glecslib.${{ matrix.target }}
+            # An optional boolean when enabled, allows windows runners to save or restore caches that can be restored or saved respectively on other platforms
+            enableCrossOsArchive: true
+
+        - name: 🤖 Run Godot unit tests
+          uses: croconut/godot-tester@v5
+          with:
+            # required
+            version: "4.2"
+            is-mono: "false"
+            # the folder with your project.godot file in it
+            path: ""
+            # the ratio of tests that must pass for this action to pass
+            # e.g. 0.6 means 60% of your tests must pass
+            minimum-pass: "1.0"
+            # the directory containing Gut tests
+            test-dir: "res://unittests"
+            # default is GUTs default: 'res://.gutconfig.json'; set this to load a different config file
+            config-file: "res://.gut_editor_config.json" 
+            # designate a custom url to download the godot binary from
+            custom-godot-dl-url: ""
+            # relative path to the xml file to read / write GUT's results from, recommended
+            # for direct-scene users to check this file if you have issues
+            result-output-file: "test_results.xml"
 
   update_nightly:
+    needs: run_godot_test_suite
 
-    needs: build_linux_x86_64
     runs-on: windows-latest
 
     steps:
