@@ -96,6 +96,9 @@ jobs:
       runs-on: ${{ matrix.os }}
   
       steps:
+        - name: 🐙 Settup git environment
+          uses: actions/checkout@v4
+          
         - name: ⏳ Load compiled library
           uses: actions/cache/restore@v4.0.2
           with:
