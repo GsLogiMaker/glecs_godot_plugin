@@ -27,6 +27,9 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-pc-windows-gnu
             glecs_lib: libglecs.dll
+          # - os: ubuntu-latest
+          #   target: x86_64-pc-windows-gnu
+          #   glecs_lib: libglecs.dll
 
     runs-on: ${{ matrix.os }}
 
@@ -65,22 +68,26 @@ jobs:
         
         # Copy library for use in test suite
         cp -r ./addons/glecs/bin/${TARGET}/release ./addons/glecs/bin/debug
-    
-    - name: 🤖 Setup Godot
-      uses: chickensoft-games/setup-godot@v1
+
+    - uses: croconut/godot-tester@v5
       with:
-        # Version must include major, minor, and patch, and be >= 4.0.0
-        version: 4.2.1
-
-      # This shouldn't be needed because the important files from .godot are
-      # included, but we run the import process just in case.
-    - name: 📧 Run Godot import
-      run: |
-        godot --headless --editor --quit-after 100
-
-    - name: ✏️ Run unittests
-      run: |
-        godot -s res://addons/gut/gut_cmdln.gd --headless -gdir="res://unittests" -gexit
+        # required
+        version: "4.2"
+        is-mono: "false"
+        # the folder with your project.godot file in it
+        path: ""
+        # the ratio of tests that must pass for this action to pass
+        # e.g. 0.6 means 60% of your tests must pass
+        minimum-pass: "1.0"
+        # the directory containing Gut tests
+        test-dir: "res://unittests"
+        # default is GUTs default: 'res://.gutconfig.json'; set this to load a different config file
+        config-file: "res://.myconfig.json" 
+        # designate a custom url to download the godot binary from
+        custom-godot-dl-url: ""
+        # relative path to the xml file to read / write GUT's results from, recommended
+        # for direct-scene users to check this file if you have issues
+        result-output-file: "test_results.xml"
 
     - name: 💾 Cache compiled library
       uses: actions/cache/save@v4.0.2
