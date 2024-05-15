@@ -117,6 +117,7 @@ jobs:
             cp ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }} ./addons/glecs/bin/debug/${{ matrix.glecs_lib }}
 
         - name: 🤖 Run Godot unit tests
+          id: run-godot-tests
           uses: croconut/godot-tester@v5
           with:
             # required
@@ -134,6 +135,11 @@ jobs:
             # relative path to the xml file to read / write GUT's results from, recommended
             # for direct-scene users to check this file if you have issues
             result-output-file: "test_results.xml"
+
+        - name: 📄 Print test results
+          if: steps.run-godot-tests.outcome == 'failure'
+          run: echo "$(cat test_results.xml)"
+            
 
   update_nightly:
     needs: run_godot_test_suite
