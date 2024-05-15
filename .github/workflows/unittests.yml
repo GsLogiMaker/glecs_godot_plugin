@@ -113,7 +113,7 @@ jobs:
             version: "4.2"
             is-mono: "false"
             # the folder with your project.godot file in it
-            path: "glecs_godot_plugin"
+            path: ""
             # the ratio of tests that must pass for this action to pass
             # e.g. 0.6 means 60% of your tests must pass
             minimum-pass: "1.0"
