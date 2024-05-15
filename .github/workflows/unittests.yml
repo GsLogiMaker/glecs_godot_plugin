@@ -98,7 +98,7 @@ jobs:
       steps:
         - name: 🐙 Settup git environment
           uses: actions/checkout@v4
-          
+
         - name: ⏳ Load compiled library
           uses: actions/cache/restore@v4.0.2
           with:
@@ -108,6 +108,11 @@ jobs:
             key: glecslib.${{ matrix.target }}
             # An optional boolean when enabled, allows windows runners to save or restore caches that can be restored or saved respectively on other platforms
             enableCrossOsArchive: true
+
+        - name: Move lib
+          run: |
+            cp ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }} ./addons/glecs/bin/release/${{ matrix.glecs_lib }}
+            cp ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }} ./addons/glecs/bin/debug/${{ matrix.glecs_lib }}
 
         - name: 🤖 Run Godot unit tests
           uses: croconut/godot-tester@v5
