@@ -111,6 +111,8 @@ jobs:
 
         - name: Move lib
           run: |
+            mkdir ./addons/glecs/bin/release/
+            mkdir ./addons/glecs/bin/debug/
             cp ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }} ./addons/glecs/bin/release/${{ matrix.glecs_lib }}
             cp ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }} ./addons/glecs/bin/debug/${{ matrix.glecs_lib }}
 
