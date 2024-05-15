@@ -137,7 +137,7 @@ jobs:
             result-output-file: "test_results.xml"
 
         - name: 📄 Print test results
-          if: steps.run-godot-tests.outcome == 'failure'
+          if: steps.run-godot-tests.outcome != 'success'
           run: echo "$(cat test_results.xml)"
             
 
