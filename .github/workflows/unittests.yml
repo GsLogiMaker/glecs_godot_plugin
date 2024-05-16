@@ -60,20 +60,21 @@ jobs:
     - name: 🦀 Build Rust code
       run: |
         cargo build \
-          --release \
+          # --release \
           --manifest-path ./addons/glecs/rust/glecs/Cargo.toml \
           --features compile_bindings \
           --target-dir ./addons/glecs/bin \
           --target ${{ matrix.target }}
         
         # Copy library for use in test suite
-        cp -r ./addons/glecs/bin/${TARGET}/release ./addons/glecs/bin/debug
+        cp -r ./addons/glecs/bin/${TARGET}/debug ./addons/glecs/bin/debug
+        # cp -r ./addons/glecs/bin/${TARGET}/release ./addons/glecs/bin/debug
 
     - name: 💾 Cache compiled library
       uses: actions/cache/save@v4.0.2
       with:
         # A list of files, directories, and wildcard patterns to cache and restore
-        path: ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }}
+        path: ./addons/glecs/bin/${{ matrix.target }}/debug/${{ matrix.glecs_lib }}
         # An explicit key for restoring and saving the cache
         key: glecslib.${{ matrix.target }}
 
@@ -113,8 +114,8 @@ jobs:
           run: |
             mkdir ./addons/glecs/bin/release/
             mkdir ./addons/glecs/bin/debug/
-            cp ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }} ./addons/glecs/bin/release/${{ matrix.glecs_lib }}
-            cp ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }} ./addons/glecs/bin/debug/${{ matrix.glecs_lib }}
+            cp ./addons/glecs/bin/${{ matrix.target }}/debug/${{ matrix.glecs_lib }} ./addons/glecs/bin/release/${{ matrix.glecs_lib }}
+            cp ./addons/glecs/bin/${{ matrix.target }}/debug/${{ matrix.glecs_lib }} ./addons/glecs/bin/debug/${{ matrix.glecs_lib }}
 
         - name: 🤖 Run Godot unit tests
           id: run-godot-tests
