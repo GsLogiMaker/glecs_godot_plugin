@@ -136,9 +136,9 @@ jobs:
             # for direct-scene users to check this file if you have issues
             result-output-file: "test_results.xml"
 
-        - name: 📄 Print test results
+        - name: 📄 Print logs
           if: failure() && steps.run-godot-tests.outcome != 'success'
-          run: echo "$(cat test_results.xml)"
+          run: echo "$(cat logs/godot.log)"
             
 
   update_nightly:

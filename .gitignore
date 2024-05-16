@@ -17,3 +17,5 @@ addons/glecs/rust/glecs/Cargo.lock
 addons/gut/gui/GutSceneTheme.tres
 unittest_log.xml
 test_results.xml
+
+logs/*
