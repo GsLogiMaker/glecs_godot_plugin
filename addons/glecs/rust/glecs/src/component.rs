@@ -468,7 +468,7 @@ impl _GlecsBaseComponent {
             VariantType::NodePath => Self::init_property_data_raw::<NodePath>(data, value, property_data, &|| NodePath::default().to_variant()),
             VariantType::Rid => Self::init_property_data_raw::<Rid>(data, value, property_data, &|| Rid::new(0).to_variant()),
             VariantType::Object => Self::init_property_data_raw_variant(data, value, property_data),
-            VariantType::Callable => Self::init_property_data_raw::<Callable>(data, value, property_data, &|| Callable::from_fn("NullFn", |_|{Ok(Variant::nil())}).to_variant()),
+            VariantType::Callable => Self::init_property_data_raw::<Callable>(data, value, property_data, &|| Callable::invalid().to_variant()),
             VariantType::Signal => Self::init_property_data_raw::<Signal>(data, value, property_data, &|| Signal::invalid().to_variant()),
             VariantType::Dictionary => Self::init_property_data_raw_variant(data, value, property_data),
             VariantType::Array => Self::init_property_data_raw_variant(data, value, property_data),

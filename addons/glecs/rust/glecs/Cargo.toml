@@ -18,6 +18,10 @@ flecs = "0.1.4"
 godot = { git = "https://github.com/godot-rust/gdext", branch = "master" }
 cstr = "0.2.12"
 
+[patch."https://github.com/godot-rust/godot4-prebuilt".godot4-prebuilt]
+git = "https://github.com//godot-rust/godot4-prebuilt"
+branch = "4.1"
+
 ['cfg(compile_bindings)'.dependencies]
 flecs = { version = "0.1.4", features = ["export_bindings"] }
 

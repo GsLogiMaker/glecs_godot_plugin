@@ -881,14 +881,8 @@ impl IObject for _GlecsBaseWorld {
         };
 
         // Make temporary delta time getter callables
-        let process_time = Callable::from_fn(
-            "default_get_process_delta",
-            |_| Ok(0.0.to_variant()),
-        );
-        let physics_process_time = Callable::from_fn(
-            "default_get_physics_process_delta",
-            |_| Ok(0.0.to_variant()),
-        );
+        let process_time = Callable::invalid();
+        let physics_process_time = Callable::invalid();
 
         let glecs_id = _GlecsBindings::set_name_from_ref(
             &world,
