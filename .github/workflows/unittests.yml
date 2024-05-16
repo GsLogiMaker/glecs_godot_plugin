@@ -60,7 +60,7 @@ jobs:
     - name: 🦀 Build Rust code
       run: |
         cargo build \
-          -- release \
+          --release \
           --manifest-path ./addons/glecs/rust/glecs/Cargo.toml \
           --features compile_bindings \
           --target-dir ./addons/glecs/bin \
