@@ -72,7 +72,7 @@ jobs:
         # A list of files, directories, and wildcard patterns to cache and restore
         path: ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }}
         # An explicit key for restoring and saving the cache
-        key: glecslib.${{ matrix.target }}-${{ hashFiles('/addons/glecs/bin/') }}
+        key: glecslib.${{ matrix.target }}.${{ hashFiles('/addons/glecs/bin/') }}
 
     - name: Move lib
       run: |
@@ -121,8 +121,49 @@ jobs:
     - name: 📄 Print logs
       if: failure() && steps.run-godot-tests.outcome != 'success'
       run: echo "$(cat logs/godot.log)"
-            
 
+      
+  test_suite:
+    needs: compile_glecs
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            glecs_lib: libglecs.so
+    runs-on: ubuntu-latest
+    steps:
+        - name: Load cached library
+          uses: actions/cache/restore@v4.0.2
+          with:
+            path: ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }}
+            key: glecslib.${{ matrix.target }}
+            restore-keys: glecslib.${{ matrix.target }}
+
+        - name: Move lib
+          run: |
+            mkdir ./addons/glecs/bin/release/
+            mkdir ./addons/glecs/bin/debug/
+            cp ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }} ./addons/glecs/bin/release/${{ matrix.glecs_lib }}
+            cp ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }} ./addons/glecs/bin/debug/${{ matrix.glecs_lib }}
+
+        - name: 🤖 Setup Godot
+          uses: chickensoft-games/setup-godot@v1
+          with:
+            # Version must include major, minor, and patch, and be >= 4.0.0
+            version: 4.2.1
+    
+        # This shouldn't be needed because the important files from .godot are
+        # included, but we run the import process just in case.
+        - name: 📧 Run Godot import
+          run: |
+            godot --headless --editor --quit-after 100
+      
+        - name: ✏️ Run unittests
+          run: |
+            godot -s res://addons/gut/gut_cmdln.gd --headless -gdir="res://unittests" -gexit
+
+            
   update_nightly:
     needs: compile_glecs
 
