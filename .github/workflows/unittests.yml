@@ -31,6 +31,8 @@ jobs:
           #   target: x86_64-pc-windows-gnu
           #   glecs_lib: libglecs.dll
     runs-on: ${{ matrix.os }}
+    outputs:
+      lib_cache_key: ${{ steps.set-cache-key.outputs.lib-cache-key }}
     steps:
 
     - name: 🐙 Settup git environment
@@ -64,15 +66,19 @@ jobs:
           --target-dir ./addons/glecs/bin \
           --target ${{ matrix.target }}
 
+    - name: 🔑 Set cache key
+      id: set-cache-key
+      run: echo "lib_cache_key=glecslib.${{ matrix.target }}.${{ hashFiles('**/lockfiles') }}" >> "$GITHUB_OUTPUT"
+
     - name: 💾 Cache compiled library
       uses: actions/cache/save@v4.0.2
       with:
         # A list of files, directories, and wildcard patterns to cache and restore
         path: ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }}
         # An explicit key for restoring and saving the cache
-        key: glecslib.${{ matrix.target }}.${{ hashFiles('**/lockfiles') }}
+        key: ${{ steps.set-cache-key.outputs.lib_cache_key }}
 
-    - name: Move lib
+    - name: ↪️ Move lib
       run: |
         mkdir ./addons/glecs/bin/release/ -p
         mkdir ./addons/glecs/bin/debug/ -p
@@ -130,13 +136,13 @@ jobs:
             glecs_lib: libglecs.so
     runs-on: ubuntu-latest
     steps:
-        - name: Load cached library
+        - name: 💾 Load cached library
           uses: actions/cache/restore@v4.0.2
           with:
             path: ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }}
-            key: glecslib.${{ matrix.target }}-${{ hashFiles('**/lockfiles') }}
+            key: ${{ needs.compile_glecs.outputs.lib_cache_key }}
 
-        - name: Move lib
+        - name: ↪️ Move lib
           run: |
             mkdir ./addons/glecs/bin/release/ -p
             mkdir ./addons/glecs/bin/debug/ -p
