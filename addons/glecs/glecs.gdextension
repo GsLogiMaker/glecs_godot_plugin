@@ -5,11 +5,11 @@ reloadable = true
 
 [libraries]
 
-linux.release.x86_64 = "./bin/release/libglecs.so"
-linux.debug.x86_64 = "./bin/debug/libglecs.so"
-
 windows.release.x86_64 = "./bin/release/glecs.dll"
 windows.debug.x86_64 = "./bin/debug/glecs.dll"
+
+linux.release.x86_64 = "./bin/release/libglecs.so"
+linux.debug.x86_64 = "./bin/debug/libglecs.so"
 
 macos.release.x86_64 = "./bin/release/libglecs.dylib"
 macos.debug.x86_64 = "./bin/debug/libglecs.dylib"
