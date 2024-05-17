@@ -66,10 +66,14 @@ jobs:
           --target-dir ./addons/glecs/bin \
           --target ${{ matrix.target }}
 
+    - name: 🔑 Set Glecs library cache key ENV variable
+      run: |
+        echo "lib_cache_key=glecslib.${{ matrix.target }}.${{ hashFiles('addons/glecs/bin') }}" >> $GITHUB_ENV
+
     - name: 🔑 Set Glecs library cache key
       id: set-cache-key
       run: |
-        echo "${{ matrix.TARGET }}_lib_cache_key=glecslib.${{ matrix.target }}.${{ hashFiles('addons/glecs/bin') }}" >> $GITHUB_OUTPUT
+        echo "${{ matrix.TARGET }}_lib_cache_key=$lib_cache_key" >> $GITHUB_OUTPUT
 
     - name: 💾 Cache compiled library
       uses: actions/cache/save@v4.0.2
@@ -77,7 +81,7 @@ jobs:
         # A list of files, directories, and wildcard patterns to cache and restore
         path: ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }}
         # An explicit key for restoring and saving the cache
-        key: ${{ steps.set-cache-key.outputs.x86_64-unknown-linux-gnu_lib_cache_key }}
+        key: $lib_cache_key
 
       
   test_suite:
