@@ -27,12 +27,13 @@ jobs:
           # - os: ubuntu-latest
           #   target: x86_64-pc-windows-gnu
           #   glecs_lib: libglecs.dll
-          # - os: ubuntu-latest
-          #   target: x86_64-pc-windows-gnu
-          #   glecs_lib: libglecs.dll
+          - os: ubuntu-latest
+            target: x86_64-pc-windows-gnu
+            glecs_lib: libglecs.dll
     runs-on: ${{ matrix.os }}
     outputs:
       x86_64-linux_lib_cache_key: ${{ steps.set-cache-key.outputs.x86_64-unknown-linux-gnu_lib_cache_key }}
+      x86_64-windows_lib_cache_key: ${{ steps.set-cache-key.outputs.x86_64-pc-windows-gnu_lib_cache_key }}
     steps:
     - name: 🐙 Settup git environment
       uses: actions/checkout@v4
@@ -88,6 +89,10 @@ jobs:
             target: x86_64-unknown-linux-gnu
             glecs_lib: libglecs.so
             glecs_cache_key: ${{ needs.compile_glecs.outputs.x86_64-linux_lib_cache_key }}
+          - os: windows-latest
+            target: x86_64-pc-windows-gnu
+            glecs_lib: libglecs.dll
+            glecs_cache_key: ${{ needs.compile_glecs.outputs.x86_64-windows_lib_cache_key }}
     runs-on: ubuntu-latest
     steps:
         - name: 🐙 Settup git environment
@@ -135,7 +140,6 @@ jobs:
     needs:  ["compile_glecs", "test_suite"]
     runs-on: windows-latest
     steps:
-
       - name: 📍 Exit early if action is not "push"
         if: ${{ github.action }} != "push"
         run: |
@@ -163,7 +167,7 @@ jobs:
           # A list of files, directories, and wildcard patterns to cache and restore
           path: ./addons/glecs/bin/${{ env.WINDOWS_64_TARGET }}/release/${{ env.WINDOWS_64_LIB }}
           # An explicit key for restoring and saving the cache
-          key: "" # TODO: Compile and load Windows lib
+          key: ${{ needs.compile_glecs.outputs.x86_64-windows_lib_cache_key }}
           # An optional boolean when enabled, allows windows runners to save or restore caches that can be restored or saved respectively on other platforms
           enableCrossOsArchive: true
 
@@ -205,7 +209,7 @@ jobs:
           echo ""
 
       - name: 📤 Push to nightly
-        if: steps.add-and-commit.outcome == 'success'
+        if: always()
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
