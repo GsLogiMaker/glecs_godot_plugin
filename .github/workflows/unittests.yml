@@ -72,12 +72,10 @@ jobs:
         sudo apt install tree
         tree -a -L 3
 
-    - name: 🔑 Set Glecs library cache key ENV variable
-      run: |
-        echo "lib_cache_key=glecslib.${{ matrix.target }}.${{ hashFiles('addons/glecs/bin') }}" >> $GITHUB_ENV
     - name: 🔑 Set Glecs library cache key
       id: set_cache_key
       run: |
+        echo "lib_cache_key=glecslib.${{ matrix.target }}.${{ hashFiles('addons/glecs/bin') }}" >> $GITHUB_ENV
         echo "${{ matrix.TARGET }}_lib_cache_key=$lib_cache_key" >> $GITHUB_OUTPUT
 
     - name: 💾 Cache compiled library
@@ -123,6 +121,10 @@ jobs:
             mkdir ./addons/glecs/bin/debug/ -p
             cp ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }} ./addons/glecs/bin/release/${{ matrix.glecs_lib }}
             cp ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }} ./addons/glecs/bin/debug/${{ matrix.glecs_lib }}
+
+            sudo apt install tree
+            cd addons/glecs
+            tree -a -L 3
 
         - name: 🤖 Run Godot unit tests
           id: run-godot-tests
