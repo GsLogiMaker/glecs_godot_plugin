@@ -90,6 +90,9 @@ jobs:
             glecs_cache_key: ${{ needs.compile_glecs.outputs.x86_64-linux_lib_cache_key }}
     runs-on: ubuntu-latest
     steps:
+        - name: 🐙 Settup git environment
+          uses: actions/checkout@v4
+
         - name: 💾 Load cached library
           uses: actions/cache/restore@v4.0.2
           with:
