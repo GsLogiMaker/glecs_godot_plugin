@@ -70,11 +70,13 @@ jobs:
       run: |
         cd addons/glecs
         sudo apt install tree
-        tree -a -L 5
+        tree -a -L 3
 
-    - name: 🔑 Set Glecs library cache key
+    - name: 🔑 Set Glecs library cache key ENV variable
       run: |
         echo "lib_cache_key=glecslib.${{ matrix.target }}.${{ hashFiles('addons/glecs/bin') }}" >> $GITHUB_ENV
+    - name: 🔑 Set Glecs library cache key
+      run: |
         echo "${{ matrix.TARGET }}_lib_cache_key=$lib_cache_key" >> $GITHUB_OUTPUT
 
     - name: 💾 Cache compiled library
