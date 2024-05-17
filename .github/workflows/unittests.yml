@@ -32,9 +32,8 @@ jobs:
           #   glecs_lib: libglecs.dll
     runs-on: ${{ matrix.os }}
     outputs:
-      lib_cache_key: ${{ steps.set-cache-key.outputs.lib_cache_key }}
+      x86_64-linux_lib_cache_key: ${{ steps.set-cache-key.outputs.x86_64-unknown-linux-gnu_lib_cache_key }}
     steps:
-
     - name: 🐙 Settup git environment
       uses: actions/checkout@v4
 
@@ -66,18 +65,9 @@ jobs:
           --target-dir ./addons/glecs/bin \
           --target ${{ matrix.target }}
 
-    - name: 🔑 Set cache key
+    - name: 🔑 Set Glecs library cache key
       id: set-cache-key
-      run: echo "lib_cache_key=glecslib.${{ matrix.target }}.${{ hashFiles('addons/glecs/bin') }}" >> $GITHUB_OUTPUT
-
-    - name: Print GITHUB_OUTPUT
-      run: |
-        echo A
-        echo "$GITHUB_OUTPUT"
-        echo B
-        echo "$(cat $GITHUB_OUTPUT)"
-        echo C
-        echo ${{ steps.set-cache-key.outputs.lib_cache_key }}
+      run: echo "${{ matrix.TARGET }}_lib_cache_key=glecslib.${{ matrix.target }}.${{ hashFiles('addons/glecs/bin') }}" >> $GITHUB_OUTPUT
 
     - name: 💾 Cache compiled library
       uses: actions/cache/save@v4.0.2
@@ -86,53 +76,6 @@ jobs:
         path: ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }}
         # An explicit key for restoring and saving the cache
         key: ${{ steps.set-cache-key.outputs.lib_cache_key }}
-
-    - name: ↪️ Move lib
-      run: |
-        mkdir ./addons/glecs/bin/release/ -p
-        mkdir ./addons/glecs/bin/debug/ -p
-        cp ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }} ./addons/glecs/bin/release/${{ matrix.glecs_lib }}
-        cp ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }} ./addons/glecs/bin/debug/${{ matrix.glecs_lib }}
-
-    - name: 🤖 Setup Godot
-      uses: chickensoft-games/setup-godot@v1
-      with:
-        # Version must include major, minor, and patch, and be >= 4.0.0
-        version: 4.2.1
-
-    # This shouldn't be needed because the important files from .godot are
-    # included, but we run the import process just in case.
-    - name: 📧 Run Godot import
-      run: |
-        godot --headless --editor --quit-after 100
-  
-    - name: ✏️ Run unittests
-      run: |
-        godot -s res://addons/gut/gut_cmdln.gd --headless -gdir="res://unittests" -gexit
-
-    - name: 🤖 Run Godot unit tests
-      id: run-godot-tests
-      uses: croconut/godot-tester@v5
-      with:
-        # required
-        version: "4.2.1"
-        is-mono: "false"
-        # the folder with your project.godot file in it
-        path: "./"
-        # the ratio of tests that must pass for this action to pass
-        # e.g. 0.6 means 60% of your tests must pass
-        minimum-pass: "1.0"
-        # the directory containing Gut tests
-        test-dir: "res://unittests"
-        # default is GUTs default: 'res://.gutconfig.json'; set this to load a different config file
-        config-file: "res://.gut_editor_config.json" 
-        # relative path to the xml file to read / write GUT's results from, recommended
-        # for direct-scene users to check this file if you have issues
-        result-output-file: "test_results.xml"
-
-    - name: 📄 Print logs
-      if: failure() && steps.run-godot-tests.outcome != 'success'
-      run: echo "$(cat logs/godot.log)"
 
       
   test_suite:
@@ -143,13 +86,14 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             glecs_lib: libglecs.so
+            glecs_cache_key: ${{ needs.compile_glecs.outputs.x86_64-linux_lib_cache_key }}
     runs-on: ubuntu-latest
     steps:
         - name: 💾 Load cached library
           uses: actions/cache/restore@v4.0.2
           with:
             path: ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }}
-            key: ${{ needs.compile_glecs.outputs.lib_cache_key }}
+            key: ${{ matrix.glecs_cache_key }}
 
         - name: ↪️ Move lib
           run: |
@@ -158,32 +102,37 @@ jobs:
             cp ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }} ./addons/glecs/bin/release/${{ matrix.glecs_lib }}
             cp ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }} ./addons/glecs/bin/debug/${{ matrix.glecs_lib }}
 
-        - name: 🤖 Setup Godot
-          uses: chickensoft-games/setup-godot@v1
+        - name: 🤖 Run Godot unit tests
+          id: run-godot-tests
+          uses: croconut/godot-tester@v5
           with:
-            # Version must include major, minor, and patch, and be >= 4.0.0
-            version: 4.2.1
-    
-        # This shouldn't be needed because the important files from .godot are
-        # included, but we run the import process just in case.
-        - name: 📧 Run Godot import
-          run: |
-            godot --headless --editor --quit-after 100
-      
-        - name: ✏️ Run unittests
-          run: |
-            godot -s res://addons/gut/gut_cmdln.gd --headless -gdir="res://unittests" -gexit
+            # required
+            version: "4.2.1"
+            is-mono: "false"
+            # the folder with your project.godot file in it
+            path: "./"
+            # the ratio of tests that must pass for this action to pass
+            # e.g. 0.6 means 60% of your tests must pass
+            minimum-pass: "1.0"
+            # the directory containing Gut tests
+            test-dir: "res://unittests"
+            # default is GUTs default: 'res://.gutconfig.json'; set this to load a different config file
+            config-file: "res://.gut_editor_config.json" 
+            # relative path to the xml file to read / write GUT's results from, recommended
+            # for direct-scene users to check this file if you have issues
+            result-output-file: "test_results.xml"
+
+        - name: 📄 Print Godot logs
+          if: failure() && steps.run-godot-tests.outcome != 'success'
+          run: echo "$(cat logs/godot.log)"
 
 
   update_nightly:
-    needs: test_suite
-
+    needs:  ["compile_glecs", "test_suite"]
     runs-on: windows-latest
-
     steps:
 
-        # Run only if new commits were pushed
-      - name: 📍 Proceed if action is "push"
+      - name: 📍 Exit early if action is not "push"
         if: ${{ github.action }} != "push"
         run: |
           exit 0
@@ -200,8 +149,7 @@ jobs:
           # A list of files, directories, and wildcard patterns to cache and restore
           path: ./addons/glecs/bin/${{ env.LINUX_64_TARGET }}/release/${{ env.LINUX_64_LIB }}
           # An explicit key for restoring and saving the cache
-          key: glecslib.${{ env.LINUX_64_TARGET }}
-          restore-keys: glecslib.${{ env.LINUX_64_TARGET }}
+          key: ${{ needs.compile_glecs.outputs.x86_64-linux_lib_cache_key }}
           # An optional boolean when enabled, allows windows runners to save or restore caches that can be restored or saved respectively on other platforms
           enableCrossOsArchive: true
 
@@ -211,8 +159,7 @@ jobs:
           # A list of files, directories, and wildcard patterns to cache and restore
           path: ./addons/glecs/bin/${{ env.WINDOWS_64_TARGET }}/release/${{ env.WINDOWS_64_LIB }}
           # An explicit key for restoring and saving the cache
-          key: glecslib.${{ env.WINDOWS_64_TARGET }}
-          restore-keys: glecslib.${{ env.WINDOWS_64_TARGET }}
+          key: "" # TODO: Compile and load Windows lib
           # An optional boolean when enabled, allows windows runners to save or restore caches that can be restored or saved respectively on other platforms
           enableCrossOsArchive: true
 
