@@ -68,7 +68,7 @@ jobs:
 
     - name: 🔑 Set cache key
       id: set-cache-key
-      run: echo "lib_cache_key=glecslib.${{ matrix.target }}.${{ hashFiles('addons/glecs/bin') }}" >> "$GITHUB_OUTPUT"
+      run: echo "lib_cache_key=glecslib.${{ matrix.target }}.${{ hashFiles('addons/glecs/bin') }}" >> $GITHUB_OUTPUT
 
     - name: Print GITHUB_OUTPUT
       run:
