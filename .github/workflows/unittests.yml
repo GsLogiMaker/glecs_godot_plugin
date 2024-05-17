@@ -72,7 +72,7 @@ jobs:
 
     - name: Print GITHUB_OUTPUT
       run:
-        echo $GITHUB_OUTPUT
+        echo "$(cat $GITHUB_OUTPUT)"
 
     - name: 💾 Cache compiled library
       uses: actions/cache/save@v4.0.2
