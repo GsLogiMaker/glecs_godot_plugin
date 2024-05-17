@@ -73,6 +73,7 @@ jobs:
     - name: Echo ENV variable
       run:
         echo $lib_cache_key
+        echo ${{ env.lib_cache_key }}
 
     - name: 🔑 Set Glecs library cache key
       id: set-cache-key
@@ -85,7 +86,7 @@ jobs:
         # A list of files, directories, and wildcard patterns to cache and restore
         path: ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }}
         # An explicit key for restoring and saving the cache
-        key: $lib_cache_key
+        key: ${{ env.lib_cache_key }}
 
       
   test_suite:
