@@ -102,7 +102,7 @@ jobs:
             target: x86_64-pc-windows-gnu
             glecs_lib: glecs.dll
             glecs_cache_key: ${{ needs.compile_glecs.outputs.x86_64-windows_lib_cache_key }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     steps:
         - name: 🐙 Settup git environment
           uses: actions/checkout@v4
