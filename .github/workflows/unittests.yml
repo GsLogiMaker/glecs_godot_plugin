@@ -128,6 +128,22 @@ jobs:
             cd addons/glecs
             tree -a -L 3
 
+        - name: 🤖 Setup Godot
+          uses: chickensoft-games/setup-godot@v1
+          with:
+            # Version must include major, minor, and patch, and be >= 4.0.0
+            version: 4.2.1
+    
+          # This shouldn't be needed because the important files from .godot are
+          # included, but we run the import process just in case.
+        - name: 📧 Run Godot import
+          run: |
+            godot --headless --editor --quit-after 100
+    
+        - name: ✏️ Run unittests
+          run: |
+            godot -s res://addons/gut/gut_cmdln.gd --headless -gdir="res://unittests" -gexit
+
         - name: 🤖 Run Godot unit tests
           id: run-godot-tests
           uses: croconut/godot-tester@v5
