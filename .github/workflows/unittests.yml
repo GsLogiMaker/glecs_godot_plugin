@@ -16,8 +16,8 @@ env:
   WINDOWS_64_LIB: libglecs.dll
 
 jobs:
+
   compile_glecs:
-    
     strategy:
       matrix:
         include:
@@ -30,9 +30,7 @@ jobs:
           # - os: ubuntu-latest
           #   target: x86_64-pc-windows-gnu
           #   glecs_lib: libglecs.dll
-
     runs-on: ${{ matrix.os }}
-
     steps:
 
     - name: 🐙 Settup git environment
@@ -76,10 +74,10 @@ jobs:
 
     - name: Move lib
       run: |
-        mkdir ./addons/glecs/bin/debug/
+        mkdir ./addons/glecs/bin/release/ -p
+        mkdir ./addons/glecs/bin/debug/ -p
         cp ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }} ./addons/glecs/bin/release/${{ matrix.glecs_lib }}
         cp ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }} ./addons/glecs/bin/debug/${{ matrix.glecs_lib }}
-
 
     - name: 🤖 Setup Godot
       uses: chickensoft-games/setup-godot@v1
@@ -96,7 +94,6 @@ jobs:
     - name: ✏️ Run unittests
       run: |
         godot -s res://addons/gut/gut_cmdln.gd --headless -gdir="res://unittests" -gexit
-
 
     - name: 🤖 Run Godot unit tests
       id: run-godot-tests
@@ -141,8 +138,8 @@ jobs:
 
         - name: Move lib
           run: |
-            mkdir ./addons/glecs/bin/release/
-            mkdir ./addons/glecs/bin/debug/
+            mkdir ./addons/glecs/bin/release/ -p
+            mkdir ./addons/glecs/bin/debug/ -p
             cp ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }} ./addons/glecs/bin/release/${{ matrix.glecs_lib }}
             cp ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }} ./addons/glecs/bin/debug/${{ matrix.glecs_lib }}
 
@@ -164,7 +161,7 @@ jobs:
 
 
   update_nightly:
-    needs: compile_glecs
+    needs: test_suite
 
     runs-on: windows-latest
 
