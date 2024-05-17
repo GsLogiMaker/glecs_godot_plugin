@@ -70,10 +70,6 @@ jobs:
       run: |
         echo "lib_cache_key=glecslib.${{ matrix.target }}.${{ hashFiles('addons/glecs/bin') }}" >> $GITHUB_ENV
         echo $lib_cache_key
-    - name: Echo ENV variable
-      run:
-        echo $lib_cache_key
-        echo ${{ env.lib_cache_key }}
 
     - name: 🔑 Set Glecs library cache key
       id: set-cache-key
@@ -106,6 +102,10 @@ jobs:
     steps:
         - name: 🐙 Settup git environment
           uses: actions/checkout@v4
+
+        - name: Echo matrix vars
+          run: |
+            echo ${{ matrix.glecs_cache_key }}
 
         - name: 💾 Load cached library
           uses: actions/cache/restore@v4.0.2
