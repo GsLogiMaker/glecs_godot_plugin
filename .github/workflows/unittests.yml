@@ -72,7 +72,7 @@ jobs:
         # A list of files, directories, and wildcard patterns to cache and restore
         path: ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }}
         # An explicit key for restoring and saving the cache
-        key: glecslib.${{ matrix.target }}.${{ hashFiles('/addons/glecs/bin/') }}
+        key: glecslib.${{ matrix.target }}.${{ hashFiles('**/lockfiles') }}
 
     - name: Move lib
       run: |
@@ -137,8 +137,7 @@ jobs:
           uses: actions/cache/restore@v4.0.2
           with:
             path: ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }}
-            key: glecslib.${{ matrix.target }}
-            restore-keys: glecslib.${{ matrix.target }}
+            key: glecslib.${{ matrix.target }}-${{ hashFiles('**/lockfiles') }}
 
         - name: Move lib
           run: |
@@ -163,7 +162,7 @@ jobs:
           run: |
             godot -s res://addons/gut/gut_cmdln.gd --headless -gdir="res://unittests" -gexit
 
-            
+
   update_nightly:
     needs: compile_glecs
 
