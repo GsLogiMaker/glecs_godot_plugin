@@ -117,16 +117,21 @@ jobs:
             path: ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }}
             key: ${{ matrix.glecs_cache_key }}
 
-        - name: ↪️ Move lib
+        - name: ↪️ Move lib (Linux)
+          if: ${{ matrix.os }} != "ubuntu-latest"
           run: |
             mkdir ./addons/glecs/bin/release/ -p
             mkdir ./addons/glecs/bin/debug/ -p
             cp ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }} ./addons/glecs/bin/release/${{ matrix.glecs_lib }}
             cp ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }} ./addons/glecs/bin/debug/${{ matrix.glecs_lib }}
-
-            sudo apt install tree
-            cd addons/glecs
-            tree -a -L 3
+          
+        - name: ↪️ Move lib (Windows)
+          if: ${{ matrix.os }} == "windows-latest"
+          run: |
+            mkdir ./addons/glecs/bin/release/
+            mkdir ./addons/glecs/bin/debug/
+            cp ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }} ./addons/glecs/bin/release/${{ matrix.glecs_lib }}
+            cp ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }} ./addons/glecs/bin/debug/${{ matrix.glecs_lib }}
 
         - name: 🤖 Setup Godot
           uses: chickensoft-games/setup-godot@v1
