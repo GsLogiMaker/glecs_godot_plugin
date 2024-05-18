@@ -87,6 +87,7 @@ jobs:
         path: ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }}
         # An explicit key for restoring and saving the cache
         key: ${{ env.lib_cache_key }}
+        enableCrossOsArchive: true
 
       
   test_suite:
@@ -107,14 +108,12 @@ jobs:
         - name: 🐙 Settup git environment
           uses: actions/checkout@v4
 
-        - name: Echo matrix vars
-          run: |
-            echo ${{ matrix.glecs_cache_key }}
-
         - name: 💾 Load cached library
           uses: actions/cache/restore@v4.0.2
           with:
             path: ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }}
+            enableCrossOsArchive: true
+            
             key: ${{ matrix.glecs_cache_key }}
 
         - name: ↪️ Move lib
