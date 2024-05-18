@@ -118,7 +118,7 @@ jobs:
             key: ${{ matrix.glecs_cache_key }}
 
         - name: ↪️ Move lib (Linux)
-          if: ${{ matrix.os }} != "ubuntu-latest"
+          if: ${{ matrix.os }} == "ubuntu-latest"
           run: |
             mkdir ./addons/glecs/bin/release/ -p
             mkdir ./addons/glecs/bin/debug/ -p
