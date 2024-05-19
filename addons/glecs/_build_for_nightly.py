@@ -4,6 +4,7 @@ import regex
 
 os.remove("glecs.gdextension")
 os.rename("glecs.gdextension.release", "glecs.gdextension")
+os.rename(".gitignore.release", ".gitignore")
 
 name_ptrn = regex.compile(r"""name\s*=\s*\"(.*)\"""")
 version_ptrn = regex.compile(r"""version\s*=\s*\"(.*)\"""")

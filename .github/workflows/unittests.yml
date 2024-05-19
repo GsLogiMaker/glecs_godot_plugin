@@ -14,20 +14,24 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
             glecs_lib: libglecs.so
-          - os: ubuntu-latest
-            target: i686-unknown-linux-gnu
+          - target: i686-unknown-linux-gnu
+            os: ubuntu-latest
             glecs_lib: libglecs.so
-          - os: ubuntu-latest
-            target: x86_64-pc-windows-gnu
+          - target: x86_64-pc-windows-gnu
+            os: ubuntu-latest
+            glecs_lib: glecs.dll
+          - target: i686-pc-windows-gnu
+            os: ubuntu-latest
             glecs_lib: glecs.dll
     runs-on: ${{ matrix.os }}
     outputs:
       x86_64-linux_lib_cache_key: ${{ steps.set_cache_key.outputs.x86_64-unknown-linux-gnu_lib_cache_key }}
       i686-linux_lib_cache_key: ${{ steps.set_cache_key.outputs.i686-unknown-linux-gnu_lib_cache_key }}
       x86_64-windows_lib_cache_key: ${{ steps.set_cache_key.outputs.x86_64-pc-windows-gnu_lib_cache_key }}
+      i686-windows_lib_cache_key: ${{ steps.set_cache_key.outputs.i686-pc-windows-gnu_lib_cache_key }}
     steps:
     - name: 🐙 Settup git environment
       uses: actions/checkout@v4
@@ -48,11 +52,11 @@ jobs:
 
     - name: 🐧 Install GCC multilib for Linux i686 build
       if: ${{ matrix.target }} == i686-unknown-linux-gnu
-      run: sudo apt-get install gcc-multilib
+      run: sudo apt update && sudo apt-get install gcc-multilib
     
     - name: 🪟 Install mingw for Windows build
-      if: ${{ matrix.target }} == x86_64-pc-windows-gnu
-      run: sudo apt install gcc-mingw-w64
+      if: ${{ matrix.target }} == x86_64-pc-windows-gnu || ${{ matrix.target }} == i686-pc-windows-gnu
+      run: sudo apt update && sudo apt install gcc-mingw-w64
 
     - name: 🦀 Build Rust code
       run: |
@@ -171,6 +175,16 @@ jobs:
           path: ./addons/glecs/bin/x86_64-pc-windows-gnu/release/glecs.dll
           # An explicit key for restoring and saving the cache
           key: ${{ needs.compile_glecs.outputs.x86_64-windows_lib_cache_key }}
+          # An optional boolean when enabled, allows windows runners to save or restore caches that can be restored or saved respectively on other platforms
+          enableCrossOsArchive: true
+
+      - name: 🪟 Load compiled library, Windows i686
+        uses: actions/cache/restore@v4.0.2
+        with:
+          # A list of files, directories, and wildcard patterns to cache and restore
+          path: ./addons/glecs/bin/i686-pc-windows-gnu/release/glecs.dll
+          # An explicit key for restoring and saving the cache
+          key: ${{ needs.compile_glecs.outputs.i686-windows_lib_cache_key }}
           # An optional boolean when enabled, allows windows runners to save or restore caches that can be restored or saved respectively on other platforms
           enableCrossOsArchive: true
 
