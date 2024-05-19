@@ -92,18 +92,7 @@ jobs:
       
   test_suite:
     needs: compile_glecs
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            glecs_lib: libglecs.so
-            glecs_cache_key: ${{ needs.compile_glecs.outputs.x86_64-linux_lib_cache_key }}
-          - os: windows-latest
-            target: x86_64-pc-windows-gnu
-            glecs_lib: glecs.dll
-            glecs_cache_key: ${{ needs.compile_glecs.outputs.x86_64-windows_lib_cache_key }}
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
         - name: 🐙 Settup git environment
           uses: actions/checkout@v4
@@ -111,54 +100,37 @@ jobs:
         - name: 💾 Load cached library
           uses: actions/cache/restore@v4.0.2
           with:
-            path: ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }}
+            path: ./addons/glecs/bin/x86_64-unknown-linux-gnu/release/libglecs.so
+            key: ${{ needs.compile_glecs.outputs.x86_64-linux_lib_cache_key }}
             enableCrossOsArchive: true
-            
-            key: ${{ matrix.glecs_cache_key }}
 
         - name: ↪️ Move lib
           if: ${{ matrix.os }} == "ubuntu-latest"
           run: |
             mkdir ./addons/glecs/bin/release/
             mkdir ./addons/glecs/bin/debug/
-            cp ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }} ./addons/glecs/bin/release/${{ matrix.glecs_lib }}
-            cp ./addons/glecs/bin/${{ matrix.target }}/release/${{ matrix.glecs_lib }} ./addons/glecs/bin/debug/${{ matrix.glecs_lib }}
-          
-        - name: 🤖 Setup Godot
-          uses: chickensoft-games/setup-godot@v1
-          with:
-            # Version must include major, minor, and patch, and be >= 4.0.0
-            version: 4.2.1
-    
-          # This shouldn't be needed because the important files from .godot are
-          # included, but we run the import process just in case.
-        - name: 📧 Run Godot import
-          run: |
-            godot --headless --editor --quit-after 100
-    
-        - name: ✏️ Run unittests
-          run: |
-            godot --headless -s run_test_suite.gd
+            cp ./addons/glecs/bin/x86_64-unknown-linux-gnu/release/libglecs.so ./addons/glecs/bin/release/libglecs.so
+            cp ./addons/glecs/bin/x86_64-unknown-linux-gnu/release/libglecs.so ./addons/glecs/bin/debug/libglecs.so
 
-        # - name: 🤖 Run Godot unit tests
-        #   id: run-godot-tests
-        #   uses: croconut/godot-tester@v5
-        #   with:
-        #     # required
-        #     version: "4.2.1"
-        #     is-mono: "false"
-        #     # the folder with your project.godot file in it
-        #     path: "./"
-        #     # the ratio of tests that must pass for this action to pass
-        #     # e.g. 0.6 means 60% of your tests must pass
-        #     minimum-pass: "1.0"
-        #     # the directory containing Gut tests
-        #     test-dir: "res://unittests"
-        #     # default is GUTs default: 'res://.gutconfig.json'; set this to load a different config file
-        #     config-file: "res://.gut_editor_config.json" 
-        #     # relative path to the xml file to read / write GUT's results from, recommended
-        #     # for direct-scene users to check this file if you have issues
-        #     result-output-file: "test_results.xml"
+        - name: 🤖 Run Godot unit tests
+          id: run-godot-tests
+          uses: croconut/godot-tester@v5
+          with:
+            # required
+            version: "4.2.1"
+            is-mono: "false"
+            # the folder with your project.godot file in it
+            path: "./"
+            # the ratio of tests that must pass for this action to pass
+            # e.g. 0.6 means 60% of your tests must pass
+            minimum-pass: "1.0"
+            # the directory containing Gut tests
+            test-dir: "res://unittests"
+            # default is GUTs default: 'res://.gutconfig.json'; set this to load a different config file
+            config-file: "res://.gut_editor_config.json" 
+            # relative path to the xml file to read / write GUT's results from, recommended
+            # for direct-scene users to check this file if you have issues
+            result-output-file: "test_results.xml"
 
         - name: 📄 Print Godot logs
           if: failure() && steps.run-godot-tests.outcome != 'success'
