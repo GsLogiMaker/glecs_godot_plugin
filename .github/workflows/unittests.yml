@@ -7,16 +7,7 @@ on:
   pull_request:
     branches: [ "dev" ]
   workflow_dispatch:
-
-env:
-  LINUX_64_TARGET: x86_64-unknown-linux-gnu
-  LINUX_64_LIB: libglecs.so
-  LINUX_X86_32_LINUX_TARGET: i686-unknown-linux-gnu
-  LINUX_X86_32_LINUX_TARGET_LIB: libglecs.so
-
-  WINDOWS_64_TARGET: x86_64-pc-windows-gnu
-  WINDOWS_64_LIB: glecs.dll
-
+  
 jobs:
 
   compile_glecs:
@@ -35,7 +26,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     outputs:
       x86_64-linux_lib_cache_key: ${{ steps.set_cache_key.outputs.x86_64-unknown-linux-gnu_lib_cache_key }}
-      x86_32-linux_lib_cache_key: ${{ steps.set_cache_key.outputs.i686-unknown-linux-gnu_lib_cache_key }}
+      i686-linux_lib_cache_key: ${{ steps.set_cache_key.outputs.i686-unknown-linux-gnu_lib_cache_key }}
       x86_64-windows_lib_cache_key: ${{ steps.set_cache_key.outputs.x86_64-pc-windows-gnu_lib_cache_key }}
     steps:
     - name: 🐙 Settup git environment
@@ -55,10 +46,13 @@ jobs:
         rustup update
         rustup target add ${{ matrix.target }}
 
+    - name: 🐧 Install GCC multilib for Linux i686 build
+      if: ${{ matrix.target }} == i686-unknown-linux-gnu
+      run: sudo apt-get install gcc-multilib
+    
     - name: 🪟 Install mingw for Windows build
       if: ${{ matrix.target }} == x86_64-pc-windows-gnu
-      run: |
-        sudo apt install gcc-mingw-w64
+      run: sudo apt install gcc-mingw-w64
 
     - name: 🦀 Build Rust code
       run: |
