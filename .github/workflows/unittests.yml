@@ -138,7 +138,7 @@ jobs:
     
         - name: ✏️ Run unittests
           run: |
-            godot -s run_test_suite_.gd
+            godot --headless -s run_test_suite_.gd
 
         # - name: 🤖 Run Godot unit tests
         #   id: run-godot-tests
