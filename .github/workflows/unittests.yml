@@ -192,8 +192,6 @@ jobs:
           mkdir ../nightly
           mkdir ../nightly/.git
           cp -r ../nightly_tmp/.git/* ../nightly/.git/
-          cp ../nightly_tmp/README.md ../nightly/README.md
-          cp ../nightly_tmp/.gitignore ../nightly/.gitignore
       
       - name: 🖨️ Copy dev branch plugin to nightly
         run: |
