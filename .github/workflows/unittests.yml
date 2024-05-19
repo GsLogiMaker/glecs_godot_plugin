@@ -11,6 +11,8 @@ on:
 env:
   LINUX_64_TARGET: x86_64-unknown-linux-gnu
   LINUX_64_LIB: libglecs.so
+  LINUX_X86_32_LINUX_TARGET: i686-unknown-linux-gnu
+  LINUX_X86_32_LINUX_TARGET_LIB: libglecs.so
 
   WINDOWS_64_TARGET: x86_64-pc-windows-gnu
   WINDOWS_64_LIB: glecs.dll
@@ -24,15 +26,16 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             glecs_lib: libglecs.so
-          # - os: ubuntu-latest
-          #   target: x86_64-pc-windows-gnu
-          #   glecs_lib: glecs.dll
+          - os: ubuntu-latest
+            target: i686-unknown-linux-gnu
+            glecs_lib: libglecs.so
           - os: ubuntu-latest
             target: x86_64-pc-windows-gnu
             glecs_lib: glecs.dll
     runs-on: ${{ matrix.os }}
     outputs:
       x86_64-linux_lib_cache_key: ${{ steps.set_cache_key.outputs.x86_64-unknown-linux-gnu_lib_cache_key }}
+      x86_32-linux_lib_cache_key: ${{ steps.set_cache_key.outputs.i686-unknown-linux-gnu_lib_cache_key }}
       x86_64-windows_lib_cache_key: ${{ steps.set_cache_key.outputs.x86_64-pc-windows-gnu_lib_cache_key }}
     steps:
     - name: 🐙 Settup git environment
@@ -66,15 +69,10 @@ jobs:
           --target-dir ./addons/glecs/bin \
           --target ${{ matrix.target }}
 
-    - name: Print tree
-      run: |
-        cd addons/glecs
-        sudo apt install tree
-        tree -a -L 3
-
     - name: 🏔️ Set Glecs library cache key ENV variable
       run: |
         echo "lib_cache_key=glecslib.${{ matrix.target }}.${{ hashFiles('addons/glecs/bin') }}" >> $GITHUB_ENV
+    
     - name: 🔑 Set Glecs library cache key
       id: set_cache_key
       run: |
