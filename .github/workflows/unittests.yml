@@ -148,7 +148,7 @@ jobs:
         uses: actions/cache/restore@v4.0.2
         with:
           # A list of files, directories, and wildcard patterns to cache and restore
-          path: ./addons/glecs/bin/${{ env.LINUX_64_TARGET }}/release/${{ env.LINUX_64_LIB }}
+          path: ./addons/glecs/bin/x86_64-unknown-linux-gnu/release/libglecs.so
           # An explicit key for restoring and saving the cache
           key: ${{ needs.compile_glecs.outputs.x86_64-linux_lib_cache_key }}
           # An optional boolean when enabled, allows windows runners to save or restore caches that can be restored or saved respectively on other platforms
@@ -158,7 +158,7 @@ jobs:
         uses: actions/cache/restore@v4.0.2
         with:
           # A list of files, directories, and wildcard patterns to cache and restore
-          path: ./addons/glecs/bin/${{ env.WINDOWS_64_TARGET }}/release/${{ env.WINDOWS_64_LIB }}
+          path: ./addons/glecs/bin/x86_64-pc-windows-gnu/release/glecs.dll
           # An explicit key for restoring and saving the cache
           key: ${{ needs.compile_glecs.outputs.x86_64-windows_lib_cache_key }}
           # An optional boolean when enabled, allows windows runners to save or restore caches that can be restored or saved respectively on other platforms
@@ -198,9 +198,6 @@ jobs:
           git config --global user.email gslogimaker@gmail.com
           git add .
           git commit --all -m "(AUTO) ${{ github.event.head_commit.message }}"
-
-          sudo apt install tree
-          tree -a -L 4
 
       - name: 📤 Push to nightly
         uses: ad-m/github-push-action@master
