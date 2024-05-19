@@ -3,4 +3,4 @@ extends SceneTree
 
 func _init() -> void:
 	prints("Hello world!")
-	quit(1)
+	quit()
