@@ -189,17 +189,21 @@ jobs:
         run: |
           cp -r -force ./addons/glecs/* ../nightly/
       
-      - name: ➕ Add / Commit to nightly
+      - name: ➕ Add and commit to nightly
         id: add-and-commit
         continue-on-error: true
         run: |
           cd ../nightly
+          echo ${{ github.event.action.email }}
           git config --global user.name github-actions[bot]
           git config --global user.email gslogimaker@gmail.com
           git add .
           git commit --all -m "(AUTO) ${{ github.event.head_commit.message }}"
-          # Prevent error
+          # Prevent error if there are no changes
           echo ""
+
+          sudo apt install tree
+          tree -a -L 4
 
       - name: 📤 Push to nightly
         if: always()
