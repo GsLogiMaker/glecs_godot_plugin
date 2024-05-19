@@ -194,19 +194,15 @@ jobs:
         continue-on-error: true
         run: |
           cd ../nightly
-          echo ${{ github.event.action.email }}
           git config --global user.name github-actions[bot]
           git config --global user.email gslogimaker@gmail.com
           git add .
           git commit --all -m "(AUTO) ${{ github.event.head_commit.message }}"
-          # Prevent error if there are no changes
-          echo ""
 
           sudo apt install tree
           tree -a -L 4
 
       - name: 📤 Push to nightly
-        if: always()
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
