@@ -138,27 +138,27 @@ jobs:
     
         - name: ✏️ Run unittests
           run: |
-            godot -s res://addons/gut/gut_cmdln.gd --headless -gdir="res://unittests" -gexit
+            godot -s run_test_suite_.gd
 
-        - name: 🤖 Run Godot unit tests
-          id: run-godot-tests
-          uses: croconut/godot-tester@v5
-          with:
-            # required
-            version: "4.2.1"
-            is-mono: "false"
-            # the folder with your project.godot file in it
-            path: "./"
-            # the ratio of tests that must pass for this action to pass
-            # e.g. 0.6 means 60% of your tests must pass
-            minimum-pass: "1.0"
-            # the directory containing Gut tests
-            test-dir: "res://unittests"
-            # default is GUTs default: 'res://.gutconfig.json'; set this to load a different config file
-            config-file: "res://.gut_editor_config.json" 
-            # relative path to the xml file to read / write GUT's results from, recommended
-            # for direct-scene users to check this file if you have issues
-            result-output-file: "test_results.xml"
+        # - name: 🤖 Run Godot unit tests
+        #   id: run-godot-tests
+        #   uses: croconut/godot-tester@v5
+        #   with:
+        #     # required
+        #     version: "4.2.1"
+        #     is-mono: "false"
+        #     # the folder with your project.godot file in it
+        #     path: "./"
+        #     # the ratio of tests that must pass for this action to pass
+        #     # e.g. 0.6 means 60% of your tests must pass
+        #     minimum-pass: "1.0"
+        #     # the directory containing Gut tests
+        #     test-dir: "res://unittests"
+        #     # default is GUTs default: 'res://.gutconfig.json'; set this to load a different config file
+        #     config-file: "res://.gut_editor_config.json" 
+        #     # relative path to the xml file to read / write GUT's results from, recommended
+        #     # for direct-scene users to check this file if you have issues
+        #     result-output-file: "test_results.xml"
 
         - name: 📄 Print Godot logs
           if: failure() && steps.run-godot-tests.outcome != 'success'
