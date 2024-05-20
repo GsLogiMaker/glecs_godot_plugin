@@ -15,19 +15,19 @@ jobs:
       matrix:
         include:
           # Linux
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
             glecs_lib: libglecs.so
-          - os: ubuntu-latest
-            target: i686-unknown-linux-gnu
+          - target: i686-unknown-linux-gnu
+            os: ubuntu-latest
             glecs_lib: libglecs.so
           # Mac
-          - os: mac-latest
-            target: x86_64-apple-darwin
+          - target: x86_64-apple-darwin
+            os: mac-latest
             glecs_lib: libglecs.rlib
           # Windows
-          - os: ubuntu-latest
-            target: x86_64-pc-windows-gnu
+          - target: x86_64-pc-windows-gnu
+            os: ubuntu-latest
             glecs_lib: glecs.dll
     runs-on: ${{ matrix.os }}
     outputs:
