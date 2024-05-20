@@ -24,7 +24,7 @@ jobs:
           # Mac
           - target: x86_64-apple-darwin
             os: macos-latest
-            glecs_lib: libglecs.rlib
+            glecs_lib: libglecs.dylib
           # Windows
           - target: x86_64-pc-windows-gnu
             os: ubuntu-latest
@@ -173,7 +173,7 @@ jobs:
         uses: actions/cache/restore@v4.0.2
         with:
           # A list of files, directories, and wildcard patterns to cache and restore
-          path: ./addons/glecs/bin/x86_64-apple-darwin/release/libglecs.rlib
+          path: ./addons/glecs/bin/x86_64-apple-darwin/release/libglecs.dylib
           # An explicit key for restoring and saving the cache
           key: ${{ needs.compile_glecs.outputs.x86_64-mac_lib_cache_key }}
           # An optional boolean when enabled, allows windows runners to save or restore caches that can be restored or saved respectively on other platforms
