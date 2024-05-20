@@ -40,47 +40,43 @@ jobs:
 
   compile_glecs:
     needs: initialize_variables
-    env:
-      LINUX: ${{ needs.initialize_variables.LINUX_X86_64_TARGET }}
     strategy:
       matrix:
         include:
           # Linux
-          - target: ${{ needs.initialize_variables.LINUX_X86_64_TARGET }}
+          - target: ${{ needs.initialize_variables.outputs.LINUX_X86_64_TARGET }}
             os: ubuntu-latest
-            glecs_lib: ${{ needs.initialize_variables.LINUX_X86_64_LIB }}
-          - target: ${{ needs.initialize_variables.LINUX_I686_TARGET }}
+            glecs_lib: ${{ needs.initialize_variables.outputs.LINUX_X86_64_LIB }}
+          - target: ${{ needs.initialize_variables.outputs.LINUX_I686_TARGET }}
             os: ubuntu-latest
-            glecs_lib: ${{ needs.initialize_variables.LINUX_I686_LIB }}
+            glecs_lib: ${{ needs.initialize_variables.outputs.LINUX_I686_LIB }}
           # Mac
-          - target: ${{ needs.initialize_variables.MAC_ARCH_TARGET }}
+          - target: ${{ needs.initialize_variables.outputs.MAC_ARCH_TARGET }}
             os: macos-latest
-            glecs_lib: ${{ needs.initialize_variables.MAC_ARCH_LIB }}
-          - target: ${{ needs.initialize_variables.MAC_X86_64_TARGET }}
+            glecs_lib: ${{ needs.initialize_variables.outputs.MAC_ARCH_LIB }}
+          - target: ${{ needs.initialize_variables.outputs.MAC_X86_64_TARGET }}
             os: macos-latest
-            glecs_lib: ${{ needs.initialize_variables.MAC_X86_64_LIB }}
+            glecs_lib: ${{ needs.initialize_variables.outputs.MAC_X86_64_LIB }}
           # Windows
-          - target: ${{ needs.initialize_variables.WINDOWS_X86_64_TARGET }}
+          - target: ${{ needs.initialize_variables.outputs.WINDOWS_X86_64_TARGET }}
             os: ubuntu-latest
-            glecs_lib: ${{ needs.initialize_variables.WINDOWS_X86_64_LIB }}
+            glecs_lib: ${{ needs.initialize_variables.outputs.WINDOWS_X86_64_LIB }}
     runs-on: ${{ matrix.os }}
     outputs:
       # Linux
-      i686-unknown-linux-gnu: ${{ steps.set_cache_key.outputs[needs.initialize_variables.LINUX_I686_TARGET] }}
-      x86_64-unknown-linux-gnu: ${{ steps.set_cache_key.outputs[needs.initialize_variables.LINUX_X86_64_TARGET] }}
+      i686-unknown-linux-gnu: ${{ steps.set_cache_key.outputs[needs.initialize_variables.outputs.LINUX_I686_TARGET] }}
+      x86_64-unknown-linux-gnu: ${{ steps.set_cache_key.outputs[needs.initialize_variables.outputs.LINUX_X86_64_TARGET] }}
       # Mac
-      aarch64-apple-darwin: ${{ steps.set_cache_key.outputs[needs.initialize_variables.MAC_ARCH_TARGET] }}
-      x86_64-apple-darwin: ${{ steps.set_cache_key.outputs[needs.initialize_variables.MAC_X86_64_TARGET] }}
+      aarch64-apple-darwin: ${{ steps.set_cache_key.outputs[needs.initialize_variables.outputs.MAC_ARCH_TARGET] }}
+      x86_64-apple-darwin: ${{ steps.set_cache_key.outputs[needs.initialize_variables.outputs.MAC_X86_64_TARGET] }}
       # Windows
-      x86_64-pc-windows-gnu: ${{ steps.set_cache_key.outputs[needs.initialize_variables.WINDOWS_X86_64_TARGET] }}
+      x86_64-pc-windows-gnu: ${{ steps.set_cache_key.outputs[needs.initialize_variables.outputs.WINDOWS_X86_64_TARGET] }}
     steps:
     - name: 🐙 Settup git environment
       uses: actions/checkout@v4
 
     - name: 🗳️ Initialize git submodules
       run: git submodule update --init --recursive
-
-    - run: echo "${{ needs.initialize_variables.LINUX_X86_64_TARGET }}"
 
     - name: 💾 Rust cache
       uses: Swatinem/rust-cache@v2
@@ -139,8 +135,8 @@ jobs:
         - name: 💾 Load cached library
           uses: actions/cache/restore@v4.0.2
           with:
-            path: ./addons/glecs/bin/${{ needs.initialize_variables.LINUX_X86_64_TARGET }}/release/${{ needs.initialize_variables.LINUX_X86_64_LIB }}
-            key: ${{ needs.compile_glecs.outputs[needs.initialize_variables.LINUX_X86_64_TARGET] }}
+            path: ./addons/glecs/bin/${{ needs.initialize_variables.outputs.LINUX_X86_64_TARGET }}/release/${{ needs.initialize_variables.outputs.LINUX_X86_64_LIB }}
+            key: ${{ needs.compile_glecs.outputs[needs.initialize_variables.outputs.LINUX_X86_64_TARGET] }}
             enableCrossOsArchive: true
 
         - name: ↪️ Move lib
@@ -148,8 +144,8 @@ jobs:
           run: |
             mkdir ./addons/glecs/bin/release/
             mkdir ./addons/glecs/bin/debug/
-            cp ./addons/glecs/bin/${{ needs.initialize_variables.LINUX_X86_64_TARGET }}/release/${{ needs.initialize_variables.LINUX_X86_64_LIB }} ./addons/glecs/bin/release/${{ needs.initialize_variables.LINUX_X86_64_LIB }}
-            cp ./addons/glecs/bin/${{ needs.initialize_variables.LINUX_X86_64_TARGET }}/release/${{ needs.initialize_variables.LINUX_X86_64_LIB }} ./addons/glecs/bin/debug/${{ needs.initialize_variables.LINUX_X86_64_LIB }}
+            cp ./addons/glecs/bin/${{ needs.initialize_variables.outputs.LINUX_X86_64_TARGET }}/release/${{ needs.initialize_variables.outputs.LINUX_X86_64_LIB }} ./addons/glecs/bin/release/${{ needs.initialize_variables.outputs.LINUX_X86_64_LIB }}
+            cp ./addons/glecs/bin/${{ needs.initialize_variables.outputs.LINUX_X86_64_TARGET }}/release/${{ needs.initialize_variables.outputs.LINUX_X86_64_LIB }} ./addons/glecs/bin/debug/${{ needs.initialize_variables.outputs.LINUX_X86_64_LIB }}
 
         - name: 🤖 Run Godot unit tests
           id: run-godot-tests
@@ -177,7 +173,7 @@ jobs:
 
   update_nightly:
     if: ${{ github.event_name == 'push' || github.event_name == 'closed' }}
-    needs:  ["compile_glecs", "run_test_suite"]
+    needs:  [compile_glecs, run_test_suite, initialize_variables]
     runs-on: windows-latest
     steps:
       - name: 🐙 Settup git environment
@@ -190,9 +186,9 @@ jobs:
         uses: actions/cache/restore@v4.0.2
         with:
           # A list of files, directories, and wildcard patterns to cache and restore
-          path: ./addons/glecs/bin/${{ needs.initialize_variables.LINUX_I686_TARGET }}/release/${{ needs.initialize_variables.LINUX_I686_LIB }}
+          path: ./addons/glecs/bin/${{ needs.initialize_variables.outputs.LINUX_I686_TARGET }}/release/${{ needs.initialize_variables.outputs.LINUX_I686_LIB }}
           # An explicit key for restoring and saving the cache
-          key: ${{ needs.compile_glecs.outputs[needs.initialize_variables.LINUX_I686_TARGET] }}
+          key: ${{ needs.compile_glecs.outputs[needs.initialize_variables.outputs.LINUX_I686_TARGET] }}
           # An optional boolean when enabled, allows windows runners to save or restore caches that can be restored or saved respectively on other platforms
           enableCrossOsArchive: true
 
@@ -200,9 +196,9 @@ jobs:
         uses: actions/cache/restore@v4.0.2
         with:
           # A list of files, directories, and wildcard patterns to cache and restore
-          path: ./addons/glecs/bin/${{ needs.initialize_variables.LINUX_X86_64_TARGET }}/release/${{ needs.initialize_variables.LINUX_X86_64_LIB }}
+          path: ./addons/glecs/bin/${{ needs.initialize_variables.outputs.LINUX_X86_64_TARGET }}/release/${{ needs.initialize_variables.outputs.LINUX_X86_64_LIB }}
           # An explicit key for restoring and saving the cache
-          key: ${{ needs.compile_glecs.outputs[needs.initialize_variables.LINUX_X86_64_TARGET] }}
+          key: ${{ needs.compile_glecs.outputs[needs.initialize_variables.outputs.LINUX_X86_64_TARGET] }}
           # An optional boolean when enabled, allows windows runners to save or restore caches that can be restored or saved respectively on other platforms
           enableCrossOsArchive: true
 
@@ -210,9 +206,9 @@ jobs:
         uses: actions/cache/restore@v4.0.2
         with:
           # A list of files, directories, and wildcard patterns to cache and restore
-          path: ./addons/glecs/bin/${{ needs.initialize_variables.MAC_ARCH_TARGET }}/release/${{ needs.initialize_variables.MAC_ARCH_LIB }}
+          path: ./addons/glecs/bin/${{ needs.initialize_variables.outputs.MAC_ARCH_TARGET }}/release/${{ needs.initialize_variables.outputs.MAC_ARCH_LIB }}
           # An explicit key for restoring and saving the cache
-          key: ${{ needs.compile_glecs.outputs[needs.initialize_variables.MAC_ARCH_TARGET] }}
+          key: ${{ needs.compile_glecs.outputs[needs.initialize_variables.outputs.MAC_ARCH_TARGET] }}
           # An optional boolean when enabled, allows windows runners to save or restore caches that can be restored or saved respectively on other platforms
           enableCrossOsArchive: true
 
@@ -220,9 +216,9 @@ jobs:
         uses: actions/cache/restore@v4.0.2
         with:
           # A list of files, directories, and wildcard patterns to cache and restore
-          path: ./addons/glecs/bin/${{ needs.initialize_variables.MAC_X86_64_TARGET }}/release/${{ needs.initialize_variables.MAC_X86_64_LIB }}
+          path: ./addons/glecs/bin/${{ needs.initialize_variables.outputs.MAC_X86_64_TARGET }}/release/${{ needs.initialize_variables.outputs.MAC_X86_64_LIB }}
           # An explicit key for restoring and saving the cache
-          key: ${{ needs.compile_glecs.outputs[needs.initialize_variables.MAC_X86_64_TARGET] }}
+          key: ${{ needs.compile_glecs.outputs[needs.initialize_variables.outputs.MAC_X86_64_TARGET] }}
           # An optional boolean when enabled, allows windows runners to save or restore caches that can be restored or saved respectively on other platforms
           enableCrossOsArchive: true
 
@@ -230,9 +226,9 @@ jobs:
         uses: actions/cache/restore@v4.0.2
         with:
           # A list of files, directories, and wildcard patterns to cache and restore
-          path: ./addons/glecs/bin/${{ needs.initialize_variables.WINDOWS_X86_64_TARGET }}/release/${{ needs.initialize_variables.WINDOWS_X86_64_LIB }}
+          path: ./addons/glecs/bin/${{ needs.initialize_variables.outputs.WINDOWS_X86_64_TARGET }}/release/${{ needs.initialize_variables.outputs.WINDOWS_X86_64_LIB }}
           # An explicit key for restoring and saving the cache
-          key: ${{ needs.compile_glecs.outputs[needs.initialize_variables.WINDOWS_X86_64_TARGET] }}
+          key: ${{ needs.compile_glecs.outputs[needs.initialize_variables.outputs.WINDOWS_X86_64_TARGET] }}
           # An optional boolean when enabled, allows windows runners to save or restore caches that can be restored or saved respectively on other platforms
           enableCrossOsArchive: true
 
