@@ -9,15 +9,7 @@ on:
   workflow_dispatch:
   
 jobs:
-
-  echo:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo github.event '${{ github.event }}'
-      - run: echo github.event_name '${{ github.event_name }}'
-      - run: echo github.actor '${{ github.actor }}'
-      - run: echo github.actor_id '${{ github.actor_id }}'
-
+  
   compile_glecs:
     strategy:
       matrix:
