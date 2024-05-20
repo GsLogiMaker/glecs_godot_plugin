@@ -1,5 +1,5 @@
 
-name: Run Unit Tests
+name: Build Process
 
 on:
   push:
@@ -14,19 +14,26 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
+          # Linux
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
             glecs_lib: libglecs.so
-          - os: ubuntu-latest
-            target: i686-unknown-linux-gnu
+          - target: i686-unknown-linux-gnu
+            os: ubuntu-latest
             glecs_lib: libglecs.so
-          - os: ubuntu-latest
-            target: x86_64-pc-windows-gnu
+          # Mac
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            glecs_lib: libglecs.rlib
+          # Windows
+          - target: x86_64-pc-windows-gnu
+            os: ubuntu-latest
             glecs_lib: glecs.dll
     runs-on: ${{ matrix.os }}
     outputs:
       x86_64-linux_lib_cache_key: ${{ steps.set_cache_key.outputs.x86_64-unknown-linux-gnu_lib_cache_key }}
       i686-linux_lib_cache_key: ${{ steps.set_cache_key.outputs.i686-unknown-linux-gnu_lib_cache_key }}
+      x86_64-mac_lib_cache_key: ${{ steps.set_cache_key.outputs.x86_64-apple-darwin_lib_cache_key }}
       x86_64-windows_lib_cache_key: ${{ steps.set_cache_key.outputs.x86_64-pc-windows-gnu_lib_cache_key }}
     steps:
     - name: 🐙 Settup git environment
@@ -47,11 +54,11 @@ jobs:
         rustup target add ${{ matrix.target }}
 
     - name: 🐧 Install GCC multilib for Linux i686 build
-      if: ${{ matrix.target }} == i686-unknown-linux-gnu
+      if: ${{ matrix.target == 'i686-unknown-linux-gnu' && runner.os == 'Linux'}} 
       run: sudo apt-get install gcc-multilib
     
     - name: 🪟 Install mingw for Windows build
-      if: ${{ matrix.target }} == x86_64-pc-windows-gnu
+      if: ${{ matrix.target == 'x86_64-pc-windows-gnu' && runner.os == 'Linux' }}
       run: sudo apt install gcc-mingw-w64
 
     - name: 🦀 Build Rust code
@@ -82,7 +89,7 @@ jobs:
         enableCrossOsArchive: true
 
       
-  test_suite:
+  run_test_suite:
     needs: compile_glecs
     runs-on: ubuntu-latest
     steps:
@@ -130,14 +137,10 @@ jobs:
 
 
   update_nightly:
-    needs:  ["compile_glecs", "test_suite"]
+    if: ${{ github.action == 'push' }}
+    needs:  ["compile_glecs", "run_test_suite"]
     runs-on: windows-latest
     steps:
-      - name: 📍 Exit early if action is not "push"
-        if: ${{ github.action }} != "push"
-        run: |
-          exit 0
-
       - name: 🐙 Settup git environment
         uses: actions/checkout@v4
         with:
@@ -161,6 +164,16 @@ jobs:
           path: ./addons/glecs/bin/i686-unknown-linux-gnu/release/libglecs.so
           # An explicit key for restoring and saving the cache
           key: ${{ needs.compile_glecs.outputs.i686-linux_lib_cache_key }}
+          # An optional boolean when enabled, allows windows runners to save or restore caches that can be restored or saved respectively on other platforms
+          enableCrossOsArchive: true
+
+      - name: 🍎 Load compiled library, Mac x86_64
+        uses: actions/cache/restore@v4.0.2
+        with:
+          # A list of files, directories, and wildcard patterns to cache and restore
+          path: ./addons/glecs/bin/x86_64-apple-darwin/release/libglecs.rlib
+          # An explicit key for restoring and saving the cache
+          key: ${{ needs.compile_glecs.outputs.x86_64-mac_lib_cache_key }}
           # An optional boolean when enabled, allows windows runners to save or restore caches that can be restored or saved respectively on other platforms
           enableCrossOsArchive: true
 
