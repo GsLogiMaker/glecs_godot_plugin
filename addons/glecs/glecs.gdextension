@@ -5,13 +5,13 @@ reloadable = true
 
 [libraries]
 
-windows.release.x86_64 = "./bin/release/glecs.dll"
-windows.debug.x86_64 = "./bin/debug/glecs.dll"
-
 linux.release.x86_64 = "./bin/release/libglecs.so"
 linux.debug.x86_64 = "./bin/debug/libglecs.so"
 
-macos.release.x86_64 = "./bin/release/libglecs.dylib"
-macos.debug.x86_64 = "./bin/debug/libglecs.dylib"
-macos.release.arm64 = "./bin/release/libglecs.dylib"
-macos.debug.arm64 = "./bin/debug/libglecs.dylib"
+windows.release.x86_64 = "./bin/release/glecs.dll"
+windows.debug.x86_64 = "./bin/debug/glecs.dll"
+
+macos.release.x86_64 = "./bin/release/libglecs.rlib"
+macos.debug.x86_64 = "./bin/debug/libglecs.rlib"
+macos.release.arm64 = "./bin/release/libglecs.rlib"
+macos.debug.arm64 = "./bin/debug/libglecs.rlib"
