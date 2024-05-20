@@ -10,6 +10,11 @@ on:
   
 jobs:
 
+  echo:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo '${{ github.action }}'
+
   compile_glecs:
     strategy:
       matrix:
