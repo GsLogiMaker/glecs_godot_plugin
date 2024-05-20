@@ -137,13 +137,10 @@ jobs:
 
 
   update_nightly:
+    if: ${{ github.action == 'push' }}
     needs:  ["compile_glecs", "run_test_suite"]
     runs-on: windows-latest
     steps:
-      - name: 📍 Exit early if action is not "push"
-        if: ${{ github.action != 'push' }}
-        run: exit 0
-
       - name: 🐙 Settup git environment
         uses: actions/checkout@v4
         with:
