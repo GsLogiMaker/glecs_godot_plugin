@@ -67,6 +67,8 @@ jobs:
     - name: 🗳️ Initialize git submodules
       run: git submodule update --init --recursive
 
+    - run: echo "${{ github.env }}"
+
     - name: 💾 Rust cache
       uses: Swatinem/rust-cache@v2
       with:
