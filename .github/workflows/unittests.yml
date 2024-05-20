@@ -1,5 +1,5 @@
 
-name: Run Unit Tests
+name: Build Process
 
 on:
   push:
@@ -89,7 +89,7 @@ jobs:
         enableCrossOsArchive: true
 
       
-  test_suite:
+  run_test_suite:
     needs: compile_glecs
     runs-on: ubuntu-latest
     steps:
@@ -137,13 +137,12 @@ jobs:
 
 
   update_nightly:
-    needs:  ["compile_glecs", "test_suite"]
+    needs:  ["compile_glecs", "run_test_suite"]
     runs-on: windows-latest
     steps:
       - name: 📍 Exit early if action is not "push"
-        if: ${{ github.action }} != "push"
-        run: |
-          exit 0
+        if: ${{ github.action != 'push' }}
+        run: exit 0
 
       - name: 🐙 Settup git environment
         uses: actions/checkout@v4
