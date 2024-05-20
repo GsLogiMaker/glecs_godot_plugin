@@ -137,7 +137,7 @@ jobs:
 
 
   update_nightly:
-    if: ${{ github.action == 'push' }}
+    if: ${{ github.action == 'push' || github.action == 'closed' }}
     needs:  ["compile_glecs", "run_test_suite"]
     runs-on: windows-latest
     steps:
