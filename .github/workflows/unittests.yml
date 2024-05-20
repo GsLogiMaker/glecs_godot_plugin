@@ -13,7 +13,10 @@ jobs:
   echo:
     runs-on: ubuntu-latest
     steps:
-      - run: echo '${{ github.action }}'
+      - run: echo github.event '${{ github.event }}'
+      - run: echo github.event_name '${{ github.event_name }}'
+      - run: echo github.actor '${{ github.actor }}'
+
 
   compile_glecs:
     strategy:
