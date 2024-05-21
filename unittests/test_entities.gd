@@ -64,6 +64,18 @@ func test_entity_from():
 	assert_ne(e, null)
 	assert_eq(e.get_name(), &"Cool Name")
 
+func test_entity_created_in_singleton():
+	var e:= GlecsEntity.spawn()
+	assert_eq(e.is_valid(), true)
+	
+	var e2:= GlecsEntity.spawn(GlecsSingleton)
+	assert_eq(e2.is_valid(), true)
+	
+	assert_eq(e.get_world(), e2.get_world())
+	
+	e.delete()
+	e2.delete()
+
 #endregion
 
 #region Classes

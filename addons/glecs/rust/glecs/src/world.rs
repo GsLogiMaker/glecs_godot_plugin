@@ -14,6 +14,7 @@ use flecs::EntityId;
 use flecs::Iter;
 use flecs::World as FlWorld;
 use godot::engine::notify::NodeNotification;
+use godot::engine::Engine;
 use godot::engine::Script;
 use godot::prelude::*;
 
@@ -29,6 +30,7 @@ use crate::prefab::PrefabDefinition;
 use crate::prefab::PREFAB_COMPONENTS;
 use crate::queries::BuildType;
 use crate::queries::_GlecsBaseSystemBuilder;
+use crate::util;
 use crate::util::script_inherets;
 use crate::Int;
 use crate::TYPE_SIZES;
@@ -190,6 +192,11 @@ impl _GlecsBaseWorld {
     }
 
     #[func(gd_self)]
+    fn _load_and_set_world_script(mut this: Gd<Self>) {
+        this.set_script(load_world_obj_script());
+    }
+
+    #[func(gd_self)]
     fn _register_script(this: Gd<Self>, to_register: Gd<Script>, name: GString) {
         Self::register_script_and_get(this, to_register, name);
     }
@@ -245,6 +252,14 @@ impl _GlecsBaseWorld {
         let right = Self::_id_from_variant(this, target);
         let pair = flecs::ecs_pair(left, right);
         pair as i64
+    }
+
+    #[func]
+    pub fn _get_global() -> Gd<Self> {
+        Engine::singleton()
+            .get_singleton("GlecsSingleton".into())
+            .unwrap()
+            .cast::<Self>()
     }
 
     #[func(gd_self)]

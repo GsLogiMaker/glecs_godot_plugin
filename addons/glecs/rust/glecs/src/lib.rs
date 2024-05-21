@@ -13,7 +13,9 @@ pub(crate) mod component_definitions;
 
 use std::mem::size_of;
 
+use godot::engine::Engine;
 use godot::prelude::*;
+use world::_GlecsBaseWorld;
 
 /// Godot's native int type
 type Int = i64;
@@ -62,7 +64,40 @@ const TYPE_SIZES:&'static [usize] = &[
     /* MAX */ 0,
 ];
 
-struct Glecs; #[gdextension] unsafe impl ExtensionLibrary for Glecs {}
+struct Glecs;
+#[gdextension]
+unsafe impl ExtensionLibrary for Glecs {
+    fn on_level_init(level: InitLevel) {
+        if level == InitLevel::Scene {
+            let mut world = _GlecsBaseWorld::new_alloc();
+            world.call_deferred("_load_and_set_world_script".into(), &[]);
+            Engine::singleton().register_singleton(
+                "GlecsSingleton".into(),
+                world.upcast(),
+            );
+        }
+    }
+
+    fn on_level_deinit(level: InitLevel) {
+        if level == InitLevel::Scene {
+            // Get the `Engine` instance and `StringName` for your singleton.
+            let mut engine = Engine::singleton();
+            let singleton_name = StringName::from("GlecsSingleton");
+
+            // We need to retrieve the pointer to the singleton object,
+            // as it has to be freed manually - unregistering singleton 
+            // doesn't do it automatically.
+            let singleton = engine
+                .get_singleton(singleton_name.clone())
+                .expect("cannot retrieve the singleton");
+
+            // Unregistering singleton and freeing the object itself is needed 
+            // to avoid memory leaks and warnings, especially for hot reloading.
+            engine.unregister_singleton(singleton_name);
+            singleton.free();
+        }
+    }
+}
 
 #[macro_export]
 macro_rules! show_error {

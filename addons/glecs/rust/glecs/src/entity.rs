@@ -3,7 +3,6 @@ use std::ffi::c_void;
 use std::fmt::Debug;
 
 use flecs::EntityId;
-use godot::engine::Engine;
 use godot::engine::Script;
 use godot::prelude::*;
 
@@ -35,11 +34,7 @@ impl _GlecsBaseEntity {
         // Use a default world if world is none
         let world = match world {
             Some(w) => w,
-            None => {
-                Engine::singleton().get_singleton("Glecs".into())
-                    .unwrap()
-                    .cast::<_GlecsBaseWorld>()
-            },
+            None => _GlecsBaseWorld::_get_global(),
         };
 
         // Create new entity
@@ -60,11 +55,7 @@ impl _GlecsBaseEntity {
         // Use a default world if world is none
         let world = match world {
             Some(w) => w,
-            None => {
-                Engine::singleton().get_singleton("Glecs".into())
-                    .unwrap()
-                    .cast::<_GlecsBaseWorld>()
-            },
+            None => _GlecsBaseWorld::_get_global(),
         };
 
         // Convert variant to entity ID
