@@ -1,17 +1,8 @@
-# Glecs - Godot (fast) Lightweight Entity Component System
-This plugin is a wrapper around Flecs to add an entity component system to Godot.
-## Branches
-### Main
-The `main` branch is kept stable and ready to install and use within a project's `asset` folder. To install in your project run the following in your Godot project's `addons` folder:
+# Nightly build of Glecs - Godot (fast) Lightweight Entity Component System
+Ready to use, built hot from the dev branch. Be weary, bugs are highly likely, as this branch is intended for testing purposes.
+### Installation
+To install the nightly build in your Godot project, open a terminal in the `res://addons` folder of your project and run the following command:
 ```
-git install https://github.com/GsLogiMaker/g_ecs_plugin.git
+git install https://github.com/GsLogiMaker/g_ecs_plugin.git -b nightly
 ```
-### Dev
-The `dev` branch is where main development happens. This branch contains a Godot project with the addon source code, unit tests, and developer tools. To install for development run the following command:
-```
-git install https://github.com/GsLogiMaker/g_ecs_plugin.git
-git switch dev
-git submodule update --init --recursive
-```
-### Publish
-The `publish` branch is properly formatted to be used in the asset store.
+Next, open the projects settings and under the "Plugins" tab, enable GlecsNightly, and you are ready to use Glecs nightly!
