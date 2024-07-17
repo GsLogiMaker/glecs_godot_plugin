@@ -71,6 +71,26 @@ func test_on_init_event():
 	e4.free()
 
 
+func test_on_set_event():
+	i = 0
+	var w:= GlecsWorldObject.new()
+	
+	w.new_event_listener(Glecs.ON_SET) \
+		.with(Ints) \
+		.for_each(func(ints:Ints):
+			self.i += ints.a + ints.b
+			)
+			
+	var e:= GlecsEntity.spawn(w) \
+		.add_component(Ints, [2, 6])
+	var ints:Ints = e.get_component(Ints)
+	
+	ints.a = 15
+	ints.b = 45
+	
+	assert_eq(i, (2 + 6) + (15 + 6) + (15 + 45))
+
+
 func test_on_add_event_with_objects():
 	i = 0
 	world.new_event_listener(Glecs.ON_ADD) \

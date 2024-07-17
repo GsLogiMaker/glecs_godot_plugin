@@ -819,6 +819,20 @@ impl IObject for _GlecsBaseWorld {
             glecs_id,
         );
 
+        // Add custom OnSet event
+        let custom_on_set = _GlecsBindings::new_id_from_ref(&world);
+        _GlecsBindings::add_pair_from_ref(
+            &world,
+            custom_on_set,
+            _GlecsBindings::_flecs_child_of(),
+            glecs_id,
+        );
+        _GlecsBindings::set_name_c(
+            &world,
+            custom_on_set,
+            CString::new("OnSet").unwrap(),
+        );
+
         // Add process pipeline
         let process = world.new_pipeline(
             "process".into(),

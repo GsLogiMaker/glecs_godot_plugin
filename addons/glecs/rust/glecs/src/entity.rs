@@ -11,6 +11,7 @@ use godot::prelude::*;
 
 use crate::component::_GlecsBaseComponent;
 use crate::gd_bindings::_GlecsBindings;
+use crate::gd_bindings::_GlecsComponents;
 use crate::Int;
 use crate::show_error;
 use crate::world::_GlecsBaseWorld;
@@ -299,6 +300,8 @@ pub(crate) trait EntityLike: Debug {
                 initial_data.len(),
                 initial_data.as_ptr().cast::<c_void>(),
             ) };
+
+            _GlecsComponents::emit_on_set(world_gd.clone(), raw_entity, component);
         }
 
         // Emit OnInit event

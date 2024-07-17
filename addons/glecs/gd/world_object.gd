@@ -5,6 +5,7 @@ func _init() -> void:
 	Glecs.PROCESS = id_from_variant("Glecs/process")
 	Glecs.PHYSICS_PROCESS = id_from_variant("Glecs/physics_process")
 	Glecs.ON_INIT = id_from_variant("Glecs/OnInit")
+	Glecs.ON_SET = id_from_variant("Glecs/OnSet")
 
 func get_child(path: String) -> GlecsEntity:
 	return GlecsEntity.from(_GlecsBindings.lookup(self, path), self)

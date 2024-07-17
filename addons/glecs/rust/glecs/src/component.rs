@@ -13,6 +13,7 @@ use crate::component_definitions::ComponetDefinition;
 use crate::component_definitions::ComponetProperty;
 use crate::entity::EntityLike;
 use crate::gd_bindings::_GlecsBindings;
+use crate::gd_bindings::_GlecsComponents;
 use crate::show_error;
 use crate::world::_GlecsBaseWorld;
 use crate::Float;
@@ -87,6 +88,13 @@ impl _GlecsBaseComponent {
                 self._get_type_name(),
             );
         }
+
+        // Emit custom on set event
+        _GlecsComponents::emit_on_set(
+            self.world.clone(),
+            self.entity_id,
+            self.component_id,
+        );
     }
 
     #[func]
@@ -160,7 +168,7 @@ impl _GlecsBaseComponent {
     
         data.into_boxed_slice()
     }
-    
+
     // --- Getting ---
 
     pub(crate) fn _get_property(

@@ -7,6 +7,7 @@ use flecs::*;
 use godot::prelude::*;
 
 use crate::world::_GlecsBaseWorld;
+use crate::Int;
 
 #[derive(GodotClass)]
 #[class(base=Object, no_init)]
@@ -346,4 +347,29 @@ impl _GlecsBindings {
 
 fn gstring_to_cstring(text: GString) -> CString {
     unsafe { CString::from_vec_unchecked(Vec::from(text.to_string())) }
+}
+
+#[derive(GodotClass)]
+#[class(base=Object, no_init)]
+pub struct _GlecsComponents {
+	pub(crate) base: Base<Object>,
+}
+#[godot_api]
+impl _GlecsComponents {
+    #[func]
+    pub fn emit_on_set(
+        world: Gd<_GlecsBaseWorld>,
+        entity: EntityId,
+        component: EntityId,
+    ) {
+        let on_set_path_ptr = unsafe {
+            CString::from_vec_unchecked(Vec::from("Glecs/OnSet"))
+        };
+        _GlecsBindings::emit_event(
+            world.clone(),
+            _GlecsBindings::lookup_c(&world.bind(), on_set_path_ptr.as_ptr()),
+            entity,
+            vec![component as Int].into(),
+        );
+    }
 }
