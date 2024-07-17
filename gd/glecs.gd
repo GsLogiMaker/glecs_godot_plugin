@@ -9,7 +9,6 @@ static var ON_ADD:= _GlecsBindings._flecs_on_add()
 static var ON_REMOVE:= _GlecsBindings._flecs_on_remove()
 ## An event that's emitted after any property in a component is changed.
 static var ON_SET:= _GlecsBindings._flecs_on_set()
-static var UN_SET:= _GlecsBindings._flecs_un_set()
 static var MONITOR:= _GlecsBindings._flecs_monitor()
 static var ON_DELETE:= _GlecsBindings._flecs_on_delete()
 static var ON_TABLE_CREATE:= _GlecsBindings._flecs_on_table_create()

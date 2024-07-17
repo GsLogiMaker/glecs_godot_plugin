@@ -46,5 +46,3 @@ func register(module:Script, name: String = "") -> void:
 func new_system(pipeline: Variant = Glecs.PROCESS) -> GlecsSystemBuilder:
 	return _new_system(pipeline)
 
-func new_entity(name:String, with_components:Array[Variant]=[]) -> GlecsEntity:
-	return _new_entity(name, with_components)
