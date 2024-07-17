@@ -13,14 +13,18 @@ func after_all():
 #region Tests
 
 func test_get_nonexistant_property():
-	var entity:= world.new_entity("Test", [Foo])
+	var entity:= GlecsEntity.spawn(world.as_object()) \
+		.add_component(Foo) \
+		.set_name("Test")
 	var foo:Foo = entity.get_component(Foo)
 	
 	assert_eq(foo.getc(&"not a real property"), null)
 
 
 func test_new_entity_with_unregistered_component():
-	var _entity:= world.new_entity("Test", [Unregistered])
+	var _entity:= GlecsEntity.spawn(world.as_object()) \
+		.add_component(Unregistered) \
+		.set_name("Test")
 	
 	# We can't assert the right error is thrown, but it should be fine as
 	# long as it doesn't crash

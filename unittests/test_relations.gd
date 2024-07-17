@@ -15,14 +15,19 @@ func after_all():
 func test_bools():
 	# TODO: Query for relations
 	world.new_system().for_each(func(_delta): pass)
-	var apple:= world.new_entity("Apple", [])
-	world.new_entity("Eats", [])
+	var apple:= GlecsEntity.spawn(world.as_object()) \
+		.set_name("Apple")
+		
+	GlecsEntity.spawn(world.as_object()).set_name("Eats")
 	
-	var man:= world.new_entity("Man", [])
-	man.add_relation("Eats", apple)
+	var man:= GlecsEntity.spawn(world.as_object()) \
+		.set_name("Man") \
+		.add_relation("Eats", apple)
 	
-	var cow:= world.new_entity("Cow", [])
-	var grass:= world.new_entity("Grass", [])
+	var cow:= GlecsEntity.spawn(world.as_object()) \
+		.set_name("Cow")
+	var grass:= GlecsEntity.spawn(world.as_object()) \
+		.set_name("Grass")
 	cow.add_relation("Eats", grass)
 	
 	world.run_pipeline(Glecs.PROCESS, 0.0)

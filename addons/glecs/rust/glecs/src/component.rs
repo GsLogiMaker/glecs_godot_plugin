@@ -111,14 +111,14 @@ impl _GlecsBaseComponent {
         data.resize(def.layout.size(), 0);
         
         match parameters.get_type() {
-            VariantType::Array => {
+            VariantType::ARRAY => {
                 let parameters = parameters.to::<VariantArray>();
                 for
                     (i, property_meta)
                 in def.parameters.iter().enumerate() {
                     let prop_value = if i < parameters.len() {
                         // Get value from passed parameters
-                        let parameter = parameters.get(i);
+                        let parameter = parameters.at(i);
                         let value = if
                             parameter.get_type() == property_meta.gd_type_id
                         {
@@ -144,7 +144,7 @@ impl _GlecsBaseComponent {
                     Self::init_property_data(nonnull_data, prop_value, &property_meta)
                 }
             },
-            VariantType::Nil => {
+            VariantType::NIL => {
                 for property_meta in def.parameters.iter() {
                     let default = def.get_property_default_value(
                         property_meta.name.to_variant(),
@@ -181,7 +181,7 @@ impl _GlecsBaseComponent {
 
         if
             value == Variant::nil()
-            && property_meta.gd_type_id != VariantType::Object
+            && property_meta.gd_type_id != VariantType::OBJECT
         {
             show_error!(
                 "Failed to get property",
@@ -199,44 +199,45 @@ impl _GlecsBaseComponent {
         property_data: &ComponetProperty,
     ) -> Variant{
         match property_data.gd_type_id {
-            VariantType::Nil => panic!("Can't set \"Nil\" type in component"),
-            VariantType::Bool => Self::get_property_data_raw::<bool>(data, property_data.offset).to_variant(),
-            VariantType::Int => Self::get_property_data_raw::<Int>(data, property_data.offset).to_variant(),
-            VariantType::Float => Self::get_property_data_raw::<Float>(data, property_data.offset).to_variant(),
-            VariantType::String => Self::get_property_data_raw::<GString>(data, property_data.offset).to_variant(),
-            VariantType::Vector2 => Self::get_property_data_raw::<Vector2>(data, property_data.offset).to_variant(),
-            VariantType::Vector2i => Self::get_property_data_raw::<Vector2i>(data, property_data.offset).to_variant(),
-            VariantType::Rect2 => Self::get_property_data_raw::<Rect2>(data, property_data.offset).to_variant(),
-            VariantType::Rect2i => Self::get_property_data_raw::<Rect2i>(data, property_data.offset).to_variant(),
-            VariantType::Vector3 => Self::get_property_data_raw::<Vector3>(data, property_data.offset).to_variant(),
-            VariantType::Vector3i => Self::get_property_data_raw::<Vector3i>(data, property_data.offset).to_variant(),
-            VariantType::Transform2D => Self::get_property_data_raw::<Transform2D>(data, property_data.offset).to_variant(),
-            VariantType::Vector4 => Self::get_property_data_raw::<Vector4>(data, property_data.offset).to_variant(),
-            VariantType::Vector4i => Self::get_property_data_raw::<Vector4i>(data, property_data.offset).to_variant(),
-            VariantType::Plane => Self::get_property_data_raw::<Plane>(data, property_data.offset).to_variant(),
-            VariantType::Quaternion => Self::get_property_data_raw::<Quaternion>(data, property_data.offset).to_variant(),
-            VariantType::Aabb => Self::get_property_data_raw::<Aabb>(data, property_data.offset).to_variant(),
-            VariantType::Basis => Self::get_property_data_raw::<Basis>(data, property_data.offset).to_variant(),
-            VariantType::Transform3D => Self::get_property_data_raw::<Transform3D>(data, property_data.offset).to_variant(),
-            VariantType::Projection => Self::get_property_data_raw::<Projection>(data, property_data.offset).to_variant(),
-            VariantType::Color => Self::get_property_data_raw::<Color>(data, property_data.offset).to_variant(),
-            VariantType::StringName => Self::get_property_data_raw::<StringName>(data, property_data.offset).to_variant(),
-            VariantType::NodePath => Self::get_property_data_raw::<NodePath>(data, property_data.offset).to_variant(),
-            VariantType::Rid => Self::get_property_data_raw::<Rid>(data, property_data.offset).to_variant(),
-            VariantType::Object => Self::get_property_data_raw_variant(data, property_data.offset).to_variant(),
-            VariantType::Callable => Self::get_property_data_raw::<Callable>(data, property_data.offset).to_variant(),
-            VariantType::Signal => Self::get_property_data_raw::<Signal>(data, property_data.offset).to_variant(),
-            VariantType::Dictionary => Self::get_property_data_raw_variant(data, property_data.offset).to_variant(),
-            VariantType::Array => Self::get_property_data_raw_variant(data, property_data.offset).to_variant(),
-            VariantType::PackedByteArray => Self::get_property_data_raw::<PackedByteArray>(data, property_data.offset).to_variant(),
-            VariantType::PackedInt32Array => Self::get_property_data_raw::<PackedInt32Array>(data, property_data.offset).to_variant(),
-            VariantType::PackedInt64Array => Self::get_property_data_raw::<PackedInt64Array>(data, property_data.offset).to_variant(),
-            VariantType::PackedFloat32Array => Self::get_property_data_raw::<PackedFloat32Array>(data, property_data.offset).to_variant(),
-            VariantType::PackedFloat64Array => Self::get_property_data_raw::<PackedFloat64Array>(data, property_data.offset).to_variant(),
-            VariantType::PackedStringArray => Self::get_property_data_raw::<PackedStringArray>(data, property_data.offset).to_variant(),
-            VariantType::PackedVector2Array => Self::get_property_data_raw::<PackedVector2Array>(data, property_data.offset).to_variant(),
-            VariantType::PackedVector3Array => Self::get_property_data_raw::<PackedVector3Array>(data, property_data.offset).to_variant(),
-            VariantType::PackedColorArray => Self::get_property_data_raw::<PackedColorArray>(data, property_data.offset).to_variant(),
+            VariantType::NIL => panic!("Can't set \"Nil\" type in component"),
+            VariantType::BOOL => Self::get_property_data_raw::<bool>(data, property_data.offset).to_variant(),
+            VariantType::INT => Self::get_property_data_raw::<Int>(data, property_data.offset).to_variant(),
+            VariantType::FLOAT => Self::get_property_data_raw::<Float>(data, property_data.offset).to_variant(),
+            VariantType::STRING => Self::get_property_data_raw::<GString>(data, property_data.offset).to_variant(),
+            VariantType::VECTOR2 => Self::get_property_data_raw::<Vector2>(data, property_data.offset).to_variant(),
+            VariantType::VECTOR2I => Self::get_property_data_raw::<Vector2i>(data, property_data.offset).to_variant(),
+            VariantType::RECT2 => Self::get_property_data_raw::<Rect2>(data, property_data.offset).to_variant(),
+            VariantType::RECT2I => Self::get_property_data_raw::<Rect2i>(data, property_data.offset).to_variant(),
+            VariantType::VECTOR3 => Self::get_property_data_raw::<Vector3>(data, property_data.offset).to_variant(),
+            VariantType::VECTOR3I => Self::get_property_data_raw::<Vector3i>(data, property_data.offset).to_variant(),
+            VariantType::TRANSFORM2D => Self::get_property_data_raw::<Transform2D>(data, property_data.offset).to_variant(),
+            VariantType::VECTOR4 => Self::get_property_data_raw::<Vector4>(data, property_data.offset).to_variant(),
+            VariantType::VECTOR4I => Self::get_property_data_raw::<Vector4i>(data, property_data.offset).to_variant(),
+            VariantType::PLANE => Self::get_property_data_raw::<Plane>(data, property_data.offset).to_variant(),
+            VariantType::QUATERNION => Self::get_property_data_raw::<Quaternion>(data, property_data.offset).to_variant(),
+            VariantType::AABB => Self::get_property_data_raw::<Aabb>(data, property_data.offset).to_variant(),
+            VariantType::BASIS => Self::get_property_data_raw::<Basis>(data, property_data.offset).to_variant(),
+            VariantType::TRANSFORM3D => Self::get_property_data_raw::<Transform3D>(data, property_data.offset).to_variant(),
+            VariantType::PROJECTION => Self::get_property_data_raw::<Projection>(data, property_data.offset).to_variant(),
+            VariantType::COLOR => Self::get_property_data_raw::<Color>(data, property_data.offset).to_variant(),
+            VariantType::STRING_NAME => Self::get_property_data_raw::<StringName>(data, property_data.offset).to_variant(),
+            VariantType::NODE_PATH => Self::get_property_data_raw::<NodePath>(data, property_data.offset).to_variant(),
+            VariantType::RID => Self::get_property_data_raw::<Rid>(data, property_data.offset).to_variant(),
+            VariantType::OBJECT => Self::get_property_data_raw_variant(data, property_data.offset).to_variant(),
+            VariantType::CALLABLE => Self::get_property_data_raw::<Callable>(data, property_data.offset).to_variant(),
+            VariantType::SIGNAL => Self::get_property_data_raw::<Signal>(data, property_data.offset).to_variant(),
+            VariantType::DICTIONARY => Self::get_property_data_raw_variant(data, property_data.offset).to_variant(),
+            VariantType::ARRAY => Self::get_property_data_raw_variant(data, property_data.offset).to_variant(),
+            VariantType::PACKED_BYTE_ARRAY => Self::get_property_data_raw::<PackedByteArray>(data, property_data.offset).to_variant(),
+            VariantType::PACKED_INT32_ARRAY => Self::get_property_data_raw::<PackedInt32Array>(data, property_data.offset).to_variant(),
+            VariantType::PACKED_INT64_ARRAY => Self::get_property_data_raw::<PackedInt64Array>(data, property_data.offset).to_variant(),
+            VariantType::PACKED_FLOAT32_ARRAY => Self::get_property_data_raw::<PackedFloat32Array>(data, property_data.offset).to_variant(),
+            VariantType::PACKED_FLOAT64_ARRAY => Self::get_property_data_raw::<PackedFloat64Array>(data, property_data.offset).to_variant(),
+            VariantType::PACKED_STRING_ARRAY => Self::get_property_data_raw::<PackedStringArray>(data, property_data.offset).to_variant(),
+            VariantType::PACKED_VECTOR2_ARRAY => Self::get_property_data_raw::<PackedVector2Array>(data, property_data.offset).to_variant(),
+            VariantType::PACKED_VECTOR3_ARRAY => Self::get_property_data_raw::<PackedVector3Array>(data, property_data.offset).to_variant(),
+            VariantType::PACKED_COLOR_ARRAY => Self::get_property_data_raw::<PackedColorArray>(data, property_data.offset).to_variant(),
+            _ => unreachable!(),
         }
     }
     
@@ -284,13 +285,13 @@ impl _GlecsBaseComponent {
         let value_type = value.get_type();
         let property_type = property_meta.gd_type_id;
         'cancel_type_check: {
-            if property_type == VariantType::Nil {
+            if property_type == VariantType::NIL {
                 break 'cancel_type_check
             }
             if value_type != property_type {
                 if
-                    property_type == VariantType::Object
-                        && value_type == VariantType::Nil
+                    property_type == VariantType::OBJECT
+                        && value_type == VariantType::NIL
                 { break 'cancel_type_check }
 
                 show_error!(
@@ -299,7 +300,7 @@ impl _GlecsBaseComponent {
                     property_type,
                     value_type,
                 );
-                return true;
+                // return true;
             }
         }
         
@@ -315,44 +316,45 @@ impl _GlecsBaseComponent {
         property_data: &ComponetProperty,
     ) {
         match property_data.gd_type_id {
-            VariantType::Nil => panic!("Can't set \"Nil\" type in component"),
-            VariantType::Bool => Self::set_property_data_raw::<bool>(data, value, property_data.offset),
-            VariantType::Int => Self::set_property_data_raw::<Int>(data, value, property_data.offset),
-            VariantType::Float => Self::set_property_data_raw::<Float>(data, value, property_data.offset),
-            VariantType::String => Self::set_property_data_raw::<GString>(data, value, property_data.offset),
-            VariantType::Vector2 => Self::set_property_data_raw::<Vector2>(data, value, property_data.offset),
-            VariantType::Vector2i => Self::set_property_data_raw::<Vector2i>(data, value, property_data.offset),
-            VariantType::Rect2 => Self::set_property_data_raw::<Rect2>(data, value, property_data.offset),
-            VariantType::Rect2i => Self::set_property_data_raw::<Rect2i>(data, value, property_data.offset),
-            VariantType::Vector3 => Self::set_property_data_raw::<Vector3>(data, value, property_data.offset),
-            VariantType::Vector3i => Self::set_property_data_raw::<Vector3i>(data, value, property_data.offset),
-            VariantType::Transform2D => Self::set_property_data_raw::<Transform2D>(data, value, property_data.offset),
-            VariantType::Vector4 => Self::set_property_data_raw::<Vector4>(data, value, property_data.offset),
-            VariantType::Vector4i => Self::set_property_data_raw::<Vector4i>(data, value, property_data.offset),
-            VariantType::Plane => Self::set_property_data_raw::<Plane>(data, value, property_data.offset),
-            VariantType::Quaternion => Self::set_property_data_raw::<Quaternion>(data, value, property_data.offset),
-            VariantType::Aabb => Self::set_property_data_raw::<Aabb>(data, value, property_data.offset),
-            VariantType::Basis => Self::set_property_data_raw::<Basis>(data, value, property_data.offset),
-            VariantType::Transform3D => Self::set_property_data_raw::<Transform3D>(data, value, property_data.offset),
-            VariantType::Projection => Self::set_property_data_raw::<Projection>(data, value, property_data.offset),
-            VariantType::Color => Self::set_property_data_raw::<Color>(data, value, property_data.offset),
-            VariantType::StringName => Self::set_property_data_raw::<StringName>(data, value, property_data.offset),
-            VariantType::NodePath => Self::set_property_data_raw::<NodePath>(data, value, property_data.offset),
-            VariantType::Rid => Self::set_property_data_raw::<Rid>(data, value, property_data.offset),
-            VariantType::Object => Self::set_property_data_raw_variant(data, value, property_data.offset),
-            VariantType::Callable => Self::set_property_data_raw::<Callable>(data, value, property_data.offset),
-            VariantType::Signal => Self::set_property_data_raw::<Signal>(data, value, property_data.offset),
-            VariantType::Dictionary => Self::set_property_data_raw_variant(data, value, property_data.offset),
-            VariantType::Array => Self::set_property_data_raw_variant(data, value, property_data.offset),
-            VariantType::PackedByteArray => Self::set_property_data_raw::<PackedByteArray>(data, value, property_data.offset),
-            VariantType::PackedInt32Array => Self::set_property_data_raw::<PackedInt32Array>(data, value, property_data.offset),
-            VariantType::PackedInt64Array => Self::set_property_data_raw::<PackedInt64Array>(data, value, property_data.offset),
-            VariantType::PackedFloat32Array => Self::set_property_data_raw::<PackedFloat32Array>(data, value, property_data.offset),
-            VariantType::PackedFloat64Array => Self::set_property_data_raw::<PackedFloat64Array>(data, value, property_data.offset),
-            VariantType::PackedStringArray => Self::set_property_data_raw::<PackedStringArray>(data, value, property_data.offset),
-            VariantType::PackedVector2Array => Self::set_property_data_raw::<PackedVector2Array>(data, value, property_data.offset),
-            VariantType::PackedVector3Array => Self::set_property_data_raw::<PackedVector3Array>(data, value, property_data.offset),
-            VariantType::PackedColorArray => Self::set_property_data_raw::<PackedColorArray>(data, value, property_data.offset),
+            VariantType::NIL => panic!("Can't set \"Nil\" type in component"),
+            VariantType::BOOL => Self::set_property_data_raw::<bool>(data, value, property_data.offset),
+            VariantType::INT => Self::set_property_data_raw::<Int>(data, value, property_data.offset),
+            VariantType::FLOAT => Self::set_property_data_raw::<Float>(data, value, property_data.offset),
+            VariantType::STRING => Self::set_property_data_raw::<GString>(data, value, property_data.offset),
+            VariantType::VECTOR2 => Self::set_property_data_raw::<Vector2>(data, value, property_data.offset),
+            VariantType::VECTOR2I => Self::set_property_data_raw::<Vector2i>(data, value, property_data.offset),
+            VariantType::RECT2 => Self::set_property_data_raw::<Rect2>(data, value, property_data.offset),
+            VariantType::RECT2I => Self::set_property_data_raw::<Rect2i>(data, value, property_data.offset),
+            VariantType::VECTOR3 => Self::set_property_data_raw::<Vector3>(data, value, property_data.offset),
+            VariantType::VECTOR3I => Self::set_property_data_raw::<Vector3i>(data, value, property_data.offset),
+            VariantType::TRANSFORM2D => Self::set_property_data_raw::<Transform2D>(data, value, property_data.offset),
+            VariantType::VECTOR4 => Self::set_property_data_raw::<Vector4>(data, value, property_data.offset),
+            VariantType::VECTOR4I => Self::set_property_data_raw::<Vector4i>(data, value, property_data.offset),
+            VariantType::PLANE => Self::set_property_data_raw::<Plane>(data, value, property_data.offset),
+            VariantType::QUATERNION => Self::set_property_data_raw::<Quaternion>(data, value, property_data.offset),
+            VariantType::AABB => Self::set_property_data_raw::<Aabb>(data, value, property_data.offset),
+            VariantType::BASIS => Self::set_property_data_raw::<Basis>(data, value, property_data.offset),
+            VariantType::TRANSFORM3D => Self::set_property_data_raw::<Transform3D>(data, value, property_data.offset),
+            VariantType::PROJECTION => Self::set_property_data_raw::<Projection>(data, value, property_data.offset),
+            VariantType::COLOR => Self::set_property_data_raw::<Color>(data, value, property_data.offset),
+            VariantType::STRING_NAME => Self::set_property_data_raw::<StringName>(data, value, property_data.offset),
+            VariantType::NODE_PATH => Self::set_property_data_raw::<NodePath>(data, value, property_data.offset),
+            VariantType::RID => Self::set_property_data_raw::<Rid>(data, value, property_data.offset),
+            VariantType::OBJECT => Self::set_property_data_raw_variant(data, value, property_data.offset),
+            VariantType::CALLABLE => Self::set_property_data_raw::<Callable>(data, value, property_data.offset),
+            VariantType::SIGNAL => Self::set_property_data_raw::<Signal>(data, value, property_data.offset),
+            VariantType::DICTIONARY => Self::set_property_data_raw_variant(data, value, property_data.offset),
+            VariantType::ARRAY => Self::set_property_data_raw_variant(data, value, property_data.offset),
+            VariantType::PACKED_BYTE_ARRAY => Self::set_property_data_raw::<PackedByteArray>(data, value, property_data.offset),
+            VariantType::PACKED_INT32_ARRAY => Self::set_property_data_raw::<PackedInt32Array>(data, value, property_data.offset),
+            VariantType::PACKED_INT64_ARRAY => Self::set_property_data_raw::<PackedInt64Array>(data, value, property_data.offset),
+            VariantType::PACKED_FLOAT32_ARRAY => Self::set_property_data_raw::<PackedFloat32Array>(data, value, property_data.offset),
+            VariantType::PACKED_FLOAT64_ARRAY => Self::set_property_data_raw::<PackedFloat64Array>(data, value, property_data.offset),
+            VariantType::PACKED_STRING_ARRAY => Self::set_property_data_raw::<PackedStringArray>(data, value, property_data.offset),
+            VariantType::PACKED_VECTOR2_ARRAY => Self::set_property_data_raw::<PackedVector2Array>(data, value, property_data.offset),
+            VariantType::PACKED_VECTOR3_ARRAY => Self::set_property_data_raw::<PackedVector3Array>(data, value, property_data.offset),
+            VariantType::PACKED_COLOR_ARRAY => Self::set_property_data_raw::<PackedColorArray>(data, value, property_data.offset),
+            _ => unreachable!(),
         }
     }
     
@@ -415,20 +417,20 @@ impl _GlecsBaseComponent {
                     "Can't write to {} in {{component}}. Component has no property with that name",
                     property,
                 );
-                return false;
+                // return false;
             };
 
         let value_type = value.get_type();
         let property_type = property_data.gd_type_id;
-        if property_type != VariantType::Nil {
-            if value_type != property_type && value_type != VariantType::Nil {
+        if property_type != VariantType::NIL {
+            if value_type != property_type && value_type != VariantType::NIL {
                 show_error!(
                     "Failed to set property",
                     "Expected type {:?}, but got type {:?}.",
                     property_type,
                     value_type,
                 );
-                return true;
+                // return true;
             }
         }
 
@@ -443,44 +445,45 @@ impl _GlecsBaseComponent {
         property_data: &ComponetProperty,
     ) {
         match property_data.gd_type_id {
-            VariantType::Nil => panic!("Can't init \"Nil\" type in component"),
-            VariantType::Bool => Self::init_property_data_raw::<bool>(data, value, property_data, &|| bool::default().to_variant()),
-            VariantType::Int => Self::init_property_data_raw::<Int>(data, value, property_data, &|| Int::default().to_variant()),
-            VariantType::Float => Self::init_property_data_raw::<Float>(data, value, property_data, &|| Float::default().to_variant()),
-            VariantType::String => Self::init_property_data_raw::<GString>(data, value, property_data, &|| GString::default().to_variant()),
-            VariantType::Vector2 => Self::init_property_data_raw::<Vector2>(data, value, property_data, &|| Vector2::default().to_variant()),
-            VariantType::Vector2i => Self::init_property_data_raw::<Vector2i>(data, value, property_data, &|| Vector2i::default().to_variant()),
-            VariantType::Rect2 => Self::init_property_data_raw::<Rect2>(data, value, property_data, &|| Rect2::default().to_variant()),
-            VariantType::Rect2i => Self::init_property_data_raw::<Rect2i>(data, value, property_data, &|| Rect2i::default().to_variant()),
-            VariantType::Vector3 => Self::init_property_data_raw::<Vector3>(data, value, property_data, &|| Vector3::default().to_variant()),
-            VariantType::Vector3i => Self::init_property_data_raw::<Vector3i>(data, value, property_data, &|| Vector3i::default().to_variant()),
-            VariantType::Transform2D => Self::init_property_data_raw::<Transform2D>(data, value, property_data, &|| Transform2D::default().to_variant()),
-            VariantType::Vector4 => Self::init_property_data_raw::<Vector4>(data, value, property_data, &|| Vector4::default().to_variant()),
-            VariantType::Vector4i => Self::init_property_data_raw::<Vector4i>(data, value, property_data, &|| Vector4i::default().to_variant()),
-            VariantType::Plane => Self::init_property_data_raw::<Plane>(data, value, property_data, &|| Plane::invalid().to_variant()),
-            VariantType::Quaternion => Self::init_property_data_raw::<Quaternion>(data, value, property_data, &|| Quaternion::default().to_variant()),
-            VariantType::Aabb => Self::init_property_data_raw::<Aabb>(data, value, property_data, &|| Aabb::default().to_variant()),
-            VariantType::Basis => Self::init_property_data_raw::<Basis>(data, value, property_data, &|| Basis::default().to_variant()),
-            VariantType::Transform3D => Self::init_property_data_raw::<Transform3D>(data, value, property_data, &|| Transform3D::default().to_variant()),
-            VariantType::Projection => Self::init_property_data_raw::<Projection>(data, value, property_data, &|| Projection::default().to_variant()),
-            VariantType::Color => Self::init_property_data_raw::<Color>(data, value, property_data, &|| Color::default().to_variant()),
-            VariantType::StringName => Self::init_property_data_raw::<StringName>(data, value, property_data, &|| StringName::default().to_variant()),
-            VariantType::NodePath => Self::init_property_data_raw::<NodePath>(data, value, property_data, &|| NodePath::default().to_variant()),
-            VariantType::Rid => Self::init_property_data_raw::<Rid>(data, value, property_data, &|| Rid::new(0).to_variant()),
-            VariantType::Object => Self::init_property_data_raw_variant(data, value, property_data),
-            VariantType::Callable => Self::init_property_data_raw::<Callable>(data, value, property_data, &|| Callable::invalid().to_variant()),
-            VariantType::Signal => Self::init_property_data_raw::<Signal>(data, value, property_data, &|| Signal::invalid().to_variant()),
-            VariantType::Dictionary => Self::init_property_data_raw_variant(data, value, property_data),
-            VariantType::Array => Self::init_property_data_raw_variant(data, value, property_data),
-            VariantType::PackedByteArray => Self::init_property_data_raw::<PackedByteArray>(data, value, property_data, &|| PackedByteArray::default().to_variant()),
-            VariantType::PackedInt32Array => Self::init_property_data_raw::<PackedInt32Array>(data, value, property_data, &|| PackedInt32Array::default().to_variant()),
-            VariantType::PackedInt64Array => Self::init_property_data_raw::<PackedInt64Array>(data, value, property_data, &|| PackedInt64Array::default().to_variant()),
-            VariantType::PackedFloat32Array => Self::init_property_data_raw::<PackedFloat32Array>(data, value, property_data, &|| PackedFloat32Array::default().to_variant()),
-            VariantType::PackedFloat64Array => Self::init_property_data_raw::<PackedFloat64Array>(data, value, property_data, &|| PackedFloat64Array::default().to_variant()),
-            VariantType::PackedStringArray => Self::init_property_data_raw::<PackedStringArray>(data, value, property_data, &|| PackedStringArray::default().to_variant()),
-            VariantType::PackedVector2Array => Self::init_property_data_raw::<PackedVector2Array>(data, value, property_data, &|| PackedVector2Array::default().to_variant()),
-            VariantType::PackedVector3Array => Self::init_property_data_raw::<PackedVector3Array>(data, value, property_data, &|| PackedVector3Array::default().to_variant()),
-            VariantType::PackedColorArray => Self::init_property_data_raw::<PackedColorArray>(data, value, property_data, &|| PackedColorArray::default().to_variant()),
+            VariantType::NIL => panic!("Can't init \"Nil\" type in component"),
+            VariantType::BOOL => Self::init_property_data_raw::<bool>(data, value, property_data, &|| bool::default().to_variant()),
+            VariantType::INT => Self::init_property_data_raw::<Int>(data, value, property_data, &|| Int::default().to_variant()),
+            VariantType::FLOAT => Self::init_property_data_raw::<Float>(data, value, property_data, &|| Float::default().to_variant()),
+            VariantType::STRING => Self::init_property_data_raw::<GString>(data, value, property_data, &|| GString::default().to_variant()),
+            VariantType::VECTOR2 => Self::init_property_data_raw::<Vector2>(data, value, property_data, &|| Vector2::default().to_variant()),
+            VariantType::VECTOR2I => Self::init_property_data_raw::<Vector2i>(data, value, property_data, &|| Vector2i::default().to_variant()),
+            VariantType::RECT2 => Self::init_property_data_raw::<Rect2>(data, value, property_data, &|| Rect2::default().to_variant()),
+            VariantType::RECT2I => Self::init_property_data_raw::<Rect2i>(data, value, property_data, &|| Rect2i::default().to_variant()),
+            VariantType::VECTOR3 => Self::init_property_data_raw::<Vector3>(data, value, property_data, &|| Vector3::default().to_variant()),
+            VariantType::VECTOR3I => Self::init_property_data_raw::<Vector3i>(data, value, property_data, &|| Vector3i::default().to_variant()),
+            VariantType::TRANSFORM2D => Self::init_property_data_raw::<Transform2D>(data, value, property_data, &|| Transform2D::default().to_variant()),
+            VariantType::VECTOR4 => Self::init_property_data_raw::<Vector4>(data, value, property_data, &|| Vector4::default().to_variant()),
+            VariantType::VECTOR4I => Self::init_property_data_raw::<Vector4i>(data, value, property_data, &|| Vector4i::default().to_variant()),
+            VariantType::PLANE => Self::init_property_data_raw::<Plane>(data, value, property_data, &|| Plane::invalid().to_variant()),
+            VariantType::QUATERNION => Self::init_property_data_raw::<Quaternion>(data, value, property_data, &|| Quaternion::default().to_variant()),
+            VariantType::AABB => Self::init_property_data_raw::<Aabb>(data, value, property_data, &|| Aabb::default().to_variant()),
+            VariantType::BASIS => Self::init_property_data_raw::<Basis>(data, value, property_data, &|| Basis::default().to_variant()),
+            VariantType::TRANSFORM3D => Self::init_property_data_raw::<Transform3D>(data, value, property_data, &|| Transform3D::default().to_variant()),
+            VariantType::PROJECTION => Self::init_property_data_raw::<Projection>(data, value, property_data, &|| Projection::default().to_variant()),
+            VariantType::COLOR => Self::init_property_data_raw::<Color>(data, value, property_data, &|| Color::default().to_variant()),
+            VariantType::STRING_NAME => Self::init_property_data_raw::<StringName>(data, value, property_data, &|| StringName::default().to_variant()),
+            VariantType::NODE_PATH => Self::init_property_data_raw::<NodePath>(data, value, property_data, &|| NodePath::default().to_variant()),
+            VariantType::RID => Self::init_property_data_raw::<Rid>(data, value, property_data, &|| Rid::new(0).to_variant()),
+            VariantType::OBJECT => Self::init_property_data_raw_variant(data, value, property_data),
+            VariantType::CALLABLE => Self::init_property_data_raw::<Callable>(data, value, property_data, &|| Callable::invalid().to_variant()),
+            VariantType::SIGNAL => Self::init_property_data_raw::<Signal>(data, value, property_data, &|| Signal::invalid().to_variant()),
+            VariantType::DICTIONARY => Self::init_property_data_raw_variant(data, value, property_data),
+            VariantType::ARRAY => Self::init_property_data_raw_variant(data, value, property_data),
+            VariantType::PACKED_BYTE_ARRAY => Self::init_property_data_raw::<PackedByteArray>(data, value, property_data, &|| PackedByteArray::default().to_variant()),
+            VariantType::PACKED_INT32_ARRAY => Self::init_property_data_raw::<PackedInt32Array>(data, value, property_data, &|| PackedInt32Array::default().to_variant()),
+            VariantType::PACKED_INT64_ARRAY => Self::init_property_data_raw::<PackedInt64Array>(data, value, property_data, &|| PackedInt64Array::default().to_variant()),
+            VariantType::PACKED_FLOAT32_ARRAY => Self::init_property_data_raw::<PackedFloat32Array>(data, value, property_data, &|| PackedFloat32Array::default().to_variant()),
+            VariantType::PACKED_FLOAT64_ARRAY => Self::init_property_data_raw::<PackedFloat64Array>(data, value, property_data, &|| PackedFloat64Array::default().to_variant()),
+            VariantType::PACKED_STRING_ARRAY => Self::init_property_data_raw::<PackedStringArray>(data, value, property_data, &|| PackedStringArray::default().to_variant()),
+            VariantType::PACKED_VECTOR2_ARRAY => Self::init_property_data_raw::<PackedVector2Array>(data, value, property_data, &|| PackedVector2Array::default().to_variant()),
+            VariantType::PACKED_VECTOR3_ARRAY => Self::init_property_data_raw::<PackedVector3Array>(data, value, property_data, &|| PackedVector3Array::default().to_variant()),
+            VariantType::PACKED_COLOR_ARRAY => Self::init_property_data_raw::<PackedColorArray>(data, value, property_data, &|| PackedColorArray::default().to_variant()),
+            _ => unreachable!(),
         }
     }
     
@@ -551,7 +554,7 @@ impl _GlecsBaseComponent {
                     "Can't deinit {} in {{component}}. Component has no property with that name",
                     property,
                 );
-                return false;
+                // return false;
             };
 
         Self::deinit_property_data(data, property_data);
@@ -574,44 +577,45 @@ impl _GlecsBaseComponent {
         property_data: &ComponetProperty,
     ) {
         match property_data.gd_type_id {
-            VariantType::Nil => panic!("Can't deinit \"Nil\" type in component"),
-            VariantType::Bool => Self::deinit_property_data_raw::<bool>(comp_data, property_data),
-            VariantType::Int => Self::deinit_property_data_raw::<Int>(comp_data, property_data),
-            VariantType::Float => Self::deinit_property_data_raw::<Float>(comp_data, property_data),
-            VariantType::String => Self::deinit_property_data_raw::<GString>(comp_data, property_data),
-            VariantType::Vector2 => Self::deinit_property_data_raw::<Vector2>(comp_data, property_data),
-            VariantType::Vector2i => Self::deinit_property_data_raw::<Vector2i>(comp_data, property_data),
-            VariantType::Rect2 => Self::deinit_property_data_raw::<Rect2>(comp_data, property_data),
-            VariantType::Rect2i => Self::deinit_property_data_raw::<Rect2i>(comp_data, property_data),
-            VariantType::Vector3 => Self::deinit_property_data_raw::<Vector3>(comp_data, property_data),
-            VariantType::Vector3i => Self::deinit_property_data_raw::<Vector3i>(comp_data, property_data),
-            VariantType::Transform2D => Self::deinit_property_data_raw::<Transform2D>(comp_data, property_data),
-            VariantType::Vector4 => Self::deinit_property_data_raw::<Vector4>(comp_data, property_data),
-            VariantType::Vector4i => Self::deinit_property_data_raw::<Vector4i>(comp_data, property_data),
-            VariantType::Plane => Self::deinit_property_data_raw::<Plane>(comp_data, property_data),
-            VariantType::Quaternion => Self::deinit_property_data_raw::<Quaternion>(comp_data, property_data),
-            VariantType::Aabb => Self::deinit_property_data_raw::<Aabb>(comp_data, property_data),
-            VariantType::Basis => Self::deinit_property_data_raw::<Basis>(comp_data, property_data),
-            VariantType::Transform3D => Self::deinit_property_data_raw::<Transform3D>(comp_data, property_data),
-            VariantType::Projection => Self::deinit_property_data_raw::<Projection>(comp_data, property_data),
-            VariantType::Color => Self::deinit_property_data_raw::<Color>(comp_data, property_data),
-            VariantType::StringName => Self::deinit_property_data_raw::<StringName>(comp_data, property_data),
-            VariantType::NodePath => Self::deinit_property_data_raw::<NodePath>(comp_data, property_data),
-            VariantType::Rid => Self::deinit_property_data_raw::<Rid>(comp_data, property_data),
-            VariantType::Object => Self::deinit_property_data_raw_variant(comp_data,property_data),
-            VariantType::Callable => Self::deinit_property_data_raw::<Callable>(comp_data, property_data),
-            VariantType::Signal => Self::deinit_property_data_raw::<Signal>(comp_data, property_data),
-            VariantType::Dictionary => Self::deinit_property_data_raw_variant(comp_data,property_data),
-            VariantType::Array => Self::deinit_property_data_raw_variant(comp_data,property_data),
-            VariantType::PackedByteArray => Self::deinit_property_data_raw::<PackedByteArray>(comp_data, property_data),
-            VariantType::PackedInt32Array => Self::deinit_property_data_raw::<PackedInt32Array>(comp_data, property_data),
-            VariantType::PackedInt64Array => Self::deinit_property_data_raw::<PackedInt64Array>(comp_data, property_data),
-            VariantType::PackedFloat32Array => Self::deinit_property_data_raw::<PackedFloat32Array>(comp_data, property_data),
-            VariantType::PackedFloat64Array => Self::deinit_property_data_raw::<PackedFloat64Array>(comp_data, property_data),
-            VariantType::PackedStringArray => Self::deinit_property_data_raw::<PackedStringArray>(comp_data, property_data),
-            VariantType::PackedVector2Array => Self::deinit_property_data_raw::<PackedVector2Array>(comp_data, property_data),
-            VariantType::PackedVector3Array => Self::deinit_property_data_raw::<PackedVector3Array>(comp_data, property_data),
-            VariantType::PackedColorArray => Self::deinit_property_data_raw::<PackedColorArray>(comp_data, property_data),
+            VariantType::NIL => panic!("Can't deinit \"Nil\" type in component"),
+            VariantType::BOOL => Self::deinit_property_data_raw::<bool>(comp_data, property_data),
+            VariantType::INT => Self::deinit_property_data_raw::<Int>(comp_data, property_data),
+            VariantType::FLOAT => Self::deinit_property_data_raw::<Float>(comp_data, property_data),
+            VariantType::STRING => Self::deinit_property_data_raw::<GString>(comp_data, property_data),
+            VariantType::VECTOR2 => Self::deinit_property_data_raw::<Vector2>(comp_data, property_data),
+            VariantType::VECTOR2I => Self::deinit_property_data_raw::<Vector2i>(comp_data, property_data),
+            VariantType::RECT2 => Self::deinit_property_data_raw::<Rect2>(comp_data, property_data),
+            VariantType::RECT2I => Self::deinit_property_data_raw::<Rect2i>(comp_data, property_data),
+            VariantType::VECTOR3 => Self::deinit_property_data_raw::<Vector3>(comp_data, property_data),
+            VariantType::VECTOR3I => Self::deinit_property_data_raw::<Vector3i>(comp_data, property_data),
+            VariantType::TRANSFORM2D => Self::deinit_property_data_raw::<Transform2D>(comp_data, property_data),
+            VariantType::VECTOR4 => Self::deinit_property_data_raw::<Vector4>(comp_data, property_data),
+            VariantType::VECTOR4I => Self::deinit_property_data_raw::<Vector4i>(comp_data, property_data),
+            VariantType::PLANE => Self::deinit_property_data_raw::<Plane>(comp_data, property_data),
+            VariantType::QUATERNION => Self::deinit_property_data_raw::<Quaternion>(comp_data, property_data),
+            VariantType::AABB => Self::deinit_property_data_raw::<Aabb>(comp_data, property_data),
+            VariantType::BASIS => Self::deinit_property_data_raw::<Basis>(comp_data, property_data),
+            VariantType::TRANSFORM3D => Self::deinit_property_data_raw::<Transform3D>(comp_data, property_data),
+            VariantType::PROJECTION => Self::deinit_property_data_raw::<Projection>(comp_data, property_data),
+            VariantType::COLOR => Self::deinit_property_data_raw::<Color>(comp_data, property_data),
+            VariantType::STRING_NAME => Self::deinit_property_data_raw::<StringName>(comp_data, property_data),
+            VariantType::NODE_PATH => Self::deinit_property_data_raw::<NodePath>(comp_data, property_data),
+            VariantType::RID => Self::deinit_property_data_raw::<Rid>(comp_data, property_data),
+            VariantType::OBJECT => Self::deinit_property_data_raw_variant(comp_data,property_data),
+            VariantType::CALLABLE => Self::deinit_property_data_raw::<Callable>(comp_data, property_data),
+            VariantType::SIGNAL => Self::deinit_property_data_raw::<Signal>(comp_data, property_data),
+            VariantType::DICTIONARY => Self::deinit_property_data_raw_variant(comp_data,property_data),
+            VariantType::ARRAY => Self::deinit_property_data_raw_variant(comp_data,property_data),
+            VariantType::PACKED_BYTE_ARRAY => Self::deinit_property_data_raw::<PackedByteArray>(comp_data, property_data),
+            VariantType::PACKED_INT32_ARRAY => Self::deinit_property_data_raw::<PackedInt32Array>(comp_data, property_data),
+            VariantType::PACKED_INT64_ARRAY => Self::deinit_property_data_raw::<PackedInt64Array>(comp_data, property_data),
+            VariantType::PACKED_FLOAT32_ARRAY => Self::deinit_property_data_raw::<PackedFloat32Array>(comp_data, property_data),
+            VariantType::PACKED_FLOAT64_ARRAY => Self::deinit_property_data_raw::<PackedFloat64Array>(comp_data, property_data),
+            VariantType::PACKED_STRING_ARRAY => Self::deinit_property_data_raw::<PackedStringArray>(comp_data, property_data),
+            VariantType::PACKED_VECTOR2_ARRAY => Self::deinit_property_data_raw::<PackedVector2Array>(comp_data, property_data),
+            VariantType::PACKED_VECTOR3_ARRAY => Self::deinit_property_data_raw::<PackedVector3Array>(comp_data, property_data),
+            VariantType::PACKED_COLOR_ARRAY => Self::deinit_property_data_raw::<PackedColorArray>(comp_data, property_data),
+            _ => unreachable!(),
         }
     }
 
@@ -661,7 +665,7 @@ impl _GlecsBaseComponent {
     // --- Hooks ---
 
     pub(crate) fn set_hooks_in_component(world: &_GlecsBaseWorld, componnet: EntityId) {
-        let world_ptr = world.world.raw();
+        let world_ptr = world.raw();
         unsafe { flecs::ecs_set_hooks_id(
             world_ptr,
             componnet,
@@ -837,8 +841,6 @@ impl EntityLike for _GlecsBaseComponent {
             .then_some(())
             else { return false };
 
-        let world_bind = self.world.bind();
-
         // Check master entity
         let Some(_) = _GlecsBindings::id_is_alive(self.world.clone(), self.entity_id)
             .then_some(())
@@ -961,7 +963,7 @@ impl EntityLike for _GlecsBaseComponent {
 }
 
 #[godot_api]
-impl IObject for _GlecsBaseComponent {
+impl IRefCounted for _GlecsBaseComponent {
     fn get_property(&self, property: StringName) -> Option<Variant> {
         Some(self._get_property(property))
     }

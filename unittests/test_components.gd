@@ -13,7 +13,7 @@ func after_all():
 
 
 func test_add_entity():
-	var _entity:= world.new_entity("Test")
+	var _entity:= GlecsEntity.spawn(world.as_object())
 	
 	# Can't assert, but should be fine as long as it doesn't crash
 	assert_null(null)
@@ -21,9 +21,13 @@ func test_add_entity():
 
 func test_world_deletion():
 	var w:= GlecsWorldNode.new()
-	var e:= w.new_entity("Test", [Foo])
+	var e:= GlecsEntity.spawn(w.as_object()) \
+		.add_component(Foo) \
+		.set_name("Test")
 	var foo:= e.get_component(Foo)
-	var e2:= w.new_entity("Test", [Foo])
+	var e2:= GlecsEntity.spawn(w.as_object()) \
+		.add_component(Foo) \
+		.set_name("Test")
 	var foo2:= e2.get_component(Foo)
 	
 	foo.set_value(Vector2(24.3, 2.1))
@@ -47,7 +51,10 @@ func test_registeration():
 	var w:= GlecsWorldNode.new()
 	add_child(w)
 	
-	var e:= w.new_entity("Test", [RegisterationA, RegisterationB])
+	var e:= GlecsEntity.spawn(world.as_object()) \
+		.add_component(RegisterationA) \
+		.add_component(RegisterationB) \
+		.set_name("Test")
 	
 	e.get_component(RegisterationA).set_value(3)
 	e.get_component(RegisterationB).set_value(11)
@@ -70,7 +77,9 @@ func test_simple_system():
 		foo.set_value(Vector2(2, 5))
 		)
 			
-	var entity:= world.new_entity("Test", [Foo])
+	var entity:= GlecsEntity.spawn(world.as_object()) \
+		.add_component(Foo) \
+		.set_name("Test")
 	
 	await get_tree().process_frame # Skip this frame
 	await get_tree().process_frame # Process is called first time here
@@ -80,7 +89,9 @@ func test_simple_system():
 
 func test_default_values():
 	var w:= GlecsWorldNode.new()
-	var e:= w.new_entity("Test", [WithDefaults])
+	var e:= GlecsEntity.spawn(world.as_object()) \
+		.add_component(WithDefaults) \
+		.set_name("Test")
 	assert_eq(e.get_component(WithDefaults).get_int(), WithDefaults._VAR_int)
 	assert_eq(e.get_component(WithDefaults).get_string(), WithDefaults._VAR_string)
 	assert_eq(e.get_component(WithDefaults).get_script_2(), WithDefaults._VAR_script)

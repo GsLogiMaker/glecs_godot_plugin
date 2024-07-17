@@ -5,6 +5,7 @@ use godot::prelude::*;
 
 use crate::component::_GlecsBaseComponent;
 use crate::entity::EntityLike;
+use crate::gd_bindings::_GlecsBindings;
 use crate::world::_GlecsBaseWorld;
 
 pub(crate) const PREFAB_COMPONENTS:&str = "COMPONENTS";
@@ -32,8 +33,10 @@ pub(crate) struct PrefabDefinition {
         mut script:Gd<Script>,
         world:&mut _GlecsBaseWorld,
     ) -> PrefabDefinition {
-        let prefab_entt = world.world
-            .prefab(&script.instance_id().to_string());
+        let prefab_entt = _GlecsBindings::lookup_from_ref(
+            world,
+            script.instance_id().to_string().into(),
+        );
 
         let componets = script.get_script_constant_map()
             .get(StringName::from(PREFAB_COMPONENTS))
@@ -46,12 +49,17 @@ pub(crate) struct PrefabDefinition {
                 .try_to::<Gd<Script>>()
                 else {continue};
                 
-            prefab_entt.add_id(world.get_or_add_component(component_script));
+            let component = world.get_or_add_component(component_script);
+            _GlecsBindings::add_id_from_ref(
+                world,
+                prefab_entt,
+                component,
+            );
         }
 
         PrefabDefinition {
             script: script,
-            flecs_id: prefab_entt.id(),
+            flecs_id: prefab_entt,
         }
     }
 }

@@ -5,7 +5,7 @@ use flecs::EntityId;
 use godot::prelude::*;
 
 use crate::world::_GlecsBaseWorld;
-
+use crate::entity::_GlecsBaseEntity;
 
 #[derive(GodotClass, Debug)]
 #[class(base=Object, no_init)]

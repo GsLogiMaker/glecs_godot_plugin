@@ -16,7 +16,10 @@ func test_pipelines():
 	world.new_pipeline(&"first")
 	world.new_pipeline(&"second")
 	
-	var entity:= world.new_entity("Test", [Bools, Ints])
+	var entity:= GlecsEntity.spawn(world.as_object()) \
+		.add_component(Bools) \
+		.add_component(Ints) \
+		.set_name("Test")
 	var ints:Ints = entity.get_component(Ints)
 	
 	world.new_system(&"first") \
@@ -56,7 +59,9 @@ func test_bools():
 			x.a = not x.b
 			)
 	
-	var entity:= world.new_entity("Test", [Bools])
+	var entity:= GlecsEntity.spawn(world.as_object()) \
+		.add_component(Bools) \
+		.set_name("Test")
 	
 	world.run_pipeline(Glecs.PROCESS, 0.0)
 	world.run_pipeline(Glecs.PROCESS, 0.0)
@@ -75,7 +80,9 @@ func test_ints():
 			x.a += x.b
 			)
 	
-	var entity:= world.new_entity("Test", [Ints])
+	var entity:= GlecsEntity.spawn(world.as_object()) \
+		.add_component(Ints) \
+		.set_name("Test")
 	entity.get_component(Ints).b = 1
 	
 	world.run_pipeline(Glecs.PROCESS, 0.0)
@@ -96,7 +103,9 @@ func test_floats():
 	get_process_delta_time()
 	get_physics_process_delta_time()
 	
-	var entity:= world.new_entity("Test", [Floats])
+	var entity:= GlecsEntity.spawn(world.as_object()) \
+		.add_component(Floats) \
+		.set_name("Test")
 	entity.get_component(Floats).b = 1.2
 	
 	world.run_pipeline(Glecs.PROCESS, 0.0)
@@ -115,7 +124,8 @@ func test_strings():
 			x.a += x.b
 			)
 	
-	var entity:= world.new_entity("Test")
+	var entity:= GlecsEntity.spawn(world.as_object()) \
+		.set_name("Test")
 	entity.add_component(Strings, ["", "po"])
 	var strings:Strings = entity.get_component(Strings)
 	assert_eq(strings.a, "")
@@ -138,7 +148,9 @@ func test_byte_arrays():
 				x.a[i] += x.b[i]
 			)
 			
-	var entity:= world.new_entity("Test", [ByteArrays])
+	var entity:= GlecsEntity.spawn(world.as_object()) \
+		.add_component(ByteArrays) \
+		.set_name("Test")
 	entity.get_component(ByteArrays).a = PackedByteArray([1, 2, 3])
 	entity.get_component(ByteArrays).b = PackedByteArray([2, 4, 3])
 	
@@ -157,7 +169,9 @@ func test_textures():
 			x.a = x.b
 			)
 	
-	var entity:= world.new_entity("Test", [Textures])
+	var entity:= GlecsEntity.spawn(world.as_object()) \
+		.add_component(Textures) \
+		.set_name("Test")
 	entity.get_component(Textures).a = null
 	entity.get_component(Textures).b = load("res://icon.svg")
 	
@@ -180,7 +194,9 @@ func test_ref_counts():
 	var rc:= RefCounted.new()
 	assert_eq(rc.get_reference_count(), 1)
 	
-	var entity:= world.new_entity("Test", [RefCounts])
+	var entity:= GlecsEntity.spawn(world.as_object()) \
+		.add_component(RefCounts) \
+		.set_name("Test")
 	
 	entity.get_component(RefCounts).a = rc
 	assert_eq(rc.get_reference_count(), 2)
@@ -198,7 +214,9 @@ func test_arrays():
 				x.b[i] += x.a[i]
 			)
 	
-	var entity:= world.new_entity("Test", [Arrays])
+	var entity:= GlecsEntity.spawn(world.as_object()) \
+		.add_component(Arrays) \
+		.set_name("Test")
 	entity.get_component(Arrays).a = [23, 4, 6]
 	entity.get_component(Arrays).b = [1, 2, 1]
 	
@@ -218,7 +236,9 @@ func test_dicts():
 			x.b["value"] += x.a["add_by"]
 			)
 	
-	var entity:= world.new_entity("Test", [Dicts])
+	var entity:= GlecsEntity.spawn(world.as_object()) \
+		.add_component(Dicts) \
+		.set_name("Test")
 	entity.get_component(Dicts).a = {"add_by": 5}
 	entity.get_component(Dicts).b = {"value": 2}
 	

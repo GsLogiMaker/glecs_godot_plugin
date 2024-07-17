@@ -2,13 +2,6 @@
 # Compiled binaries
 addons/glecs/bin/
 
-# Rust source code
-addons/glecs/rust/flecs-rs/target
-addons/glecs/rust/flecs-rs/Cargo.lock
-addons/glecs/rust/glecs/.vscode
-addons/glecs/rust/glecs/target
-addons/glecs/rust/glecs/Cargo.lock
-
 # Ignore some .godot files
 .godot/*/
 .godot/uid_cache.bin

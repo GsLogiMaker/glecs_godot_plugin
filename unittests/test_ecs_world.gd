@@ -11,18 +11,36 @@ func after_all():
 	world.free()
 
 func test_add_entity():
-	var _entity:= world.new_entity("Test")
+	var _entity:= GlecsEntity.spawn(world.as_object()) \
+		.set_name("Test")
 	
 	# Can't assert, but should be fine as long as it doesn't crash
 	assert_null(null)
 	
+
+func test_pairs_are_alive():
+	var w:= GlecsWorldNode.new()
+	var first:= GlecsEntity.spawn(w.as_object())
+	var second:= GlecsEntity.spawn(w.as_object())
+	assert_eq(first.is_valid(), true)
+	assert_eq(second.is_valid(), true)
+
+	var pair:= w.pair(first, second)
+	var p:= GlecsEntity.from(w.pair(first, second), w.as_object())
+	assert_eq(p.is_valid(), true)
+
+	
 func test_world_deletion():
 	var w:= GlecsWorldNode.new()
 	
-	var e:= w.new_entity("Test", [Foo])
+	var e:= GlecsEntity.spawn(w.as_object()) \
+		.add_component(Foo) \
+		.set_name("Test")
 	var foo:Foo = e.get_component(Foo)
 	
-	var e2:= w.new_entity("Test", [Foo])
+	var e2:= GlecsEntity.spawn(w.as_object()) \
+		.add_component(Foo) \
+		.set_name("Test")
 	var foo2:Foo = e2.get_component(Foo)
 	
 	foo.setc(&"vec", 24.3)
@@ -57,7 +75,9 @@ func test_simple_system():
 			foo.setc(&"vec", 2.67)
 			)
 			
-	var entity:= world.new_entity("Test", [Foo])
+	var entity:= GlecsEntity.spawn(world.as_object()) \
+		.add_component(Foo) \
+		.set_name("Test")
 	
 	world.run_pipeline(Glecs.PROCESS, 1.0)
 	

@@ -20,7 +20,9 @@ func test_stuff():
 			boo.b = boo.a
 			)
 	
-	var e:= world.new_entity("Test", [Bools])
+	var e:= GlecsEntity.spawn(world.as_object()) \
+		.add_component(Bools) \
+		.set_name("Test")
 	var bools:Bools = e.get_component(Bools)
 	bools.a = true
 	bools.b = false

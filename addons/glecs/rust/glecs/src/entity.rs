@@ -1,12 +1,16 @@
 
+use std::ffi::c_char;
 use std::ffi::c_void;
+use std::ffi::CString;
 use std::fmt::Debug;
+use std::ops::Not;
 
 use flecs::EntityId;
 use godot::engine::Script;
 use godot::prelude::*;
 
 use crate::component::_GlecsBaseComponent;
+use crate::gd_bindings::_GlecsBindings;
 use crate::Int;
 use crate::show_error;
 use crate::world::_GlecsBaseWorld;
@@ -38,7 +42,7 @@ impl _GlecsBaseEntity {
         };
 
         // Create new entity
-        let entity_id = unsafe { flecs::ecs_new_id(world.bind().raw()) };
+        let entity_id = _GlecsBindings::new_id(world.clone());
 
         let mut entity = Gd::from_init_fn(|base| {
             Self { base, id: entity_id, world }
@@ -170,36 +174,29 @@ impl _GlecsBaseEntity {
     fn _set_world(&mut self, world: Gd<_GlecsBaseWorld>) {
         self.world = world;
     }
+} impl std::fmt::Display for _GlecsBaseEntity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}:<{}#{}>",
+            EntityLike::get_name(self),
+            self.base().get_class(),
+            self.base().instance_id(),
+        )
+    }
 }
 
 #[godot_api]
 impl IRefCounted for _GlecsBaseEntity {
     fn to_string(&self) -> GString {
-        GString::from(format!(
-            "{}:<{}#{}>",
-            EntityLike::get_name(self),
-            self.base().get_class(),
-            self.base().instance_id(),
-        ))
+        GString::from(format!("{}", self))
     }
 }
 impl EntityLike for _GlecsBaseEntity {
     fn is_valid(&self) -> bool {
-        if !self.world.is_instance_valid() {
-            // World was deleted
-            return false;
-        }
-
         let flecs_id = self.get_flecs_id();
-        if !unsafe { flecs::ecs_is_alive(
-            self.world.bind().raw(),
+        _GlecsBindings::id_is_alive(
+            self.world.clone(),
             flecs_id,
-        ) } {
-            // Entity was deleted
-            return false
-        }
-
-        return true;
+        )
     }
 
     fn get_world(&self) -> Gd<_GlecsBaseWorld> {
@@ -276,7 +273,7 @@ pub(crate) trait EntityLike: Debug {
         component: EntityId,
         with_data: Variant,
     ) {
-        let world_raw = world_gd.bind().world.raw();
+        let world_raw = world_gd.bind().raw();
         if with_data == Variant::nil() {
             // Add component to entity
             unsafe { flecs::ecs_add_id(
@@ -318,6 +315,25 @@ pub(crate) trait EntityLike: Debug {
         );
         
         let world = world_gd.bind();
+        
+        // Get flecs entity
+        if !_GlecsBindings::id_is_alive(world_gd.clone(), flecs_id) {
+            show_error!(
+                "Failed to get component from entity",
+                "Entity {:?} was freed.",
+                self,
+            );
+        }
+        
+        // Get component data
+        if !_GlecsBindings::has_id(world_gd.clone(), flecs_id, c_id) {
+            show_error!(
+                "Failed to get component from entity",
+                "Component {} has not been added to entity {:?}.",
+                    component,
+                    self,
+            );
+        }
 
         // Get component description
         let Some(component_definition) = world
@@ -330,27 +346,6 @@ pub(crate) trait EntityLike: Debug {
                     self,
                 );
             };
-
-        // Get flecs entity
-        let Some(entt) = world.world.find_entity(flecs_id)
-            else {
-                show_error!(
-                    "Failed to get component from entity",
-                    "Entity {:?} was freed.",
-                    self,
-                );
-            };
-        
-        // Get component data
-        if !entt.has_id(c_id) {
-            show_error!(
-                "Failed to get component from entity",
-                "Component {} has not been added to entity {:?}.",
-                    component,
-                    self,
-            );
-        }
-
 
         let world_gd_clone = world_gd.clone();
         let mut comp = Gd::from_init_fn(|base| {
@@ -387,7 +382,7 @@ pub(crate) trait EntityLike: Debug {
         let world = world_gd.bind();
 
         unsafe { flecs::ecs_remove_id(
-            world.world.raw(),
+            world.raw(),
             flecs_id,
             component_id,
         ) };
@@ -435,6 +430,7 @@ pub(crate) trait EntityLike: Debug {
             adding_id,
         ) }
     }
+
     fn remove_entity(&mut self, entity: Variant) {
         self.validate();
 
@@ -451,36 +447,35 @@ pub(crate) trait EntityLike: Debug {
             world_ptr,
             id,
             adding_id,
-        ) }
+        ) };
     }
 
     fn get_name(&self) -> String {
         self.validate();
-
-        let entt = self.get_world()
-            .bind()
-            .world
-            .find_entity(self.get_flecs_id())
-            .unwrap();
-        entt.name().into()
+        _GlecsBindings::get_name(self.get_world(), self.get_flecs_id()).into()
     }
 
-    fn set_name(&self, mut value: String) {
+    fn set_name(&self, value: impl Into<String>) {
         self.validate();
 
+        const NULL:char = 0 as char;
+
+        let mut name = value.into();
+        name.push(NULL);
         let world = self.get_world();
-        let entt = world
-            .bind()
-            .world
-            .find_entity(self.get_flecs_id())
-            .unwrap();
 
-        // Ensure name is unique
-        while world.bind().world.lookup(&value).is_some() {
-            increment_name(&mut value);
+        while _GlecsBindings::lookup_c(&world.bind(), (&name.as_bytes()[0]) as *const u8 as *const c_char) != 0 {
+            name.pop().unwrap().eq(&NULL).not().then(|| panic!()); // Pop null
+            increment_name(&mut name);
+            name.push(NULL);
         }
+        name.pop().unwrap().eq(&NULL).not().then(|| panic!()); // Pop null
 
-        entt.named(&value);
+        _GlecsBindings::set_name_c(
+            &world.bind(),
+            self.get_flecs_id(),
+            CString::new(name).unwrap(),
+        );
     }
 
     fn add_relation(&mut self, relation:Variant, target:Variant) {
@@ -489,7 +484,7 @@ pub(crate) trait EntityLike: Debug {
         let self_id = self.get_flecs_id();
         let world = self.get_world();
 
-        let raw_world = world.bind().world.raw();
+        let raw_world = world.bind().raw();
         let pair = unsafe { flecs::ecs_make_pair(
             _GlecsBaseWorld::_id_from_variant(world.clone(), relation),
             _GlecsBaseWorld::_id_from_variant(world, target),
@@ -503,7 +498,7 @@ pub(crate) trait EntityLike: Debug {
         let self_id = self.get_flecs_id();
         let world = self.get_world();
 
-        let raw_world = world.bind().world.raw();
+        let raw_world = world.bind().raw();
         let pair = unsafe { flecs::ecs_make_pair(
             _GlecsBaseWorld::_id_from_variant(world.clone(), relation),
             _GlecsBaseWorld::_id_from_variant(world, target),
@@ -518,7 +513,6 @@ pub(crate) trait EntityLike: Debug {
                 "Entity validation failed",
                 "Entity or its world was deleted.",
             );
-            Err(()).unwrap()
         }
     }
 }

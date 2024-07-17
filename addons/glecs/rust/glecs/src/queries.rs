@@ -24,12 +24,12 @@ pub struct _GlecsBaseSystemBuilder {
     pub(crate) world: Gd<_GlecsBaseWorld>,
     pub(crate) pipeline: Variant,
     pub(crate) description: flecs::ecs_query_desc_t,
-    pub(crate) terms: Vec<flecs::ecs_term_t>,
     /// Describes the kind object this builder is building.
     pub(crate) build_type: BuildType,
     /// An array of the events the final observer will trigger on. Only used
     /// when building an observer.
     pub(crate) observing_events: Vec<EntityId>,
+    pub(crate) term_count: usize,
 }
 #[godot_api]
 impl _GlecsBaseSystemBuilder {
@@ -40,9 +40,9 @@ impl _GlecsBaseSystemBuilder {
                 pipeline: Variant::nil(),
                 world,
                 description: Default::default(),
-                terms: Default::default(),
                 build_type: Default::default(),
                 observing_events: Default::default(),
+                term_count: Default::default(),
             };
             builder
         });
@@ -60,6 +60,8 @@ impl _GlecsBaseSystemBuilder {
     const INOUT_MODE_IN:flecs::ecs_inout_kind_t = flecs::ecs_inout_kind_t_EcsIn;
     #[constant]
     const INOUT_MODE_OUT:flecs::ecs_inout_kind_t = flecs::ecs_inout_kind_t_EcsIn;
+    #[constant]
+    const MAX_TERMS:usize = 32;
 
     #[func]
     fn _with(
@@ -68,7 +70,7 @@ impl _GlecsBaseSystemBuilder {
         inout: flecs::ecs_inout_kind_t,
     ) -> Gd<_GlecsBaseSystemBuilder> {
         self.with_oper(component, flecs::ecs_oper_kind_t_EcsAnd);
-        self.terms.last_mut().unwrap().inout = inout;
+        self.last_term_mut().inout = inout as i16;
         self.to_gd()
     }
 
@@ -85,7 +87,7 @@ impl _GlecsBaseSystemBuilder {
         inout: flecs::ecs_inout_kind_t,
     ) -> Gd<_GlecsBaseSystemBuilder> {
         self.with_oper(component, flecs::ecs_oper_kind_t_EcsOr);
-        self.terms.last_mut().unwrap().inout = inout;
+        self.last_term_mut().inout = inout as i16;
         self.to_gd()
     }
 
@@ -97,7 +99,7 @@ impl _GlecsBaseSystemBuilder {
     ) -> Gd<_GlecsBaseSystemBuilder> {
         todo!("Get optional terms working with system iterator first");
         // self.with_oper(component, flecs::ecs_oper_kind_t_EcsOptional);
-        // self.terms.last_mut().unwrap().inout = inout;
+        // self.last_term_mut().inout = inout as i16;
         // self.to_gd()
     }
 
@@ -130,7 +132,6 @@ impl _GlecsBaseSystemBuilder {
             BuildType::Observer => _GlecsBaseWorld
                 ::new_observer_from_builder(world, self, callable),
         }
-        
     }
 
     #[func]
@@ -141,7 +142,11 @@ impl _GlecsBaseSystemBuilder {
     }
 
     fn add_term_to_buffer(&mut self, term:flecs::ecs_term_t) {
-        self.terms.push(term);
+        if self.term_count == Self::MAX_TERMS {
+            panic!("Max terms reached. TODO: better msg")
+        }
+        self.description.terms[self.term_count] = term;
+        self.term_count += 1;
     }
 
     fn with_oper(&mut self, component: Variant, oper:flecs::ecs_oper_kind_t) {
@@ -151,7 +156,7 @@ impl _GlecsBaseSystemBuilder {
         
         let term = flecs::ecs_term_t {
             id: comp_id,
-            oper: oper,
+            oper: oper as i16,
             ..Default::default()
         };
         self.add_term_to_buffer(term);
@@ -165,15 +170,17 @@ impl _GlecsBaseSystemBuilder {
         
         let term = flecs::ecs_term_t {
             id: entity_id,
-            oper: oper,
+            oper: oper as i16,
             ..Default::default()
         };
 
         self.add_term_to_buffer(term);
     }
 
+    fn last_term_mut(&mut self) -> &mut flecs::ecs_term_t {
+        &mut self.description.terms[self.term_count]
+    }
+
     fn on_build(&mut self) {
-        self.description.filter.terms_buffer = self.terms.as_mut_ptr();
-        self.description.filter.terms_buffer_count = self.terms.len() as i32;
     }
 }

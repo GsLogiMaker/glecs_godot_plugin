@@ -5,15 +5,13 @@ use std::collections::HashMap;
 use std::ffi::c_void;
 use std::ffi::CString;
 use std::hash::Hash;
-use std::mem::MaybeUninit;
+use std::ptr::NonNull;
 use std::rc::Rc;
 
 use flecs::bindings::*;
-use flecs::ecs_pair;
 use flecs::EntityId;
-use flecs::Iter;
-use flecs::World as FlWorld;
 use godot::engine::notify::NodeNotification;
+use godot::engine::notify::ObjectNotification;
 use godot::engine::Engine;
 use godot::engine::Script;
 use godot::prelude::*;
@@ -30,7 +28,6 @@ use crate::prefab::PrefabDefinition;
 use crate::prefab::PREFAB_COMPONENTS;
 use crate::queries::BuildType;
 use crate::queries::_GlecsBaseSystemBuilder;
-use crate::util;
 use crate::util::script_inherets;
 use crate::Int;
 use crate::TYPE_SIZES;
@@ -48,9 +45,9 @@ pub(crate) fn load_module_script() -> Gd<Script> {
 #[class(base=Object)]
 pub struct _GlecsBaseWorld {
     pub(crate) base: Base<Object>,
-    pub(crate) world: FlWorld,
+    pub(crate) world: NonNull<ecs_world_t>,
     prefabs: HashMap<Gd<Script>, Rc<PrefabDefinition>>,
-    /// Maps Variant identifiers to entity IDs
+    // / Maps Variant identifiers to entity IDs
     mapped_entities: HashMap<VariantKey, EntityId>,
     pipelines: HashMap<EntityId, Rc<RefCell<PipelineDefinition>>>,
     components: HashMap<EntityId, Rc<ComponetDefinition>>,
@@ -84,75 +81,6 @@ impl _GlecsBaseWorld {
         gd_entity
     }
 
-    /// Creates a new entity in the world.
-    #[func(gd_self)]
-    fn _new_entity(
-        mut this: Gd<Self>,
-        name: String,
-        with_components:Array<Variant>,
-    ) -> Gd<_GlecsBaseEntity> {
-        let entity = this.bind_mut().world.entity();
-
-        for component in with_components.iter_shared() {
-            let component_id = _GlecsBaseWorld::_id_from_variant(
-                this.clone(),
-                component,
-            );
-            _GlecsBaseEntity::add_component_raw(
-                this.clone(),
-                entity.id(),
-                component_id,
-                Variant::nil(),
-            );
-        }
-
-        // Create Godot wrapper
-        let this_clone = this.clone();
-        let mut gd_entity = Gd::from_init_fn(|base| {
-            _GlecsBaseEntity {
-                base,
-                world: this_clone,
-                id: entity.id(),
-            }
-        });
-        
-        gd_entity.set_name(name);
-        gd_entity.set_script(load_entity_script());
-        
-        gd_entity
-    }
-
-    /// Creates a new entity in the world. 
-    #[func(gd_self)]
-    fn new_entity_with_prefab(
-        mut this: Gd<Self>,
-        name: String,
-        prefab: Gd<Script>,
-    ) -> Gd<_GlecsBaseEntity> {
-        let gd_entity = Self
-            ::_new_entity(this.clone(), name, Array::default());
-        let e_id = gd_entity.bind().get_flecs_id();
-        
-        // let prefab_id = this.bind_mut().entity_from_variant(prefab);
-        let prefab_id = Self::_id_from_variant(
-            this.clone(),
-            prefab.to_variant(),
-        );
-
-        let this_bind = this.bind_mut();
-        let raw_world = this_bind.world.raw();
-        drop(this_bind);
-
-        unsafe { flecs::ecs_add_id(
-            raw_world,
-            e_id,
-            flecs::ecs_pair(flecs::EcsIsA, prefab_id),
-        ) };
-
-        gd_entity
-    }
-
-
     #[func(gd_self)]
     fn _new_event_listener(
         this: Gd<Self>,
@@ -184,7 +112,7 @@ impl _GlecsBaseWorld {
     fn run_pipeline(this: Gd<Self>, pipeline:Variant, delta:f32) {
         let pipeline_id = Self::get_pipeline(this.clone(), pipeline);
     
-        let raw_world = this.bind().world.raw();
+        let raw_world = this.bind().raw();
         unsafe {
             flecs::ecs_set_pipeline(raw_world, pipeline_id);
             flecs::ecs_progress(raw_world, delta);
@@ -250,7 +178,7 @@ impl _GlecsBaseWorld {
     fn pair(this: Gd<Self>, relation:Variant, target:Variant) -> i64 {
         let left = Self::_id_from_variant(this.clone(), relation);
         let right = Self::_id_from_variant(this, target);
-        let pair = flecs::ecs_pair(left, right);
+        let pair = _GlecsBindings::pair(left, right);
         pair as i64
     }
 
@@ -269,18 +197,18 @@ impl _GlecsBaseWorld {
         this: Gd<Self>,
         entity: Variant,
     ) -> EntityId {
-        use VariantType::Object as VTObject;
-        use VariantType::Vector2 as VTVector2;
-        use VariantType::Vector2i as VTVector2i;
-        use VariantType::Int as VTInt;
-        use VariantType::Float as VTFloat;
-        use VariantType::String as VTString;
-        use VariantType::StringName as VTStringName;
-        use VariantType::Nil as VTNil;
+        const VT_OBJECT:VariantType = VariantType::OBJECT;
+        const VT_VECTOR2:VariantType = VariantType::VECTOR2;
+        const VT_VECTOR2I:VariantType = VariantType::VECTOR2I;
+        const VT_INT:VariantType = VariantType::INT;
+        const VT_FLOAT:VariantType = VariantType::FLOAT;
+        const VT_STRING:VariantType = VariantType::STRING;
+        const VT_STRINGNAME:VariantType = VariantType::STRING_NAME;
+        const VT_NIL:VariantType = VariantType::NIL;
         let this_clone = this.clone();
         let from_clone = entity.clone();
         let id = match entity.get_type() {
-            VTObject => {
+            VT_OBJECT => {
                 if let Ok(e) =
                     entity.try_to::<Gd<_GlecsBaseEntity>>()
                 {
@@ -307,26 +235,26 @@ impl _GlecsBaseWorld {
                 
                 0
             },
-            VTVector2 => {
+            VT_VECTOR2 => {
                 let veci = entity.to::<Vector2>();
                 let (x, y) = (veci.x as EntityId, veci.y as EntityId);
-                flecs::ecs_pair(x, y)
+                _GlecsBindings::pair(x, y)
             },
-            VTVector2i => {
+            VT_VECTOR2I => {
                 let veci = entity.to::<Vector2i>();
                 let (x, y) = (veci.x as EntityId, veci.y as EntityId);
-                flecs::ecs_pair(x, y)
+                _GlecsBindings::pair(x, y)
             },
-            VTInt => entity.to::<i64>() as EntityId,
-            VTFloat => entity.to::<f64>() as EntityId,
-            VTString => _GlecsBindings::lookup(this, entity.to::<GString>()),
-            VTStringName => _GlecsBindings::lookup(this, entity.to::<StringName>().into()),
-            VTNil => 0,
+            VT_INT => entity.to::<i64>() as EntityId,
+            VT_FLOAT => entity.to::<f64>() as EntityId,
+            VT_STRING => _GlecsBindings::lookup(this, entity.to::<GString>()),
+            VT_STRINGNAME => _GlecsBindings::lookup(this, entity.to::<StringName>().into()),
+            VT_NIL => 0,
             _ => 0,
         };
 
-        if !unsafe { flecs::ecs_id_is_valid(this_clone.bind().raw(), id) } {
-            panic!("Value \"{from_clone}\" does not convert to a valid Entity.")
+        if !_GlecsBindings::id_is_alive(this_clone.clone(), id) {
+            panic!("Value \"{from_clone}\" does not convert to a valid Entity. Converted to id: {id}")
         }
 
         id
@@ -339,7 +267,7 @@ impl _GlecsBaseWorld {
         let Some(id) = self.get_tag_entity(key.to_variant())
             else { return None };
         let is_component = unsafe{ flecs::ecs_has_id(
-            self.world.raw(),
+            self.raw(),
             id,
             flecs::FLECS_IDEcsComponentID_,
         ) };
@@ -413,18 +341,18 @@ impl _GlecsBaseWorld {
         let context = Box::new(ScriptSystemContext::new(
             callable.clone(),
             this.clone(),
-            &builder.description.filter,
+            &builder,
             Box::default(),
         ));
 
         // Create observer
         let mut observer_desc = flecs::ecs_observer_desc_t {
             events: [0;8],
-            filter: builder.description.filter,
+            query: builder.description,
             callback: Some(Self::raw_system_iteration),
             ctx: Box::leak(context) as *mut ScriptSystemContext as *mut c_void,
             ctx_free: Some(Self::raw_system_drop),
-            .. unsafe { MaybeUninit::zeroed().assume_init() }
+            .. Default::default()
         };
 
         // Set events to observe in observer
@@ -437,7 +365,7 @@ impl _GlecsBaseWorld {
 
         // Initialize observer
         unsafe { flecs::ecs_observer_init(
-            this.bind().world.raw(),
+            this.bind().raw(),
             &observer_desc,
         ) };
     }
@@ -464,7 +392,7 @@ impl _GlecsBaseWorld {
         
         let mut system_query = flecs
             ::ecs_query_desc_t::default();
-        system_query.filter.terms[0] = flecs::ecs_term_t {
+        system_query.terms[0] = flecs::ecs_term_t {
             id: pipeline_id,
             ..Default::default()
         };
@@ -494,7 +422,7 @@ impl _GlecsBaseWorld {
 
     pub(crate) fn is_id_pipeline(&self, id: EntityId) -> bool {
         unsafe { flecs::ecs_has_id(
-            self.world.raw(),
+            self.raw(),
             id,
             flecs::FLECS_IDEcsPipelineID_,
         ) }
@@ -595,9 +523,10 @@ impl _GlecsBaseWorld {
         );
         if lookup != 0 {
             panic!(
-                "Failed to register the script {}. An entity with the name \"{}\" has already been defined.",
+                "Failed to register the script {}. An entity with the name \"{}\" has already been defined under parent \"{}\".",
                 script,
                 name_gstring,
+                pre_check_scope,
             );
         }
         unsafe { ecs_set_scope(world_ptr, pre_check_scope) };
@@ -663,14 +592,12 @@ impl _GlecsBaseWorld {
                         this.clone(),
                         script.to_variant(),
                     );
-                    unsafe { ecs_add_id(
-                        world_ptr,
+                    _GlecsBindings::add_pair(
+                        this.clone(),
                         entity,
-                        ecs_pair(
-                            EcsChildOf,
-                            ecs_get_scope(world_ptr),
-                        ),
-                    ) };
+                        _GlecsBindings::_flecs_child_of(),
+                        unsafe { ecs_get_scope(world_ptr) },
+                    );
                     entity
                 }
             },
@@ -697,7 +624,7 @@ impl _GlecsBaseWorld {
         callable: Callable,
     ) {
         let this_bound = this.bind();
-        let raw_world = this_bound.world.raw();
+        let raw_world = this_bound.raw();
 
         let pipeline_id = Self::get_pipeline(
             this.clone(),
@@ -725,7 +652,7 @@ impl _GlecsBaseWorld {
             ScriptSystemContext::new(
                 callable.clone(),
                 this,
-                &builder.description.filter,
+                &builder,
                 value_getters,
             )
         );
@@ -794,44 +721,14 @@ impl _GlecsBaseWorld {
     ) -> Layout {
         let mut size = 0;
         for property in parameters {
-            size += TYPE_SIZES[property.gd_type_id as usize];
+            size += TYPE_SIZES[property.gd_type_id.ord() as usize];
         }
         Layout::from_size_align(size, 8).unwrap()
     }
 
-    pub(crate) fn new_prefab_def(
-        this: Gd<Self>,
-        mut script:Gd<Script>,
-    ) -> Rc<PrefabDefinition> {
-        let prefab_entt = this.bind().world
-            .prefab(&script.instance_id().to_string());
-
-        let componets = script.get_script_constant_map()
-            .get(StringName::from(PREFAB_COMPONENTS))
-            .unwrap_or_else(|| {Array::<Variant>::default().to_variant()})
-            .try_to::<Array<Variant>>()
-            .unwrap_or_default();
-
-        for component in componets.iter_shared() {
-            let Ok(component_script) = component
-                .try_to::<Gd<Script>>()
-                else { continue };
-                
-            prefab_entt.add_id(Self::get_or_add_component_gd(
-                this.clone(),
-                component_script,
-            ));
-        }
-
-        Rc::new(PrefabDefinition {
-            script: script,
-            flecs_id: prefab_entt.id(),
-        })
-    }
-
     /// Returns a raw pointer to the Flecs world
     pub(crate) fn raw(&self) -> *mut flecs::ecs_world_t {
-        self.world.raw()
+        self.world.as_ptr()
     }
 
     extern "C" fn raw_system_iteration(iter_ptr:*mut flecs::ecs_iter_t) {
@@ -839,7 +736,8 @@ impl _GlecsBaseWorld {
             // Here we decouple the mutable reference of the context
             // from the rest of Iter.
 			(
-                Iter::new(iter_ptr)
+                iter_ptr.as_mut()
+                    .unwrap()
                     .get_context_mut::<ScriptSystemContext>()
                     as *mut ScriptSystemContext
             )
@@ -872,7 +770,7 @@ impl _GlecsBaseWorld {
 				context.system_args.clone()
 			);
 		}
-	}
+    }
 
     extern "C" fn raw_system_drop(context_ptr:*mut c_void) {
         let boxed = unsafe { Box::from_raw(
@@ -884,15 +782,17 @@ impl _GlecsBaseWorld {
 
 #[godot_api]
 impl IObject for _GlecsBaseWorld {
+
     fn init(base: Base<Object>) -> Self {
-        let fl_world = FlWorld::new();
+        let fl_world = NonNull::new(unsafe { ecs_init() })
+            .unwrap();
         let mut world = Self {
             base,
             world: fl_world,
-            components: Default::default(),
-            prefabs: Default::default(),
             mapped_entities: Default::default(),
+            prefabs: Default::default(),
             pipelines: Default::default(),
+            components: Default::default(),
         };
 
         // Make temporary delta time getter callables
@@ -949,6 +849,11 @@ impl IObject for _GlecsBaseWorld {
         
         world
     }
+} impl Drop for _GlecsBaseWorld {
+    fn drop(&mut self) {
+        let raw = self.raw();
+        unsafe { ecs_fini(raw) };
+    }
 }
 
 #[derive(GodotClass)]
@@ -974,27 +879,6 @@ impl _GlecsBaseWorldNode {
             flecs_id: EntityId,
         ) -> Gd<_GlecsBaseEntity> {
             _GlecsBaseWorld::_entity_from_flecs_id(&mut self.glecs_world.clone().bind_mut(), flecs_id)
-        }
-    
-        /// Creates a new entity in the world.
-        #[func]
-        fn _new_entity(
-            &self,
-            name: String,
-            with_components:Array<Variant>,
-        ) -> Gd<_GlecsBaseEntity> {
-            _GlecsBaseWorld::_new_entity(self.glecs_world.clone(), name, with_components)
-        }
-    
-        /// Creates a new entity in the world. 
-        #[func]
-        fn new_entity_with_prefab(
-            &self,
-            name: String,
-            prefab: Gd<Script>,
-        ) -> Gd<_GlecsBaseEntity> {
-            _GlecsBaseWorld::new_entity_with_prefab(self.glecs_world.clone(), name, prefab)
-
         }
     
         #[func]
@@ -1126,7 +1010,7 @@ impl INode for _GlecsBaseWorldNode {
 
     fn on_notification(&mut self, what: NodeNotification) {
         match what {
-            NodeNotification::Predelete => {
+            NodeNotification::PREDELETE => {
                 Gd::free(self.glecs_world.clone());
             },
             _ => {},
@@ -1147,7 +1031,7 @@ pub(crate) struct ScriptSystemContext {
     fn new(
         callable: Callable,
         world: Gd<_GlecsBaseWorld>,
-        filter: &flecs::ecs_filter_desc_t,
+        builder: &_GlecsBaseSystemBuilder,
         additional_arg_getters: Box<[Callable]>,
     ) -> Self {
         // Make arguments list
@@ -1156,22 +1040,19 @@ pub(crate) struct ScriptSystemContext {
             args.push(Variant::nil());
         }
 
-        let raw_terms = unsafe { std::slice::from_raw_parts(
-            filter.terms_buffer,
-            filter.terms_buffer_count as usize,
-        ) };
+        let raw_terms = builder.description.terms.split_at(builder.term_count).0;
 
         // Create component accesses
         let mut tarm_accesses: Vec<Gd<_GlecsBaseComponent>> = vec![];
         for term in raw_terms.iter() {
             // TODO: Handle different term operations
-            match term.oper {
-                flecs::ecs_oper_kind_t_EcsAnd => {},
-                flecs::ecs_oper_kind_t_EcsOr => {
+            match term.oper as ecs_oper_kind_t {
+                ecs_oper_kind_t_EcsAnd => {},
+                ecs_oper_kind_t_EcsOr => {
                     todo!("Handle \"or\" case")
                 },
-                flecs::ecs_oper_kind_t_EcsNot => { continue },
-                flecs::ecs_oper_kind_t_EcsOptional => {
+                ecs_oper_kind_t_EcsNot => { continue },
+                ecs_oper_kind_t_EcsOptional => {
                     todo!("Handle \"optional\" case")
                 },
                 _ => continue,

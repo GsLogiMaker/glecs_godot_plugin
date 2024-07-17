@@ -13,16 +13,22 @@ func after_all():
 #region Tests
 
 func test_component_get_and_set():
-	var e:GlecsEntity = world.new_entity("Test", [Foo])
+	var e:GlecsEntity = GlecsEntity.spawn(world.as_object()) \
+		.add_component(Foo) \
+		.set_name("Test")
 	
 	var foo:Foo = e.get_component(Foo)
 	assert_almost_eq(foo.value, 0.0, 0.01)
 	
 	foo.value = 2.3
 	assert_almost_eq(foo.value, 2.3, 0.01)
+	
+	e.delete()
 
 func test_component_string_get_and_set():
-	var e:GlecsEntity = world.new_entity("Test", [Stringy])
+	var e:= GlecsEntity.spawn(world.as_object()) \
+		.add_component(Stringy) \
+		.set_name("Test")
 	
 	var foo:Stringy = e.get_component(Stringy)
 	foo.a = "po"
@@ -35,7 +41,9 @@ func test_component_string_get_and_set():
 	assert_eq(foo.b, "em")
 
 func test_new_entity_with_unregistered_component():
-	var e:GlecsEntity = world.new_entity("Test", [Unregistered])
+	var e:GlecsEntity = GlecsEntity.spawn(world.as_object()) \
+		.add_component(Unregistered) \
+		.set_name("Test")
 	assert_eq(e.get_component(Unregistered).value, 0)
 
 func test_creating_entity_by_new():
