@@ -4,6 +4,7 @@ class_name GlecsWorldObject extends _GlecsBaseWorld
 func _init() -> void:
 	Glecs.PROCESS = id_from_variant("Glecs/process")
 	Glecs.PHYSICS_PROCESS = id_from_variant("Glecs/physics_process")
+	Glecs.ON_INIT = id_from_variant("Glecs/OnInit")
 
 func get_child(path: String) -> GlecsEntity:
 	return GlecsEntity.from(_GlecsBindings.lookup(self, path), self)

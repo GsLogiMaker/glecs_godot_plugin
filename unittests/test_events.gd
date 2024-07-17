@@ -41,6 +41,36 @@ func test_on_add_event():
 	e3.free()
 	e4.free()
 
+
+func test_on_init_event():
+	i = 0
+	
+	world.new_event_listener(Glecs.ON_INIT) \
+		.with(Ints) \
+		.for_each(func(ints: Ints):
+			self.i += ints.a + ints.b
+			)
+	
+	var e:= GlecsEntity.spawn(world.as_object()) \
+		.add_component(Ints, [2, 31]) \
+		.set_name("WithInts")
+	var e2:= GlecsEntity.spawn(world.as_object()) \
+		.set_name("WithoutInts")
+	var e3:= GlecsEntity.spawn(world.as_object()) \
+		.set_name("WithInts")
+	var e4:= GlecsEntity.spawn(world.as_object()) \
+		.set_name("WithoutInts")
+
+	e3.add_component(Ints, [99, 2])
+
+	assert_eq(i, 2 + 31 + 99 + 2)
+
+	e.free()
+	e2.free()
+	e3.free()
+	e4.free()
+
+
 func test_on_add_event_with_objects():
 	i = 0
 	world.new_event_listener(Glecs.ON_ADD) \

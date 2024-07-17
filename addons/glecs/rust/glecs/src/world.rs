@@ -805,6 +805,20 @@ impl IObject for _GlecsBaseWorld {
             "Glecs".into(),
         );
 
+        // Add OnInit event
+        let on_init = _GlecsBindings::new_id_from_ref(&world);
+        _GlecsBindings::set_name_c(
+            &world,
+            on_init,
+            CString::new("OnInit").unwrap(),
+        );
+        _GlecsBindings::add_pair_from_ref(
+            &world,
+            on_init,
+            _GlecsBindings::_flecs_child_of(),
+            glecs_id,
+        );
+
         // Add process pipeline
         let process = world.new_pipeline(
             "process".into(),

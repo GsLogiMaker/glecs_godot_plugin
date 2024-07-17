@@ -300,6 +300,18 @@ pub(crate) trait EntityLike: Debug {
                 initial_data.as_ptr().cast::<c_void>(),
             ) };
         }
+
+        // Emit OnInit event
+        let on_init_event_path_ptr = unsafe {
+            CString::from_vec_unchecked(Vec::from("Glecs/OnInit")).into_raw()
+        };
+        let on_init = _GlecsBindings::lookup_c(&world_gd.bind(), on_init_event_path_ptr);
+        _GlecsBindings::emit_event(
+            world_gd.clone(),
+            on_init,
+            raw_entity,
+            vec![component as Int].into(),
+        );
     }
 
     fn get_component(&mut self, component: Variant) -> Option<Gd<_GlecsBaseComponent>> {
