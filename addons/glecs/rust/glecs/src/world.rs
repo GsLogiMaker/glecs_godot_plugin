@@ -11,7 +11,6 @@ use std::rc::Rc;
 use flecs::bindings::*;
 use flecs::EntityId;
 use godot::engine::notify::NodeNotification;
-use godot::engine::notify::ObjectNotification;
 use godot::engine::Engine;
 use godot::engine::Script;
 use godot::prelude::*;
@@ -753,6 +752,18 @@ impl _GlecsBaseWorld {
             system_args_ref.set(i, getter.callv(Array::default()));
         }
 
+        // Cache important values TODO: Move to context
+        let world = context.term_accesses
+            .first()
+            .unwrap()
+            .bind()
+            .world
+            .clone();
+        let term_ids = context.term_accesses
+            .iter()
+            .map(|t| t.bind().component_id)
+            .collect::<Vec<_>>();
+
         let entity_count = unsafe {*iter_ptr}.count as usize;
 		for entity_i in 0..entity_count {
             let entity = unsafe { *(*iter_ptr).entities.add(entity_i) };
@@ -760,6 +771,17 @@ impl _GlecsBaseWorld {
             
 			// Update cached component arguments
 			for field_i in 0..field_count {
+                if context.is_term_optional(field_i) {
+                    // The term is optional
+                    // TODO: create a function dedicated to handling systems with no optional parameters for performance. (benchmark) 
+                    // TODO: Record from last iteration if term was absent for performance (benchmark)
+                    let has_id = _GlecsBindings::has_id(world.clone(), entity, term_ids[field_i]);
+                    context.set_term_absent(field_i, !has_id);
+                    if !has_id {
+                        continue;
+                    }
+                }
+
                 let mut term_bind = context
                     .term_accesses[field_i]
                     .bind_mut();
@@ -1055,6 +1077,8 @@ pub(crate) struct ScriptSystemContext {
     term_accesses: Box<[Gd<_GlecsBaseComponent>]>,
     /// A list of getters for extra arguments in a pipeline.
     additional_arg_getters: Box<[Callable]>,
+    /// A bitmap of wether a term is optional or not
+    optional:u32,
 } impl ScriptSystemContext {
     fn new(
         callable: Callable,
@@ -1072,18 +1096,29 @@ pub(crate) struct ScriptSystemContext {
 
         // Create component accesses
         let mut tarm_accesses: Vec<Gd<_GlecsBaseComponent>> = vec![];
-        for term in raw_terms.iter() {
-            // TODO: Handle different term operations
+        let mut optional_map = 0u32;
+        for (i, term) in raw_terms.iter().enumerate() {
             match term.oper as ecs_oper_kind_t {
-                ecs_oper_kind_t_EcsAnd => {},
-                ecs_oper_kind_t_EcsOr => {
-                    todo!("Handle \"or\" case")
-                },
-                ecs_oper_kind_t_EcsNot => { continue },
+                ecs_oper_kind_t_EcsAnd => {/* pass */},
+                ecs_oper_kind_t_EcsOr => { todo!() },
+                ecs_oper_kind_t_EcsNot => { todo!() },
                 ecs_oper_kind_t_EcsOptional => {
-                    todo!("Handle \"optional\" case")
+                    optional_map |= 1 << i
                 },
-                _ => continue,
+                ecs_oper_kind_t_EcsAndFrom => { todo!() },
+                ecs_oper_kind_t_EcsOrFrom => { todo!() },
+                ecs_oper_kind_t_EcsNotFrom => { todo!() },
+                _ => unimplemented!("Operation {} not implemented", term.oper),
+            }
+
+            match term.inout as ecs_inout_kind_t {
+                _GlecsBaseSystemBuilder::INOUT_MODE_DEFAULT => { todo!() },
+                _GlecsBaseSystemBuilder::INOUT_MODE_FILTER => { /* pass */ },
+                _GlecsBaseSystemBuilder::INOUT_MODE_NONE => { continue },
+                _GlecsBaseSystemBuilder::INOUT_MODE_INOUT => { /* pass */ },
+                _GlecsBaseSystemBuilder::INOUT_MODE_IN => { todo!() },
+                _GlecsBaseSystemBuilder::INOUT_MODE_OUT => { todo!() },
+                _ => unimplemented!("Inout mode {} not implemented", term.inout),
             }
 
             let term_description = world
@@ -1120,7 +1155,26 @@ pub(crate) struct ScriptSystemContext {
             system_args: args,
             term_accesses: term_args_fast,
             additional_arg_getters,
+            optional: optional_map,
         }
+    }
+    
+    fn set_term_absent(&mut self, index:usize, absent:bool) {
+        if absent {
+            self.system_args.set(
+                index+self.additional_arg_getters.len(),
+                Variant::nil(),
+            );
+        } else {
+            self.system_args.set(
+                index+self.additional_arg_getters.len(),
+                self.term_accesses[index].to_variant(),
+                );
+        }
+    }
+
+    fn is_term_optional(&self, term:usize) -> bool {
+        return (self.optional & (1u32 << term)) != 0
     }
 }
 

@@ -51,17 +51,20 @@ impl _GlecsBaseSystemBuilder {
     }
 
     #[constant]
-    const INOUT_MODE_DEFAULT:flecs::ecs_inout_kind_t = flecs::ecs_inout_kind_t_EcsInOutDefault;
+    pub const INOUT_MODE_DEFAULT:flecs::ecs_inout_kind_t = flecs::ecs_inout_kind_t_EcsInOutDefault;
     #[constant]
-    const INOUT_MODE_NEITHER:flecs::ecs_inout_kind_t = flecs::ecs_inout_kind_t_EcsInOutNone;
+    pub const INOUT_MODE_FILTER:flecs::ecs_inout_kind_t = flecs::ecs_inout_kind_t_EcsInOutFilter;
     #[constant]
-    const INOUT_MODE_INOUT:flecs::ecs_inout_kind_t = flecs::ecs_inout_kind_t_EcsIn;
+    pub const INOUT_MODE_NONE:flecs::ecs_inout_kind_t = flecs::ecs_inout_kind_t_EcsInOutNone;
     #[constant]
-    const INOUT_MODE_IN:flecs::ecs_inout_kind_t = flecs::ecs_inout_kind_t_EcsIn;
+    pub const INOUT_MODE_INOUT:flecs::ecs_inout_kind_t = flecs::ecs_inout_kind_t_EcsInOut;
     #[constant]
-    const INOUT_MODE_OUT:flecs::ecs_inout_kind_t = flecs::ecs_inout_kind_t_EcsIn;
+    pub const INOUT_MODE_IN:flecs::ecs_inout_kind_t = flecs::ecs_inout_kind_t_EcsIn;
     #[constant]
-    const MAX_TERMS:usize = 32;
+    pub const INOUT_MODE_OUT:flecs::ecs_inout_kind_t = flecs::ecs_inout_kind_t_EcsOut;
+    
+    #[constant]
+    pub const MAX_TERMS:usize = 32;
 
     #[func]
     fn _with(
@@ -94,13 +97,12 @@ impl _GlecsBaseSystemBuilder {
     #[func]
     fn _maybe_with(
         &mut self,
-        _component: Variant,
-        _inout: flecs::ecs_inout_kind_t,
+        component: Variant,
+        inout: flecs::ecs_inout_kind_t,
     ) -> Gd<_GlecsBaseSystemBuilder> {
-        todo!("Get optional terms working with system iterator first");
-        // self.with_oper(component, flecs::ecs_oper_kind_t_EcsOptional);
-        // self.last_term_mut().inout = inout as i16;
-        // self.to_gd()
+        self.with_oper(component, flecs::ecs_oper_kind_t_EcsOptional);
+        self.last_term_mut().inout = inout as i16;
+        self.to_gd()
     }
 
     #[func]
@@ -177,8 +179,12 @@ impl _GlecsBaseSystemBuilder {
         self.add_term_to_buffer(term);
     }
 
-    fn last_term_mut(&mut self) -> &mut flecs::ecs_term_t {
-        &mut self.description.terms[self.term_count]
+    pub(crate) fn last_term(&self) -> &flecs::ecs_term_t {
+        & self.description.terms[self.term_count-1]
+    }
+    
+    pub(crate) fn last_term_mut(&mut self) -> &mut flecs::ecs_term_t {
+        &mut self.description.terms[self.term_count-1]
     }
 
     fn on_build(&mut self) {
