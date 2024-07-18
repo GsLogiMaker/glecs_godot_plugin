@@ -1,6 +1,15 @@
 
 class_name Glecs
 
+const Std:= preload("./std/std.gd")
+
+const INOUT_MODE_DEFAULT:= _GlecsBaseSystemBuilder.INOUT_MODE_DEFAULT
+const INOUT_MODE_FILTER:= _GlecsBaseSystemBuilder.INOUT_MODE_FILTER
+const INOUT_MODE_NONE:= _GlecsBaseSystemBuilder.INOUT_MODE_NONE
+const INOUT_MODE_INOUT:= _GlecsBaseSystemBuilder.INOUT_MODE_INOUT
+const INOUT_MODE_IN:= _GlecsBaseSystemBuilder.INOUT_MODE_IN
+const INOUT_MODE_OUT:= _GlecsBaseSystemBuilder.INOUT_MODE_OUT
+
 ## An event that's emitted when component is added to an entity, before the
 ## component gets set. If you need a similar event that is emit after the
 ## component is set, use [member ON_INIT] instead.

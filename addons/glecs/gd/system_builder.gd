@@ -2,7 +2,7 @@
 class_name GlecsSystemBuilder extends _GlecsBaseSystemBuilder
 
 
-func with(component: Variant, inout:=INOUT_MODE_DEFAULT) -> GlecsSystemBuilder:
+func with(component: Variant, inout:=INOUT_MODE_INOUT) -> GlecsSystemBuilder:
 	return _with(component, inout)
 
 
@@ -10,11 +10,11 @@ func without(component:Variant) -> GlecsSystemBuilder:
 	return _without(component)
 
 
-func or_with(component: Variant, inout:=INOUT_MODE_DEFAULT) -> GlecsSystemBuilder:
+func or_with(component: Variant, inout:=INOUT_MODE_INOUT) -> GlecsSystemBuilder:
 	return _or_with(component, inout)
 
 
-func maybe_with(component: Variant, inout:=INOUT_MODE_DEFAULT) -> GlecsSystemBuilder:
+func maybe_with(component: Variant, inout:=INOUT_MODE_INOUT) -> GlecsSystemBuilder:
 	return _maybe_with(component, inout)
 
 
