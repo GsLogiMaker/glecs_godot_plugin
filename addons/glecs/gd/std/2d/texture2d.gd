@@ -1,5 +1,5 @@
 
-## Texture2D
+## A component containing a [Texture2D]. 
 
 extends GlecsComponent
 

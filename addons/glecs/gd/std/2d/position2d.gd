@@ -1,11 +1,12 @@
 
-## Position2D
+## A component that represents a position in 2D space.
 
 extends GlecsComponent
 
 const Self:= preload("./position2d.gd")
 const CanvasItemC:= preload("./canvas_item.gd")
 const Rotation2DC:= preload("./rotation2d.gd")
+const Scale2DC:= preload("./scale2d.gd")
 
 static func _get_members() -> Dictionary: return {
 	vec = Vector2(),
@@ -23,8 +24,9 @@ static func _registered(w:GlecsWorldObject):
 		.with(CanvasItemC, Glecs.INOUT_MODE_FILTER) \
 		.with(Self) \
 		.maybe_with(Rotation2DC) \
-		.for_each(func(item:CanvasItemC, pos:Self, rot:Rotation2DC):
-			item.update_transform_c(pos, rot)
+		.maybe_with(Scale2DC) \
+		.for_each(func(item:CanvasItemC, pos:Self, rot:Rotation2DC, scl:Scale2DC):
+			item.update_transform_c(pos, rot, scl)
 			)
 
 
