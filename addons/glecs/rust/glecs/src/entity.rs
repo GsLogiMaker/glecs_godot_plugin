@@ -1,20 +1,17 @@
 
 use std::ffi::c_char;
-use std::ffi::c_void;
 use std::ffi::CString;
 use std::fmt::Debug;
 use std::ops::Not;
 
 use flecs::EntityId;
-use godot::engine::IScriptExtension;
 use godot::engine::Script;
-use godot::engine::ScriptExtension;
-use godot::engine::ScriptInstance;
 use godot::prelude::*;
 
 use crate::component::_GlecsBaseComponent;
 use crate::gd_bindings::_GlecsBindings;
 use crate::gd_bindings::_GlecsComponents;
+use crate::gd_bindings::_GlecsEntities;
 use crate::Int;
 use crate::show_error;
 use crate::world::_GlecsBaseWorld;
@@ -269,70 +266,28 @@ pub(crate) trait EntityLike: Debug {
     }
 
     fn add_component_raw(
-        world_gd: Gd<_GlecsBaseWorld>,
-        raw_entity: EntityId,
-        component: EntityId,
-        with_data: Variant,
+        world: Gd<_GlecsBaseWorld>,
+        entity: EntityId,
+        id: EntityId,
+        data: Variant,
     ) {
-        let world_raw = world_gd.bind().raw();
-        if with_data == Variant::nil() {
-            // Add component to entity
-            unsafe { flecs::ecs_add_id(
-                world_raw,
-                raw_entity,
-                component,
-            ) };
-        } else {
-            let initial_data = _GlecsBaseComponent
-                ::create_initial_data(
-                    &world_gd.bind()
-                        .get_component_description(component)
-                        .unwrap(),
-                    with_data,
-                );
-    
-            // Add component to entity
-            // TODO: Fix zero sized components
-            unsafe { flecs::ecs_set_id(
-                world_raw,
-                raw_entity,
-                component,
-                initial_data.len(),
-                initial_data.as_ptr().cast::<c_void>(),
-            ) };
-
-            _GlecsComponents::emit_on_set(world_gd.clone(), raw_entity, component);
-        }
-
-        // Emit OnInit event
-        let on_init_event_path_ptr = unsafe {
-            CString::from_vec_unchecked(Vec::from("Glecs/OnInit")).into_raw()
-        };
-        let on_init = _GlecsBindings::lookup_c(&world_gd.bind(), on_init_event_path_ptr);
-        _GlecsBindings::emit_event(
-            world_gd.clone(),
-            on_init,
-            raw_entity,
-            vec![component as Int].into(),
-        );
+        _GlecsEntities::add_entity(world, entity, id, data)
     }
 
     fn get_component(&mut self, component: Variant) -> Option<Gd<_GlecsBaseComponent>> {
         self.validate();
 
-        let world_gd = self.get_world();
-        let flecs_id = self.get_flecs_id();
+        let world = self.get_world();
+        let entity = self.get_flecs_id();
         
         // Get component ID
         let c_id = _GlecsBaseWorld::_id_from_variant(
-            world_gd.clone(),
+            world.clone(),
             component.clone(),
         );
         
-        let world = world_gd.bind();
-        
         // Get flecs entity
-        if !_GlecsBindings::id_is_alive(world_gd.clone(), flecs_id) {
+        if !_GlecsBindings::id_is_alive(world.clone(), entity) {
             show_error!(
                 "Failed to get component from entity",
                 "Entity {:?} was freed.",
@@ -340,8 +295,8 @@ pub(crate) trait EntityLike: Debug {
             );
         }
         
-        // Get component data
-        if !_GlecsBindings::has_id(world_gd.clone(), flecs_id, c_id) {
+        // Assert entity has component
+        if !_GlecsBindings::has_id(world.clone(), entity, c_id) {
             show_error!(
                 "Failed to get component from entity",
                 "Component {} has not been added to entity {:?}.",
@@ -350,34 +305,26 @@ pub(crate) trait EntityLike: Debug {
             );
         }
 
-        // Get component description
-        let Some(component_definition) = world
-            .get_component_description(c_id)
-            else {
-                show_error!(
-                    "Failed to get component from entity",
-                    "Component {} has not been added to entity {:?}.",
-                    component,
-                    self,
-                );
-            };
+        // Get component script
+        let script = _GlecsComponents::_get_gd_component_data(
+            world.bind().raw(),
+            c_id,
+        ).unwrap_or_else(|e| show_error!(
+            "Failed to get component from entity",
+            "{e}",
+        )).script.to_variant();
 
-        let world_gd_clone = world_gd.clone();
+        let world_gd_clone = world.clone();
         let mut comp = Gd::from_init_fn(|base| {
             let base_comp = _GlecsBaseComponent {
                 base,
                 world: world_gd_clone,
-                entity_id: flecs_id,
+                entity_id: entity,
                 component_id: c_id,
             };
             base_comp
         });
-        comp.bind_mut()
-            .base_mut()
-            .set_script(
-                Gd::<Script>::from_instance_id(component_definition.script_id)
-                    .to_variant()
-            );
+        comp.set_script(script);
 
         Some(comp)
     }

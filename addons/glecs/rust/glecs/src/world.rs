@@ -18,15 +18,15 @@ use godot::prelude::*;
 
 use crate::component::_GlecsBaseComponent;
 use crate::component_definitions::GdComponentData;
-use crate::component_definitions::ComponetDefinition;
 use crate::component_definitions::ComponentProperty;
 use crate::entity::_GlecsBaseEntity;
+use crate::gd_bindings::QueryIterationContext;
 use crate::gd_bindings::_GlecsBindings;
 use crate::gd_bindings::_GlecsComponents;
+use crate::gd_bindings::_GlecsQueries;
 use crate::module::_GlecsBaseModule;
 use crate::prefab::PrefabDefinition;
-use crate::queries::BuildType;
-use crate::queries::_GlecsBaseSystemBuilder;
+use crate::queries::_GlecsBaseQueryBuilder;
 use crate::util::script_inherets;
 use crate::Int;
 use crate::TYPE_SIZES;
@@ -54,16 +54,13 @@ pub struct _GlecsBaseWorld {
 impl _GlecsBaseWorld {
 
     /// Returns the name of the Script that was registered with the world.
-    #[func]
+    #[func(gd_self)]
     fn get_component_name(
-        &mut self,
+        this: Gd<Self>,
         script: Gd<Script>,
     ) -> StringName {
-        let c_id = self.get_or_add_component(script);
-        let c_desc = self.get_component_description(c_id)
-            .unwrap();
-
-        c_desc.name.clone()
+        let c_id = Self::get_or_add_component_gd(this.clone(), script);
+        _GlecsBindings::get_name(this, c_id).into()
     }
 
     #[func]
@@ -80,17 +77,110 @@ impl _GlecsBaseWorld {
     }
 
     #[func(gd_self)]
-    fn _new_event_listener(
-        this: Gd<Self>,
-        event: Variant,
-    ) -> Gd<_GlecsBaseSystemBuilder>{
-        let event = Self::_id_from_variant(this.clone(), event);
-        let builder = _GlecsBaseSystemBuilder::new(this);
-        let mut builder_clone = builder.clone();
-        let mut builder_bind = builder_clone.bind_mut();
-        builder_bind.observing_events = vec![event];
-        builder_bind.build_type = BuildType::Observer;
-        builder
+    fn _new_event_listener(this: Gd<Self>, event:Variant) -> Gd<_GlecsBaseQueryBuilder>{
+        let mut local_builder = Gd::from_init_fn(_GlecsBaseQueryBuilder::init);
+        let event_id = Self::_id_from_variant(this.clone(), event);
+        
+        // Callback for when query building is finsihed
+        let builder = local_builder.clone();
+        let callback = Box::new(move || {
+            let builder_bind = builder.bind();
+            
+            let context = Box::new(QueryIterationContext::new(
+                builder_bind.each_callback
+                    .clone()
+                    .expect("Query does not have a for_each callback set"),
+                this.clone(),
+                &builder_bind.get_terms(),
+                Box::from([]),
+            ));
+            
+            // Create observer
+            let mut observer_desc = flecs::ecs_observer_desc_t {
+                events: [0;8],
+                query: builder.bind().desc,
+                callback: Some(_GlecsQueries::query_iteration),
+                ctx: Box::leak(context) as *mut QueryIterationContext as *mut c_void,
+                ctx_free: Some(_GlecsQueries::query_iteration_contex_drop),
+                .. Default::default()
+            };
+            observer_desc.events[0] = event_id;
+
+            // Initialize observer
+            unsafe { flecs::ecs_observer_init(
+                this.bind().raw(),
+                &observer_desc,
+            ) };
+        });
+        local_builder.bind_mut().build_callback = callback;
+
+        local_builder
+    }
+
+    #[func(gd_self)]
+    fn _new_system(this: Gd<Self>, pipeline:Variant) -> Gd<_GlecsBaseQueryBuilder>{
+        let mut local_builder = Gd::from_init_fn(_GlecsBaseQueryBuilder::init);
+        
+        // TODO: Assert ID is a pipeline
+        let pipeline_id = Self::_id_from_variant(this.clone(), pipeline);
+        
+        // Callback for when query building is finsihed
+        let builder = local_builder.clone();
+        let callback = Box::new(move || {
+            let builder_bind = builder.bind();
+            let world_bind = this.bind();
+            let raw_world = world_bind.raw();
+
+            // Assemble value getters list
+            // TODO: remove use of HashMap in favor of storing metadat directly
+            //      in the flecs world.
+            let pipeline_def = world_bind
+                .pipelines
+                .get(&pipeline_id)
+                .expect("ID is not a pipeline");
+            let mut additional_arg_getters = Vec::new();
+            for callable in pipeline_def.borrow().extra_parameters.iter_shared() {
+                additional_arg_getters.push(callable);
+            }
+            let value_getters = additional_arg_getters.into_boxed_slice();
+
+            // Create iteration context
+            let context = Box::new(QueryIterationContext::new(
+                builder_bind.each_callback
+                    .clone()
+                    .expect("Query does not have a for_each callback set"),
+                this.clone(),
+                &builder_bind.get_terms(),
+                value_getters,
+            ));
+
+            drop(world_bind);
+
+            // Define system description
+            let sys_desc = flecs::ecs_system_desc_t {
+                query: builder_bind.desc,
+                callback: Some(_GlecsQueries::query_iteration),
+                ctx: Box::leak(context) as *mut QueryIterationContext as *mut c_void,
+                ctx_free: Some(_GlecsQueries::query_iteration_contex_drop),
+                .. Default::default()
+            };
+
+            // Initialize system
+            let sys_id = unsafe { flecs::ecs_system_init(
+                raw_world,
+                &sys_desc,
+            ) };
+
+            // Set system pipeline
+            unsafe { flecs::ecs_add_id(
+                raw_world,
+                sys_id,
+                pipeline_id,
+            ) };
+        });
+        local_builder.bind_mut().build_callback = callback;
+
+        local_builder
     }
 
     #[func(gd_self)]
@@ -125,13 +215,6 @@ impl _GlecsBaseWorld {
     #[func(gd_self)]
     fn _register_script(this: Gd<Self>, to_register: Gd<Script>, name: GString) {
         Self::register_script_and_get(this, to_register, name);
-    }
-
-    #[func(gd_self)]
-    fn _new_system(this: Gd<Self>, pipeline: Variant) -> Gd<_GlecsBaseSystemBuilder> {
-        let mut builder = _GlecsBaseSystemBuilder::new(this);
-        builder.bind_mut().pipeline = pipeline;
-        builder
     }
 
     #[func(gd_self)]
@@ -282,6 +365,7 @@ impl _GlecsBaseWorld {
             // Component with script already exists
             return id
         }
+        drop(world_bind);
         
         // Define new component
         _GlecsComponents::define(
@@ -289,20 +373,6 @@ impl _GlecsBaseWorld {
             key.clone(),
             "".into(),
         )
-    }
-
-    pub(crate) fn get_component_description(
-        &self,
-        key: EntityId,
-    ) -> Option<Rc<ComponetDefinition>> {
-        if _GlecsBindings::id_is_pair(key) {
-            let first = _GlecsBindings::pair_first(key);
-            let second = _GlecsBindings::pair_second(key);
-            let d = self.components.get(&first);
-            let d = d.or_else(|| self.components.get(&second));
-            return d.map(|x| x.clone());
-        }
-        self.components.get(&key).map(|x| x.clone())
     }
 
     fn do_registered_callback(this: Gd<Self>, target: Gd<Script>) {
@@ -314,44 +384,6 @@ impl _GlecsBaseWorld {
         callable.callv(args);
     }
 
-    pub(crate) fn new_observer_from_builder(
-        this: Gd<Self>,
-        builder: &mut _GlecsBaseSystemBuilder,
-        callable: Callable,
-    ) {
-        // Create contex
-        let context = Box::new(ScriptSystemContext::new(
-            callable.clone(),
-            this.clone(),
-            &builder,
-            Box::default(),
-        ));
-
-        // Create observer
-        let mut observer_desc = flecs::ecs_observer_desc_t {
-            events: [0;8],
-            query: builder.description,
-            callback: Some(Self::raw_system_iteration),
-            ctx: Box::leak(context) as *mut ScriptSystemContext as *mut c_void,
-            ctx_free: Some(Self::raw_system_drop),
-            .. Default::default()
-        };
-
-        // Set events to observe in observer
-        builder.observing_events.truncate(observer_desc.events.len());
-        for (i, event_id) in
-            builder.observing_events.iter().enumerate()
-        {
-            observer_desc.events[i] = *event_id;
-        }
-
-        // Initialize observer
-        unsafe { flecs::ecs_observer_init(
-            this.bind().raw(),
-            &observer_desc,
-        ) };
-    }
-    
     pub(crate) fn get_pipeline(
         this: Gd<Self>,
         identifier:Variant,
@@ -600,68 +632,6 @@ impl _GlecsBaseWorld {
         item_id
     }
 
-    pub(crate) fn new_system_from_builder(
-        this: Gd<Self>,
-        builder: &mut _GlecsBaseSystemBuilder,
-        callable: Callable,
-    ) {
-        let this_bound = this.bind();
-        let raw_world = this_bound.raw();
-
-        let pipeline_id = Self::get_pipeline(
-            this.clone(),
-            builder.pipeline.clone(),
-        );
-        let pipeline_def = this_bound
-            .get_pipeline_definition(pipeline_id);
-        
-        // Create value getters list
-        let mut additional_arg_getters = Vec::new();
-        for callable in pipeline_def.borrow().extra_parameters.iter_shared() {
-            additional_arg_getters.push(callable);
-        }
-        let value_getters = additional_arg_getters.into_boxed_slice();
-        
-        drop(this_bound);
-
-        let mut system_args = array![];
-        for _v in value_getters.iter() {
-            system_args.push(Variant::nil());
-        }
-
-        // Create contex
-        let context = Box::new(
-            ScriptSystemContext::new(
-                callable.clone(),
-                this,
-                &builder,
-                value_getters,
-            )
-        );
-
-        // Create system
-        let sys_desc = flecs::ecs_system_desc_t {
-            query: builder.description,
-            callback: Some(Self::raw_system_iteration),
-            ctx: Box::leak(context) as *mut ScriptSystemContext as *mut c_void,
-            ctx_free: Some(Self::raw_system_drop),
-            .. Default::default()
-        };
-
-        // Initialize system
-        let sys_id = unsafe { flecs::ecs_system_init(
-            raw_world,
-            &sys_desc,
-        ) };
-
-        // Set system pipeline
-        unsafe { flecs::ecs_add_id(
-            raw_world,
-            sys_id,
-            pipeline_id,
-        ) };
-    }
-
     pub(crate) fn add_tag_entity(
         mut this: Gd<Self>,
         key: Variant,
@@ -712,77 +682,6 @@ impl _GlecsBaseWorld {
     pub(crate) fn raw(&self) -> *mut flecs::ecs_world_t {
         self.world.as_ptr()
     }
-
-    extern "C" fn raw_system_iteration(iter_ptr:*mut flecs::ecs_iter_t) {
-		let context = unsafe {
-            // Here we decouple the mutable reference of the context
-            // from the rest of Iter.
-			(
-                iter_ptr.as_mut()
-                    .unwrap()
-                    .get_context_mut::<ScriptSystemContext>()
-                    as *mut ScriptSystemContext
-            )
-                .as_mut()
-                .unwrap()
-		};
-
-        // Update extra variables
-        let mut system_args_ref = context.system_args.clone();
-        for (i, getter) in
-            context.additional_arg_getters.iter().enumerate()
-        {
-            system_args_ref.set(i, getter.callv(Array::default()));
-        }
-
-        // Cache important values TODO: Move to context
-        let world = context.term_accesses
-            .first()
-            .unwrap()
-            .bind()
-            .world
-            .clone();
-        let term_ids = context.term_accesses
-            .iter()
-            .map(|t| t.bind().component_id)
-            .collect::<Vec<_>>();
-
-        let entity_count = unsafe {*iter_ptr}.count as usize;
-		for entity_i in 0..entity_count {
-            let entity = unsafe { *(*iter_ptr).entities.add(entity_i) };
-            let field_count = unsafe {*iter_ptr}.field_count as usize;
-            
-			// Update cached component arguments
-			for field_i in 0..field_count {
-                if context.is_term_optional(field_i) {
-                    // The term is optional
-                    // TODO: create a function dedicated to handling systems with no optional parameters for performance. (benchmark) 
-                    // TODO: Record from last iteration if term was absent for performance (benchmark)
-                    let has_id = _GlecsBindings::has_id(world.clone(), entity, term_ids[field_i]);
-                    context.set_term_absent(field_i, !has_id);
-                    if !has_id {
-                        continue;
-                    }
-                }
-
-                let mut term_bind = context
-                    .term_accesses[field_i]
-                    .bind_mut();
-				term_bind.entity_id = entity;
-			}
-			
-			let _result = context.callable.callv(
-				context.system_args.clone()
-			);
-		}
-    }
-
-    extern "C" fn raw_system_drop(context_ptr:*mut c_void) {
-        let boxed = unsafe { Box::from_raw(
-            context_ptr.cast::<ScriptSystemContext>()
-        ) };
-        drop(boxed)
-	}
 }
 
 #[godot_api]
@@ -908,7 +807,7 @@ impl _GlecsBaseWorldNode {
             &self,
             script: Gd<Script>,
         ) -> StringName {
-            _GlecsBaseWorld::get_component_name(&mut self.glecs_world.clone().bind_mut(), script)
+            _GlecsBaseWorld::get_component_name(self.glecs_world.clone(), script)
         }
     
         #[func]
@@ -923,7 +822,7 @@ impl _GlecsBaseWorldNode {
         fn _new_event_listener(
             &self,
             event: Variant,
-        ) -> Gd<_GlecsBaseSystemBuilder>{
+        ) -> Gd<_GlecsBaseQueryBuilder>{
             _GlecsBaseWorld::_new_event_listener(self.glecs_world.clone(), event)
         }
     
@@ -973,7 +872,7 @@ impl _GlecsBaseWorldNode {
         }
     
         #[func]
-        fn _new_system(&self, pipeline: Variant) -> Gd<_GlecsBaseSystemBuilder> {
+        fn _new_system(&self, pipeline: Variant) -> Gd<_GlecsBaseQueryBuilder> {
             _GlecsBaseWorld::_new_system(self.glecs_world.clone(), pipeline)
         }
     
@@ -1053,126 +952,6 @@ impl INode for _GlecsBaseWorldNode {
             },
             _ => {},
         }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct ScriptSystemContext {
-    callable: Callable,
-    /// The arguments passed to the system.
-    system_args: Array<Variant>,
-    /// Holds the accesses stored in `sysatem_args` for quicker access.
-    term_accesses: Box<[Gd<_GlecsBaseComponent>]>,
-    /// A list of getters for extra arguments in a pipeline.
-    additional_arg_getters: Box<[Callable]>,
-    /// A bitmap of wether a term is optional or not
-    optional:u32,
-} impl ScriptSystemContext {
-    fn new(
-        callable: Callable,
-        world: Gd<_GlecsBaseWorld>,
-        builder: &_GlecsBaseSystemBuilder,
-        additional_arg_getters: Box<[Callable]>,
-    ) -> Self {
-        // Make arguments list
-        let mut args = array![];
-        for _v in additional_arg_getters.iter() {
-            args.push(Variant::nil());
-        }
-
-        let raw_terms = builder.description.terms.split_at(builder.term_count).0;
-
-        // Create component accesses
-        let mut tarm_accesses: Vec<Gd<_GlecsBaseComponent>> = vec![];
-        let mut optional_map = 0u32;
-        let mut last_oper = ecs_oper_kind_t_EcsAnd as ecs_oper_kind_t;
-        for (i, term) in raw_terms.iter().enumerate() {
-            match term.oper as ecs_oper_kind_t {
-                ecs_oper_kind_t_EcsAnd => { /* pass */ },
-                ecs_oper_kind_t_EcsOr => {
-                    optional_map |= 1 << i;
-                },
-                ecs_oper_kind_t_EcsNot => { continue },
-                ecs_oper_kind_t_EcsOptional => {
-                    optional_map |= 1 << i;
-                },
-                ecs_oper_kind_t_EcsAndFrom => { todo!() },
-                ecs_oper_kind_t_EcsOrFrom => { todo!() },
-                ecs_oper_kind_t_EcsNotFrom => { todo!() },
-                _ => unimplemented!("Operation {} not implemented", term.oper),
-            }
-
-            if last_oper == ecs_oper_kind_t_EcsOr {
-                optional_map |= 1 << i;
-            }
-
-            match term.inout as ecs_inout_kind_t {
-                _GlecsBaseSystemBuilder::INOUT_MODE_DEFAULT => { todo!() },
-                _GlecsBaseSystemBuilder::INOUT_MODE_FILTER => { /* pass */ },
-                _GlecsBaseSystemBuilder::INOUT_MODE_NONE => { continue },
-                _GlecsBaseSystemBuilder::INOUT_MODE_INOUT => { /* pass */ },
-                _GlecsBaseSystemBuilder::INOUT_MODE_IN => { todo!() },
-                _GlecsBaseSystemBuilder::INOUT_MODE_OUT => { todo!() },
-                _ => unimplemented!("Inout mode {} not implemented", term.inout),
-            }
-
-            let term_description = world
-                .bind()
-                .get_component_description(term.id)
-                .unwrap();
-            let term_script = Gd::<Script>
-                ::from_instance_id(term_description.script_id);
-
-            let mut compopnent_access = Gd::from_init_fn(|base| {
-                let base_comp = _GlecsBaseComponent {
-                    base,
-                    entity_id: 0, // ID should be changed by the system
-                    component_id: term.id,
-                    world: world.clone(),
-                };
-                base_comp
-            });
-            compopnent_access
-                .bind_mut()
-                .base_mut()
-                .set_script(term_script.to_variant());
-
-            compopnent_access.set_script(term_script.to_variant());
-            
-            // Add term access
-            args.push(compopnent_access.to_variant());
-            tarm_accesses.push(compopnent_access);
-
-            last_oper = term.oper as ecs_oper_kind_t;
-        }
-        let term_args_fast = tarm_accesses
-            .into_boxed_slice();
-
-        Self {
-            callable: callable,
-            system_args: args,
-            term_accesses: term_args_fast,
-            additional_arg_getters,
-            optional: optional_map,
-        }
-    }
-    
-    fn set_term_absent(&mut self, index:usize, absent:bool) {
-        if absent {
-            self.system_args.set(
-                index+self.additional_arg_getters.len(),
-                Variant::nil(),
-            );
-        } else {
-            self.system_args.set(
-                index+self.additional_arg_getters.len(),
-                self.term_accesses[index].to_variant(),
-                );
-        }
-    }
-    
-    fn is_term_optional(&self, term:usize) -> bool {
-        return (self.optional & (1u32 << term)) != 0
     }
 }
 

@@ -1,5 +1,4 @@
 
-use std::alloc::Layout;
 use std::ffi::c_char;
 use std::ffi::c_void;
 use std::ffi::CString;
@@ -7,7 +6,6 @@ use std::ffi::CStr;
 use std::mem::size_of;
 use std::mem::ManuallyDrop;
 use std::ptr::NonNull;
-use std::rc::Rc;
 
 use flecs::*;
 use godot::engine::Script;
@@ -15,14 +13,11 @@ use godot::prelude::*;
 
 use crate::component::_GlecsBaseComponent;
 use crate::component_definitions::GdComponentData;
-use crate::component_definitions::ComponetDefinition;
-use crate::component_definitions::ComponentProperty;
-use crate::queries::_GlecsQuery;
+use crate::queries::_GlecsBaseQueryBuilder;
 use crate::show_error;
 use crate::world::_GlecsBaseWorld;
 use crate::Float;
 use crate::Int;
-use crate::TYPE_SIZES;
 
 #[derive(GodotClass)]
 #[class(base=Object, no_init)]
@@ -470,18 +465,357 @@ impl _GlecsComponents {
         Self::_get_id_component_properties(&w.bind())
     }
 
-    /// Returns a String for identifying an Entity.
-    pub(crate) fn debug_identifier(world:*const ecs_world_t, component:EntityId) -> String {
-        let name_ptr = unsafe { ecs_get_name(world, component) };
-        let name = if name_ptr.is_null() {
-            "".into()
-        } else {
-            unsafe { CStr::from_ptr(name_ptr) }.to_str().unwrap()
-        };
-        format!("{}#{}",
-            name,
+    #[func]
+    pub fn get(
+        world:Gd<_GlecsBaseWorld>,
+        entity:EntityId,
+        component:EntityId,
+        property:StringName,
+    ) -> Variant {
+        // Get component data pointer
+        let data = NonNull::new(unsafe { ecs_get_mut_id(
+            world.bind().raw(),
+            entity,
             component,
+        ) } as *mut u8).unwrap_or_else(|| show_error!(
+            "Failed to get component",
+            "Entity, {}, does not have component, {}",
+            _GlecsEntities::debug_identifier(world.bind().raw(), entity),
+            _GlecsEntities::debug_identifier(world.bind().raw(), component),
+        ));
+
+        // Assert offset is a real property
+        let property = _GlecsComponents::_get_gd_component_data(
+            world.bind().raw(),
+            component,
+        ).unwrap_or_else(|e| show_error!(
+            "Failed to get component",
+            "{e}",
+        )).get_property(&property)
+            .unwrap_or_else(|| show_error!(
+                "Failed to get component",
+                "No property names \"{}\" exists for component, {}",
+                property,
+                _GlecsEntities::debug_identifier(world.bind().raw(), component),
+            ));
+
+        // Get pointer to property
+        let property_data = unsafe { NonNull::new_unchecked(
+            data.as_ptr().add(property.offset),
+        ) };
+
+        // Retrieve property
+        Self::get_component_property(
+            property_data,
+            property.gd_type_id,
         )
+    }
+
+    #[func]
+    pub fn set(
+        world:Gd<_GlecsBaseWorld>,
+        entity:EntityId,
+        component:EntityId,
+        property:StringName,
+        value:Variant,
+    ) {
+        // Get component data pointer
+        let data = NonNull::new(unsafe { ecs_get_mut_id(
+            world.bind().raw(),
+            entity,
+            component,
+        ) } as *mut u8).unwrap_or_else(|| show_error!(
+            "Failed to set component",
+            "Entity, {}, does not have component, {}",
+            entity,
+            _GlecsEntities::debug_identifier(world.bind().raw(), component),
+        ));
+
+        // Assert offset is a real property
+        let property = _GlecsComponents::_get_gd_component_data(
+            world.bind().raw(),
+            component,
+        ).unwrap_or_else(|e| show_error!(
+            "Failed to set component",
+            "{e}",
+        )).get_property(&property)
+            .unwrap_or_else(|| show_error!(
+                "Failed to set component",
+                "No property named \"{}\" exists for component, {}",
+                property,
+                _GlecsEntities::debug_identifier(world.bind().raw(), component),
+            ));
+        
+        // Assert value and property are of same type
+        let value_type = value.get_type();
+        if property.gd_type_id != value_type {
+            show_error!(
+                "Failed to set component",
+                "Property, {}, is of type {:?}, but the passed value is of type {:?}",
+                property.name,
+                property.gd_type_id,
+                value_type,
+            );
+        }
+
+        // Get pointer to property
+        let property_data = unsafe { NonNull::new_unchecked(
+            data.as_ptr().add(property.offset),
+        ) };
+
+        // Set property
+        Self::set_component_property(
+            property_data,
+            value,
+            value_type,
+        );
+
+        // Emit custom on set event
+        _GlecsComponents::emit_on_set(
+            world,
+            entity,
+            component,
+        );
+    }
+
+    /// Returns the size of a component in bytes. Return `0` if the ID is not
+    /// a component.
+    pub(crate) fn get_component_size(
+        world:NonNull<ecs_world_t>,
+        id:EntityId,
+    ) -> usize {
+        let ptr = unsafe { ecs_get_id(
+            world.as_ptr(),
+            id,
+            _GlecsBindings::id_component(),
+        ) as *const EcsComponent };
+
+        if ptr.is_null() {
+            return 0
+        }
+
+        unsafe { *ptr }.size as usize
+    }
+
+    pub(crate) fn create_initial_data(world:Gd<_GlecsBaseWorld>, component:EntityId, from:Variant) -> Box<[u8]> {
+        let gd_component_data = Self::_get_gd_component_data(
+            world.bind().raw(),
+            component
+        ).unwrap_or_else(|e| show_error!(
+            "Failed to create initial data for component",
+            "{e}",
+        ));
+
+        let mut data = Vec::<u8>::new();
+        data.resize(gd_component_data.size() as usize, 0);
+        
+        match from.get_type() {
+            VariantType::ARRAY => {
+                let from_arr = from.to::<VariantArray>();
+                for
+                    (i, property_meta)
+                in gd_component_data.properties.iter().enumerate() {
+                    let prop_value = if i < from_arr.len() {
+                        // Get value from passed from
+                        let parameter = from_arr.at(i);
+                        let value = if
+                            parameter.get_type() == property_meta.gd_type_id
+                        {
+                            parameter
+                        } else {
+                            // Parameter is wrong type, get value
+                            // from component's default
+                            property_meta.default_value()
+                        };
+                        value
+                    } else {
+                        // Get value from component's default
+                        property_meta.default_value()
+                    };
+
+                    let nonnull_data = unsafe {
+                        NonNull::new_unchecked(data.as_mut_ptr())
+                    };
+                    HookContext::init_component_property(
+                        nonnull_data,
+                        prop_value,
+                        property_meta.offset,
+                        property_meta.gd_type_id,
+                    )
+                }
+            },
+            VariantType::DICTIONARY => {
+                todo!();
+            }
+            VariantType::NIL => {
+                for property_meta in gd_component_data.properties.iter() {
+                    let default = property_meta.default_value();
+                    let nonnull_data = unsafe {
+                        NonNull::new_unchecked(data.as_mut_ptr())
+                    };
+                    HookContext::init_component_property(
+                        nonnull_data,
+                        default,
+                        property_meta.offset,
+                        property_meta.gd_type_id,
+                    )
+                }
+            },
+            _ => todo!(),
+        }
+    
+        data.into_boxed_slice()
+    }
+
+    pub(crate) fn get_component_property(
+        data: NonNull<u8>,
+        variant_type: VariantType,
+    ) -> Variant{
+        match variant_type {
+            VariantType::NIL => panic!("Can't set \"Nil\" type in component"),
+            VariantType::BOOL => Self::get_property::<bool>(data).to_variant(),
+            VariantType::INT => Self::get_property::<Int>(data).to_variant(),
+            VariantType::FLOAT => Self::get_property::<Float>(data).to_variant(),
+            VariantType::STRING => Self::get_property::<GString>(data).to_variant(),
+            VariantType::VECTOR2 => Self::get_property::<Vector2>(data).to_variant(),
+            VariantType::VECTOR2I => Self::get_property::<Vector2i>(data).to_variant(),
+            VariantType::RECT2 => Self::get_property::<Rect2>(data).to_variant(),
+            VariantType::RECT2I => Self::get_property::<Rect2i>(data).to_variant(),
+            VariantType::VECTOR3 => Self::get_property::<Vector3>(data).to_variant(),
+            VariantType::VECTOR3I => Self::get_property::<Vector3i>(data).to_variant(),
+            VariantType::TRANSFORM2D => Self::get_property::<Transform2D>(data).to_variant(),
+            VariantType::VECTOR4 => Self::get_property::<Vector4>(data).to_variant(),
+            VariantType::VECTOR4I => Self::get_property::<Vector4i>(data).to_variant(),
+            VariantType::PLANE => Self::get_property::<Plane>(data).to_variant(),
+            VariantType::QUATERNION => Self::get_property::<Quaternion>(data).to_variant(),
+            VariantType::AABB => Self::get_property::<Aabb>(data).to_variant(),
+            VariantType::BASIS => Self::get_property::<Basis>(data).to_variant(),
+            VariantType::TRANSFORM3D => Self::get_property::<Transform3D>(data).to_variant(),
+            VariantType::PROJECTION => Self::get_property::<Projection>(data).to_variant(),
+            VariantType::COLOR => Self::get_property::<Color>(data).to_variant(),
+            VariantType::STRING_NAME => Self::get_property::<StringName>(data).to_variant(),
+            VariantType::NODE_PATH => Self::get_property::<NodePath>(data).to_variant(),
+            VariantType::RID => Self::get_property::<Rid>(data).to_variant(),
+            VariantType::OBJECT => Self::get_property_variant(data).to_variant(),
+            VariantType::CALLABLE => Self::get_property::<Callable>(data).to_variant(),
+            VariantType::SIGNAL => Self::get_property::<Signal>(data).to_variant(),
+            VariantType::DICTIONARY => Self::get_property_variant(data).to_variant(),
+            VariantType::ARRAY => Self::get_property_variant(data).to_variant(),
+            VariantType::PACKED_BYTE_ARRAY => Self::get_property::<PackedByteArray>(data).to_variant(),
+            VariantType::PACKED_INT32_ARRAY => Self::get_property::<PackedInt32Array>(data).to_variant(),
+            VariantType::PACKED_INT64_ARRAY => Self::get_property::<PackedInt64Array>(data).to_variant(),
+            VariantType::PACKED_FLOAT32_ARRAY => Self::get_property::<PackedFloat32Array>(data).to_variant(),
+            VariantType::PACKED_FLOAT64_ARRAY => Self::get_property::<PackedFloat64Array>(data).to_variant(),
+            VariantType::PACKED_STRING_ARRAY => Self::get_property::<PackedStringArray>(data).to_variant(),
+            VariantType::PACKED_VECTOR2_ARRAY => Self::get_property::<PackedVector2Array>(data).to_variant(),
+            VariantType::PACKED_VECTOR3_ARRAY => Self::get_property::<PackedVector3Array>(data).to_variant(),
+            VariantType::PACKED_COLOR_ARRAY => Self::get_property::<PackedColorArray>(data).to_variant(),
+            _ => unreachable!(),
+        }
+    }
+    
+    pub(crate) fn get_property<T: Clone>(
+        data: NonNull<u8>,
+    ) -> T {
+        let prop_ptr = unsafe {
+            NonNull::new_unchecked(data.as_ptr())
+        };
+        let casted_value = unsafe {
+            prop_ptr.cast::<ManuallyDrop<T>>()
+                .as_ref()
+        };
+        ManuallyDrop::into_inner(casted_value.clone())
+    }
+    
+    fn get_property_variant(
+        data: NonNull<u8>,
+    ) -> Variant {
+        let prop_ptr = unsafe {
+            NonNull::new_unchecked(data.as_ptr())
+        };
+        let got_value = unsafe {
+            prop_ptr.cast::<ManuallyDrop<Variant>>()
+                .as_ref()
+        };
+        ManuallyDrop::into_inner(got_value.clone())
+    }
+
+    pub(crate) fn set_component_property(
+        data: NonNull<u8>,
+        value: Variant,
+        variant_type: VariantType,
+    ) {
+        match variant_type {
+            VariantType::NIL => panic!("Can't set \"Nil\" type in component"),
+            VariantType::BOOL => Self::set_property::<bool>(data, value),
+            VariantType::INT => Self::set_property::<Int>(data, value),
+            VariantType::FLOAT => Self::set_property::<Float>(data, value),
+            VariantType::STRING => Self::set_property::<GString>(data, value),
+            VariantType::VECTOR2 => Self::set_property::<Vector2>(data, value),
+            VariantType::VECTOR2I => Self::set_property::<Vector2i>(data, value),
+            VariantType::RECT2 => Self::set_property::<Rect2>(data, value),
+            VariantType::RECT2I => Self::set_property::<Rect2i>(data, value),
+            VariantType::VECTOR3 => Self::set_property::<Vector3>(data, value),
+            VariantType::VECTOR3I => Self::set_property::<Vector3i>(data, value),
+            VariantType::TRANSFORM2D => Self::set_property::<Transform2D>(data, value),
+            VariantType::VECTOR4 => Self::set_property::<Vector4>(data, value),
+            VariantType::VECTOR4I => Self::set_property::<Vector4i>(data, value),
+            VariantType::PLANE => Self::set_property::<Plane>(data, value),
+            VariantType::QUATERNION => Self::set_property::<Quaternion>(data, value),
+            VariantType::AABB => Self::set_property::<Aabb>(data, value),
+            VariantType::BASIS => Self::set_property::<Basis>(data, value),
+            VariantType::TRANSFORM3D => Self::set_property::<Transform3D>(data, value),
+            VariantType::PROJECTION => Self::set_property::<Projection>(data, value),
+            VariantType::COLOR => Self::set_property::<Color>(data, value),
+            VariantType::STRING_NAME => Self::set_property::<StringName>(data, value),
+            VariantType::NODE_PATH => Self::set_property::<NodePath>(data, value),
+            VariantType::RID => Self::set_property::<Rid>(data, value),
+            VariantType::OBJECT => Self::set_property_variant(data, value),
+            VariantType::CALLABLE => Self::set_property::<Callable>(data, value),
+            VariantType::SIGNAL => Self::set_property::<Signal>(data, value),
+            VariantType::DICTIONARY => Self::set_property_variant(data, value),
+            VariantType::ARRAY => Self::set_property_variant(data, value),
+            VariantType::PACKED_BYTE_ARRAY => Self::set_property::<PackedByteArray>(data, value),
+            VariantType::PACKED_INT32_ARRAY => Self::set_property::<PackedInt32Array>(data, value),
+            VariantType::PACKED_INT64_ARRAY => Self::set_property::<PackedInt64Array>(data, value),
+            VariantType::PACKED_FLOAT32_ARRAY => Self::set_property::<PackedFloat32Array>(data, value),
+            VariantType::PACKED_FLOAT64_ARRAY => Self::set_property::<PackedFloat64Array>(data, value),
+            VariantType::PACKED_STRING_ARRAY => Self::set_property::<PackedStringArray>(data, value),
+            VariantType::PACKED_VECTOR2_ARRAY => Self::set_property::<PackedVector2Array>(data, value),
+            VariantType::PACKED_VECTOR3_ARRAY => Self::set_property::<PackedVector3Array>(data, value),
+            VariantType::PACKED_COLOR_ARRAY => Self::set_property::<PackedColorArray>(data, value),
+            _ => unreachable!(),
+        }
+    }
+    
+    pub(crate) fn set_property<T: FromGodot>(
+        data: NonNull<u8>,
+        value: Variant,
+    ) {
+        let prop_ptr = unsafe {
+            NonNull::new_unchecked(data.as_ptr())
+        };
+        let prop_mut = unsafe { prop_ptr.cast::<ManuallyDrop<T>>().as_mut() };
+        let new_value = ManuallyDrop::new(value.to::<T>());
+        let mut old_prop = std::mem::replace(prop_mut, new_value);
+        drop(unsafe { ManuallyDrop::take(&mut old_prop) })
+    }
+
+    fn set_property_variant(
+        data: NonNull<u8>,
+        new_value: Variant,
+    ) {
+        let prop_ptr = unsafe {
+            NonNull::new_unchecked(data.as_ptr())
+        };
+        let prop_mut = unsafe {
+            prop_ptr.cast::<ManuallyDrop<Variant>>().as_mut()
+        };
+        let mut old_prop = std::mem::replace(
+            prop_mut,
+            ManuallyDrop::new(new_value),
+        );
+        drop(unsafe { ManuallyDrop::take(&mut old_prop) })
     }
 
     pub(crate) fn _define(
@@ -553,7 +887,7 @@ impl _GlecsComponents {
         if id == 0 {
             return Err(format!(
                 "Component {} is not mapped to Godot.",
-                _GlecsComponents::debug_identifier(world, component)
+                _GlecsEntities::debug_identifier(world, component)
             ));
         }
         
@@ -574,6 +908,89 @@ impl _GlecsComponents {
 
 }
 
+#[derive(GodotClass)]
+#[class(base=Object, no_init)]
+pub struct _GlecsEntities {
+	pub(crate) base: Base<Object>,
+}
+#[godot_api]
+impl _GlecsEntities {
+    #[func]
+    pub fn add_entity(
+        world:Gd<_GlecsBaseWorld>,
+        entity:EntityId,
+        id:EntityId,
+        data:Variant,
+    ) {
+        let world_nonull = unsafe { NonNull::new_unchecked(
+            world.bind().raw()
+        ) };
+
+        match (Self::has_id(world.clone(), entity, id), data.is_nil()) {
+            (true, true) => {
+                // Add component to entity with default value
+                let size = _GlecsComponents::get_component_size(
+                    world_nonull,
+                    id,
+                );
+
+                let initial_data = _GlecsComponents
+                    ::create_initial_data(world.clone(), id, data);
+
+                unsafe { flecs::ecs_set_id(
+                    world.bind().raw(),
+                    entity,
+                    id,
+                    size,
+                    initial_data.as_ptr().cast::<c_void>(),
+                ) };
+
+                _GlecsComponents::emit_on_set(world.clone(), entity, id);
+            },
+            (_, false) => {
+                // Add tag, or a comopnent without custom value
+                unsafe { flecs::ecs_add_id(
+                    world.bind().raw(),
+                    entity,
+                    id,
+                ) };
+            },
+            (false, true) => {
+                // Attempted to set a value to a tag
+                show_error!(
+                    "Failed to set data in entity",
+                    "The ID, {}, is not a component",
+                    Self::debug_identifier(world.bind().raw(), id),
+                )
+            },
+        }
+    }
+
+    #[func]
+    pub fn has_id(
+        world:Gd<_GlecsBaseWorld>,
+        entity:EntityId,
+        id:EntityId,
+    ) -> bool {
+        unsafe { ecs_has_id(world.bind().raw(), entity, id) }
+    }
+
+    /// Returns a String for identifying an Entity.
+    pub(crate) fn debug_identifier(world:*const ecs_world_t, component:EntityId) -> String {
+        let name_ptr = unsafe { ecs_get_name(world, component) };
+        
+        let name = if name_ptr.is_null() {
+            "".into()
+        } else {
+            unsafe { CStr::from_ptr(name_ptr) }.to_str().unwrap()
+        };
+
+        format!("{}#{}",
+            name,
+            component,
+        )
+    }
+}
 
 pub(crate) struct HookContext {
     component_id: EntityId,
@@ -722,7 +1139,7 @@ pub(crate) struct HookContext {
         match variant_type {
             VariantType::NIL => panic!("Can't deinit \"Nil\" type in component"),
             VariantType::BOOL => Self::deinit_property::<bool>(data),
-            VariantType::INT => Self::deinit_property::<Int>(data),
+            VariantType::Int => Self::deinit_property::<Int>(data),
             VariantType::FLOAT => Self::deinit_property::<Float>(data),
             VariantType::STRING => Self::deinit_property::<GString>(data),
             VariantType::VECTOR2 => Self::deinit_property::<Vector2>(data),
@@ -964,14 +1381,27 @@ pub struct _GlecsQueries {
 }
 #[godot_api]
 impl _GlecsQueries {
+    #[constant]
+    pub const OPER_AND:Int = ecs_oper_kind_t_EcsAnd as Int;
+    #[constant]
+    pub const OPER_OR:Int = ecs_oper_kind_t_EcsOr as Int;
+    #[constant]
+    pub const OPER_NOT:Int = ecs_oper_kind_t_EcsNot as Int;
+    #[constant]
+    pub const OPER_AND_FROM:Int = ecs_oper_kind_t_EcsAndFrom as Int;
+    #[constant]
+    pub const OPER_OR_FROM:Int = ecs_oper_kind_t_EcsOrFrom as Int;
+    #[constant]
+    pub const OPER_NOT_FROM:Int = ecs_oper_kind_t_EcsNotFrom as Int;
+
     #[func]
-    fn new_query() -> Gd<_GlecsQuery> {
-        Gd::from_init_fn(_GlecsQuery::init)
+    pub fn new_query() -> Gd<_GlecsBaseQueryBuilder> {
+        Gd::from_init_fn(_GlecsBaseQueryBuilder::init)
     }
 
     #[func]
     /// Adds a new term to the query.
-    fn push_term(mut query:Gd<_GlecsQuery>, id:EntityId) {
+    pub fn add_term(mut query:Gd<_GlecsBaseQueryBuilder>, id:EntityId) {
         let mut q = query.bind_mut();
         if q.term_count == q.desc.terms.len() {
             panic!("Can't add more terms. Max term count is {}", q.desc.terms.len())
@@ -984,7 +1414,7 @@ impl _GlecsQueries {
 
     #[func]
     ///Sets the access mode (inout) on the most recent term.
-    fn set_term_access_mode(mut query:Gd<_GlecsQuery>, mode:Int) {
+    pub fn set_term_access_mode(mut query:Gd<_GlecsBaseQueryBuilder>, mode:Int) {
         let mut q = query.bind_mut();
         let i = q.term_count-1;
         q.desc.terms[i].inout = mode as i16;
@@ -992,7 +1422,7 @@ impl _GlecsQueries {
 
     #[func]
     ///Sets the operation on the most recent term.
-    fn set_term_oper(mut query:Gd<_GlecsQuery>, oper:Int) {
+    pub fn set_term_oper(mut query:Gd<_GlecsBaseQueryBuilder>, oper:Int) {
         let mut q = query.bind_mut();
         let i = q.term_count-1;
         q.desc.terms[i].oper = oper as i16;
@@ -1000,48 +1430,48 @@ impl _GlecsQueries {
 
     #[func]
     ///Sets the cache kind for the query.
-    fn set_cache_kind(mut query:Gd<_GlecsQuery>, kind:Int) {
+    pub fn set_cache_kind(mut query:Gd<_GlecsBaseQueryBuilder>, kind:Int) {
         let mut q = query.bind_mut();
         q.desc.cache_kind = kind as u32;
     }
 
     #[func]
     ///Sets the cache kind for the query.
-    fn set_expr(mut query:Gd<_GlecsQuery>, expr:GString) {
+    pub fn set_expr(mut query:Gd<_GlecsBaseQueryBuilder>, expr:GString) {
         let mut q = query.bind_mut();
         q.desc.expr = gstring_to_cstring(expr).into_raw();
     }
 
     #[func]
-    fn set_term_first_id(mut query:Gd<_GlecsQuery>, id:EntityId) {
+    pub fn set_term_first_id(mut query:Gd<_GlecsBaseQueryBuilder>, id:EntityId) {
         let mut q = query.bind_mut();
         let i = q.term_count-1;
         q.desc.terms[i].first.id = id;
     }
 
     #[func]
-    fn set_term_first_name(mut query:Gd<_GlecsQuery>, name:GString) {
+    pub fn set_term_first_name(mut query:Gd<_GlecsBaseQueryBuilder>, name:GString) {
         let mut q = query.bind_mut();
         let i = q.term_count-1;
         q.desc.terms[i].first.name = gstring_to_cstring(name).into_raw();
     }
 
     #[func]
-    fn set_term_second_id(mut query:Gd<_GlecsQuery>, id:EntityId) {
+    pub fn set_term_second_id(mut query:Gd<_GlecsBaseQueryBuilder>, id:EntityId) {
         let mut q = query.bind_mut();
         let i = q.term_count-1;
         q.desc.terms[i].second.id = id;
     }
 
     #[func]
-    fn set_term_second_name(mut query:Gd<_GlecsQuery>, name:GString) {
+    pub fn set_term_second_name(mut query:Gd<_GlecsBaseQueryBuilder>, name:GString) {
         let mut q = query.bind_mut();
         let i = q.term_count-1;
         q.desc.terms[i].second.name = gstring_to_cstring(name).into_raw();
     }
 
     #[func]
-    fn iterate(world:Gd<_GlecsBaseWorld>, mut query:Gd<_GlecsQuery>, callable:Callable) -> () {
+    pub fn iterate(world:Gd<_GlecsBaseWorld>, mut query:Gd<_GlecsBaseQueryBuilder>, callable:Callable) -> () {
         let mut query_bind = query.bind_mut();
         let terms = query_bind.desc.terms.split_at(query_bind.term_count).0;
         query_bind.desc.binding_ctx = QueryIterationContext::new(
@@ -1062,12 +1492,12 @@ impl _GlecsQueries {
 
     #[func]
     ///Sets the flags for the query.
-    fn set_flags(mut query:Gd<_GlecsQuery>, flags:Int) {
+    pub fn set_flags(mut query:Gd<_GlecsBaseQueryBuilder>, flags:Int) {
         let mut q = query.bind_mut();
         q.desc.cache_kind = flags as u32;
     }
 
-    fn to_iterable(world:Gd<_GlecsBaseWorld>, query:Gd<_GlecsQuery>) -> ecs_iter_t {
+    fn to_iterable(world:Gd<_GlecsBaseWorld>, query:Gd<_GlecsBaseQueryBuilder>) -> ecs_iter_t {
         let world_raw = world.bind().raw();
         let query_ref = query.bind();
         let q = unsafe { ecs_query_init(world_raw, &query_ref.desc) };
@@ -1088,7 +1518,7 @@ impl _GlecsQueries {
         }
     }
 
-    extern "C" fn query_iteration(iter_ptr:*mut ecs_iter_t) {
+    pub(crate) extern "C" fn query_iteration(iter_ptr:*mut ecs_iter_t) {
 		let context = unsafe { iter_ptr.as_mut()
             .unwrap()
             .get_binding_context_mut::<QueryIterationContext>()
@@ -1144,7 +1574,7 @@ impl _GlecsQueries {
 		}
     }
 
-    extern "C" fn query_iteration_contex_drop(context_ptr:*mut c_void) {
+    pub(crate) extern "C" fn query_iteration_contex_drop(context_ptr:*mut c_void) {
         let boxed = unsafe { Box::from_raw(
             context_ptr.cast::<QueryIterationContext>()
         ) };
@@ -1164,7 +1594,7 @@ pub(crate) struct QueryIterationContext {
     /// A bitmap of wether a term is optional or not
     optional:u32,
 } impl QueryIterationContext {
-    fn new(
+    pub(crate) fn new(
         callable: Callable,
         world: Gd<_GlecsBaseWorld>,
         terms: &[ecs_term_t],

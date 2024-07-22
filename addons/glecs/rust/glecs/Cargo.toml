@@ -15,7 +15,7 @@ cc = "1.0.83"
 
 [dependencies]
 flecs = "0.1.4"
-godot = { git = "https://github.com/godot-rust/gdext", branch = "master" }
+godot = { git = "https://github.com/godot-rust/gdext", branch = "master" , "features" = ["experimental-threads"]}
 cstr = "0.2.12"
 
 # [patch."https://github.com/godot-rust/godot4-prebuilt".godot4-prebuilt]
