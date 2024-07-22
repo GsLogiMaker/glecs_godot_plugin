@@ -1,7 +1,14 @@
 
 class_name GlecsWorldObject extends _GlecsBaseWorld
 
+var component_properties:= 0
+
 func _init() -> void:
+	component_properties = _GlecsComponents.define_raw(
+		self,
+		0,
+		"ComponentProperties",
+	)
 	Glecs.PROCESS = id_from_variant("Glecs/process")
 	Glecs.PHYSICS_PROCESS = id_from_variant("Glecs/physics_process")
 	Glecs.ON_INIT = id_from_variant("Glecs/OnInit")

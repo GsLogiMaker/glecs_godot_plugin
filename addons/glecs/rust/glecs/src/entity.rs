@@ -6,7 +6,10 @@ use std::fmt::Debug;
 use std::ops::Not;
 
 use flecs::EntityId;
+use godot::engine::IScriptExtension;
 use godot::engine::Script;
+use godot::engine::ScriptExtension;
+use godot::engine::ScriptInstance;
 use godot::prelude::*;
 
 use crate::component::_GlecsBaseComponent;
@@ -257,9 +260,6 @@ pub(crate) trait EntityLike: Debug {
                 entity_id: flecs_id,
                 component_id,
                 world: world_gd.clone(),
-                component_definition: world_gd.bind()
-                    .get_component_description(component_id)
-                    .unwrap(),
             };
             base_comp
         });
@@ -369,7 +369,6 @@ pub(crate) trait EntityLike: Debug {
                 world: world_gd_clone,
                 entity_id: flecs_id,
                 component_id: c_id,
-                component_definition: component_definition.clone(),
             };
             base_comp
         });

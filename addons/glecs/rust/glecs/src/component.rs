@@ -2,6 +2,7 @@
 use std::ffi::c_void;
 use std::fmt::Debug;
 use std::mem::ManuallyDrop;
+use std::process::Termination;
 use std::ptr::NonNull;
 use std::rc::Rc;
 use std::mem::size_of;
@@ -10,7 +11,7 @@ use flecs::EntityId;
 use godot::prelude::*;
 
 use crate::component_definitions::ComponetDefinition;
-use crate::component_definitions::ComponetProperty;
+use crate::component_definitions::ComponentProperty;
 use crate::entity::EntityLike;
 use crate::gd_bindings::_GlecsBindings;
 use crate::gd_bindings::_GlecsComponents;
@@ -28,7 +29,6 @@ pub struct _GlecsBaseComponent {
     /// The ID that this component is attatached to.
     pub(crate) entity_id: EntityId,
     pub(crate) component_id: EntityId,
-    pub(crate) component_definition: Rc<ComponetDefinition>,
 }
 #[godot_api]
 impl _GlecsBaseComponent {
@@ -36,7 +36,6 @@ impl _GlecsBaseComponent {
     #[func]
     fn _copy_from_component(&mut self, from_component:Gd<_GlecsBaseComponent>) {
         EntityLike::validate(self);
-
         if self.get_flecs_id() != from_component.bind().get_flecs_id() {
             show_error!(
                 "Failed to copy component",
@@ -45,14 +44,20 @@ impl _GlecsBaseComponent {
                 from_component.bind().base().get_script(),
             )
         }
+
+        let gd_component_data = _GlecsComponents::_get_gd_component_data(
+            self.world.bind().raw(),
+            self.component_id,
+        ).expect(&format!("Unable to copy to component {}", self));
+
         unsafe {
             std::slice::from_raw_parts_mut(
                 self.get_data().as_mut(),
-                self.component_definition.layout.size(),
+                gd_component_data.size() as usize,
             ).copy_from_slice(
                 std::slice::from_raw_parts(
                     from_component.bind().get_data().as_ptr(),
-                    self.component_definition.layout.size(),
+                    gd_component_data.size() as usize,
                 ),
             );
         }
@@ -63,7 +68,10 @@ impl _GlecsBaseComponent {
     fn _get_type_name(&self) -> StringName {
         EntityLike::validate(self);
 
-        self.component_definition.name.clone()
+        _GlecsBindings::get_name(
+            self.world.clone(),
+            self.component_id,
+        ).into()
     }
 
     /// Returns a property from the component data.
@@ -175,8 +183,16 @@ impl _GlecsBaseComponent {
 		&self,
 		property:StringName,
 	) -> Variant {
-        let Some(property_meta) = self
-            .component_definition
+        // Get property data
+        let gd_component_data = _GlecsComponents::_get_gd_component_data(
+            self.world.bind().raw(),
+            self.component_id,
+        ).unwrap_or_else(|e| show_error!(
+            "Failed to get property from component",
+            "{e}",
+        ));
+        
+        let Some(property_meta) = gd_component_data
             .get_property(&property)
             else {
                 return Variant::nil();
@@ -204,7 +220,7 @@ impl _GlecsBaseComponent {
 
     pub(crate) fn get_property_data(
         data: NonNull<u8>,
-        property_data: &ComponetProperty,
+        property_data: &ComponentProperty,
     ) -> Variant{
         match property_data.gd_type_id {
             VariantType::NIL => panic!("Can't set \"Nil\" type in component"),
@@ -284,9 +300,16 @@ impl _GlecsBaseComponent {
 		property:StringName,
 		value:Variant,
 	) -> bool {
-        let Some(property_meta) = self
-            .component_definition
-            .get_property(&property) else {
+        let gd_component_data = _GlecsComponents::_get_gd_component_data(
+            self.world.bind().raw(),
+            self.component_id,
+        ).unwrap_or_else(|e| show_error!(
+            "Failed to set property in component",
+            "{e}",
+        ));
+        let Some(property_meta) = gd_component_data
+            .get_property(&property)
+            else {
                 return false;
             };
 
@@ -321,7 +344,7 @@ impl _GlecsBaseComponent {
     pub(crate) fn set_property_data(
         data: NonNull<u8>,
         value: Variant,
-        property_data: &ComponetProperty,
+        property_data: &ComponentProperty,
     ) {
         match property_data.gd_type_id {
             VariantType::NIL => panic!("Can't set \"Nil\" type in component"),
@@ -450,7 +473,7 @@ impl _GlecsBaseComponent {
     pub(crate) fn init_property_data(
         data: NonNull<u8>,
         value: Variant,
-        property_data: &ComponetProperty,
+        property_data: &ComponentProperty,
     ) {
         match property_data.gd_type_id {
             VariantType::NIL => panic!("Can't init \"Nil\" type in component"),
@@ -498,7 +521,7 @@ impl _GlecsBaseComponent {
     fn init_property_data_raw<T: FromGodot>(
         data: NonNull<u8>,
         value: Variant,
-        property_data: &ComponetProperty,
+        property_data: &ComponentProperty,
         default: &dyn Fn() -> Variant,
     ) {
          let default_value = if value != Variant::nil() {
@@ -525,7 +548,7 @@ impl _GlecsBaseComponent {
     fn init_property_data_raw_variant(
         data: NonNull<u8>,
         value: Variant,
-        property_data: &ComponetProperty,
+        property_data: &ComponentProperty,
     ) {
         let default_value = if value != Variant::nil() {
             value
@@ -582,7 +605,7 @@ impl _GlecsBaseComponent {
 
     pub(crate) fn deinit_property_data(
         comp_data: NonNull<u8>,
-        property_data: &ComponetProperty,
+        property_data: &ComponentProperty,
     ) {
         match property_data.gd_type_id {
             VariantType::NIL => panic!("Can't deinit \"Nil\" type in component"),
@@ -629,7 +652,7 @@ impl _GlecsBaseComponent {
 
     fn deinit_property_data_raw<T> (
         comp_data: NonNull<u8>,
-        property_data: &ComponetProperty,
+        property_data: &ComponentProperty,
     ) {
         let property = unsafe {
             comp_data.as_ptr()
@@ -644,7 +667,7 @@ impl _GlecsBaseComponent {
 
     fn deinit_property_data_raw_variant(
         comp_data: NonNull<u8>,
-        property_data: &ComponetProperty,
+        property_data: &ComponentProperty,
     ) {
         let property = unsafe {
             comp_data.as_ptr()
@@ -825,6 +848,16 @@ impl _GlecsBaseComponent {
         }
     }
 }
+impl std::fmt::Display for _GlecsBaseComponent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f,
+            "<{}#{}>",
+            self._get_type_name(),
+            self.component_id,
+        )
+    }
+}
+
 
 impl EntityLike for _GlecsBaseComponent {
     fn get_world(&self) -> Gd<_GlecsBaseWorld> {
@@ -984,8 +1017,8 @@ impl IRefCounted for _GlecsBaseComponent {
 impl std::fmt::Debug for _GlecsBaseComponent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("_GlecsComponent")
-            .field("base", &self.base)
-            .field("component_definition", &self.component_definition)
+            .field("entity", &self.entity_id)
+            .field("component", &self.component_id)
             .field("world", &self.world)
             .finish()
     }

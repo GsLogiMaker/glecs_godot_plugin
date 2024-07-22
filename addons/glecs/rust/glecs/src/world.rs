@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::ffi::c_void;
 use std::ffi::CString;
 use std::hash::Hash;
+use std::mem::size_of;
 use std::ptr::NonNull;
 use std::rc::Rc;
 
@@ -16,15 +17,14 @@ use godot::engine::Script;
 use godot::prelude::*;
 
 use crate::component::_GlecsBaseComponent;
+use crate::component_definitions::GdComponentData;
 use crate::component_definitions::ComponetDefinition;
-use crate::component_definitions::ComponetProperty;
-use crate::entity::load_entity_script;
-use crate::entity::EntityLike;
+use crate::component_definitions::ComponentProperty;
 use crate::entity::_GlecsBaseEntity;
 use crate::gd_bindings::_GlecsBindings;
+use crate::gd_bindings::_GlecsComponents;
 use crate::module::_GlecsBaseModule;
 use crate::prefab::PrefabDefinition;
-use crate::prefab::PREFAB_COMPONENTS;
 use crate::queries::BuildType;
 use crate::queries::_GlecsBaseSystemBuilder;
 use crate::util::script_inherets;
@@ -49,7 +49,6 @@ pub struct _GlecsBaseWorld {
     // / Maps Variant identifiers to entity IDs
     mapped_entities: HashMap<VariantKey, EntityId>,
     pipelines: HashMap<EntityId, Rc<RefCell<PipelineDefinition>>>,
-    components: HashMap<EntityId, Rc<ComponetDefinition>>,
 }
 #[godot_api]
 impl _GlecsBaseWorld {
@@ -263,17 +262,7 @@ impl _GlecsBaseWorld {
         &mut self,
         key: Gd<Script>,
     ) -> Option<EntityId> {
-        let Some(id) = self.get_tag_entity(key.to_variant())
-            else { return None };
-        let is_component = unsafe{ flecs::ecs_has_id(
-            self.raw(),
-            id,
-            flecs::FLECS_IDEcsComponentID_,
-        ) };
-        if !is_component {
-            return None;
-        }
-        Some(id)
+        todo!()
     }
 
     pub(crate) fn get_or_add_component(
@@ -294,18 +283,12 @@ impl _GlecsBaseWorld {
             return id
         }
         
-        // Create component and definition
-        // (ComponetDefinition::new() creates the component)
-        let def = Rc::new(ComponetDefinition::new(
+        // Define new component
+        _GlecsComponents::define(
+            this.clone(),
             key.clone(),
-            &mut world_bind,
-        ));
-        world_bind.components.insert(def.flecs_id, def.clone());
-        drop(world_bind);
-        
-        Self::add_tag_entity(this, key.to_variant(), def.flecs_id);
-
-        def.flecs_id
+            "".into(),
+        )
     }
 
     pub(crate) fn get_component_description(
@@ -716,7 +699,7 @@ impl _GlecsBaseWorld {
     }
 
     pub(crate) fn layout_from_properties(
-        parameters: &Vec<ComponetProperty>,
+        parameters: &Vec<ComponentProperty>,
     ) -> Layout {
         let mut size = 0;
         for property in parameters {
@@ -804,7 +787,6 @@ impl _GlecsBaseWorld {
 
 #[godot_api]
 impl IObject for _GlecsBaseWorld {
-
     fn init(base: Base<Object>) -> Self {
         let fl_world = NonNull::new(unsafe { ecs_init() })
             .unwrap();
@@ -814,8 +796,14 @@ impl IObject for _GlecsBaseWorld {
             mapped_entities: Default::default(),
             prefabs: Default::default(),
             pipelines: Default::default(),
-            components: Default::default(),
         };
+
+        let component_properties =_GlecsComponents::_define_raw(
+            &world,
+            size_of::<GdComponentData>() as i32,
+            &CString::new(GdComponentData::name()).unwrap(),
+        );
+        // TODO: Add hooks for ComponentProperties
 
         // Make temporary delta time getter callables
         let process_time = Callable::invalid();
@@ -1097,18 +1085,25 @@ pub(crate) struct ScriptSystemContext {
         // Create component accesses
         let mut tarm_accesses: Vec<Gd<_GlecsBaseComponent>> = vec![];
         let mut optional_map = 0u32;
+        let mut last_oper = ecs_oper_kind_t_EcsAnd as ecs_oper_kind_t;
         for (i, term) in raw_terms.iter().enumerate() {
             match term.oper as ecs_oper_kind_t {
-                ecs_oper_kind_t_EcsAnd => {/* pass */},
-                ecs_oper_kind_t_EcsOr => { todo!() },
-                ecs_oper_kind_t_EcsNot => { todo!() },
+                ecs_oper_kind_t_EcsAnd => { /* pass */ },
+                ecs_oper_kind_t_EcsOr => {
+                    optional_map |= 1 << i;
+                },
+                ecs_oper_kind_t_EcsNot => { continue },
                 ecs_oper_kind_t_EcsOptional => {
-                    optional_map |= 1 << i
+                    optional_map |= 1 << i;
                 },
                 ecs_oper_kind_t_EcsAndFrom => { todo!() },
                 ecs_oper_kind_t_EcsOrFrom => { todo!() },
                 ecs_oper_kind_t_EcsNotFrom => { todo!() },
                 _ => unimplemented!("Operation {} not implemented", term.oper),
+            }
+
+            if last_oper == ecs_oper_kind_t_EcsOr {
+                optional_map |= 1 << i;
             }
 
             match term.inout as ecs_inout_kind_t {
@@ -1134,7 +1129,6 @@ pub(crate) struct ScriptSystemContext {
                     entity_id: 0, // ID should be changed by the system
                     component_id: term.id,
                     world: world.clone(),
-                    component_definition: term_description.clone(),
                 };
                 base_comp
             });
@@ -1144,8 +1138,12 @@ pub(crate) struct ScriptSystemContext {
                 .set_script(term_script.to_variant());
 
             compopnent_access.set_script(term_script.to_variant());
+            
+            // Add term access
             args.push(compopnent_access.to_variant());
             tarm_accesses.push(compopnent_access);
+
+            last_oper = term.oper as ecs_oper_kind_t;
         }
         let term_args_fast = tarm_accesses
             .into_boxed_slice();
@@ -1172,7 +1170,7 @@ pub(crate) struct ScriptSystemContext {
                 );
         }
     }
-
+    
     fn is_term_optional(&self, term:usize) -> bool {
         return (self.optional & (1u32 << term)) != 0
     }

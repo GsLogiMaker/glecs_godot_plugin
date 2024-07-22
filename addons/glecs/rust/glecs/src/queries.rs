@@ -1,4 +1,5 @@
 
+use flecs::*;
 use flecs::EntityId;
 use godot::engine::Script;
 use godot::prelude::*;
@@ -8,6 +9,29 @@ use crate::world::_GlecsBaseWorld;
 pub(crate) fn load_system_builder_script() -> Variant {
     load::<Script>("res://addons/glecs/gd/system_builder.gd")
         .to_variant()
+}
+
+#[derive(GodotClass)]
+#[class(base=RefCounted)]
+pub struct _GlecsQuery {
+	pub(crate) base: Base<RefCounted>,
+    pub(crate) desc: ecs_query_desc_t,
+    pub(crate) term_count: usize,
+}
+#[godot_api]
+impl _GlecsQuery {
+    fn new_query() -> () {
+    }
+}
+#[godot_api]
+impl IRefCounted for _GlecsQuery {
+    fn init(base:Base<RefCounted>) -> Self {
+        Self {
+            base,
+            desc: Default::default(),
+            term_count: 0,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default)]
