@@ -12,3 +12,7 @@ unittest_log.xml
 test_results.xml
 
 logs/*
+
+# Ignore C++ build files
+addons/glecs/cpp/.sconsign.dblite
+*.os

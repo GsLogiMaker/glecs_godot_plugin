@@ -1,4 +1,4 @@
-[submodule "addons/glecs/cpp/godot-cpp"]
-	path = addons/glecs/cpp/godot-cpp
+[submodule "addons/glecs/cpp/include/godot-cpp"]
+	path = addons/glecs/cpp/include/godot-cpp
 	url = https://github.com/godotengine/godot-cpp
 	branch = 4.2
