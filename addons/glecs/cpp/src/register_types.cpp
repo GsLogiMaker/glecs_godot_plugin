@@ -7,6 +7,7 @@
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/defs.hpp>
+#include <godot_cpp/classes/engine.hpp>
 #include <godot_cpp/godot.hpp>
 
 using namespace godot;
@@ -19,12 +20,16 @@ void initialize_module(ModuleInitializationLevel p_level) {
 	godot::ClassDB::register_class<GlWorld>();
 	godot::ClassDB::register_class<GlEntity>();
 	godot::ClassDB::register_class<GlRegisterableEntity>();
+
+	Engine::get_singleton()->register_singleton("GlGlobalWorld", memnew(GlWorld));
 }
 
 void uninitialize_module(ModuleInitializationLevel p_level) {
 	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
 		return;
 	}
+
+	Engine::get_singleton()->unregister_singleton("GlGlobalWorld");
 }
 
 extern "C" {

@@ -16,12 +16,20 @@ GlEntity::~GlEntity() {
 }
 
 Ref<GlEntity> GlEntity::spawn(GlWorld* world) {
+	if (world == nullptr) {
+		// world = GlWorld::singleton();
+	}
+
 	Ref<GlEntity> e = Variant(memnew(GlEntity));
 	e->set_world(world);
 	e->set_id(ecs_new(world->raw()));
 	return e;
 }
-Ref<GlEntity> GlEntity::from(GlWorld* world, ecs_entity_t id) {
+Ref<GlEntity> GlEntity::from(ecs_entity_t id, GlWorld* world) {
+	if (world == nullptr) {
+		// world = GlWorld::singleton();
+	}
+
 	Ref<GlEntity> e = Variant(memnew(GlEntity));
 	e->set_world(world);
 	e->set_id(id);
@@ -46,8 +54,8 @@ void GlEntity::set_id(ecs_entity_t value) { id = value; }
 void GlEntity::set_world(GlWorld* value) { world = value; }
 
 void GlEntity::_bind_methods() {
-	godot::ClassDB::bind_static_method(GlEntity::get_class_static(), D_METHOD("spawn"), &GlEntity::spawn);
-	godot::ClassDB::bind_static_method(GlEntity::get_class_static(), D_METHOD("from"), &GlEntity::from);
+	godot::ClassDB::bind_static_method(GlEntity::get_class_static(), D_METHOD("spawn", "world"), &GlEntity::spawn, nullptr);
+	godot::ClassDB::bind_static_method(GlEntity::get_class_static(), D_METHOD("from", "id", "world"), &GlEntity::from, nullptr);
 
 	godot::ClassDB::bind_method(D_METHOD("get_id"), &GlEntity::get_id);
 	godot::ClassDB::bind_method(D_METHOD("get_world"), &GlEntity::get_world);

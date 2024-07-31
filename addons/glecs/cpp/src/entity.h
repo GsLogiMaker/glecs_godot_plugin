@@ -17,7 +17,7 @@ namespace godot {
 		~GlEntity();
 
 		static Ref<GlEntity> spawn(GlWorld*);
-		static Ref<GlEntity> from(GlWorld*, ecs_entity_t);
+		static Ref<GlEntity> from(ecs_entity_t, GlWorld*);
 
 		bool is_alive();
 

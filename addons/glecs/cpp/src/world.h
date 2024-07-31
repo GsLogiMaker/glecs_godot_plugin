@@ -10,19 +10,21 @@ namespace godot {
 	class GlWorld : public Object {
 		GDCLASS(GlWorld, Object)
 
-	private:
-		ecs_world_t *_raw;
-
-	protected:
-		static void _bind_methods();
-
 	public:
 		GlWorld();
 		~GlWorld();
 
-		ecs_world_t * raw();
-	};
+		static GlWorld* singleton();
 
+		ecs_world_t * raw();
+
+	protected:
+		static void _bind_methods();
+
+	private:
+		ecs_world_t *_raw;
+
+	};
 }
 
 #endif
