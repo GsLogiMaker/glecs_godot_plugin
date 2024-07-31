@@ -3,6 +3,14 @@ extends Control
 
 var mutex:= Mutex.new()
 
+func _init() -> void:
+	pass
+
+func _ready() -> void:
+	var world:= GlWorld.new()
+	var e:= GlEntity.spawn(world, 100)
+	prints("E", e)
+
 func _on_run_tests_pressed() -> void:
 	get_tree().change_scene_to_file("res://addons/gut/gui/GutRunner.tscn")
 

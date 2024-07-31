@@ -1,17 +1,12 @@
 #!/usr/bin/env python
-
 import os
 import sys
-
-import scons_compiledb
 
 from SCons.Script import *
 from SCons.Script.SConscript import SConsEnvironment
 
 env:SConsEnvironment = SConscript("include/godot-cpp/SConstruct")
 
-# scons_compiledb.enable(env)
-# env.CompileDb()
 
 platform:str = env["platform"]
 target:str = env["target"]
@@ -27,21 +22,20 @@ shlib_suffix:str = env["SHLIBSUFFIX"]
 # - LINKFLAGS are for linking flags
 
 # tweak this if you want to use different folders, or more folders, to store your source code in.
-# env.Append(CPPPATH=["src/"])
-
-sources = env.Glob("scr/*.cpp") + env.Glob("include/flecs/*.c")
-
 env.Append(CPPPATH=["src/"])
 env.Append(CPPPATH=["include/flecs/"])
+sources = env.Glob("src/*.cpp") + env.Glob("include/flecs/*.c")
 
 if env["platform"] == "macos":
     library = env.SharedLibrary(
-        f"../bin/libglecs.{platform}.{target}.framework/libgdexample.{platform}.{target}",
+        "../bin/libglecs.{}.{}.framework/libglecs.{}.{}".format(
+            env["platform"], env["target"], env["platform"], env["target"]
+        ),
         source=sources,
     )
 else:
     library = env.SharedLibrary(
-        f"../bin/libglecs{suffix}{shlib_suffix}",
+        "../bin/libglecs{}{}".format(env["suffix"], env["SHLIBSUFFIX"]),
         source=sources,
     )
 

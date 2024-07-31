@@ -1,22 +1,22 @@
 
 #include "world.h"
 
-#include <flecs/flecs.h>
+#include <flecs.h>
 #include <godot_cpp/core/class_db.hpp>
 
 using namespace godot;
 
-void GFWorld::_bind_methods() {
+void GlWorld::_bind_methods() {
 }
 
-GFWorld::GFWorld() {
+GlWorld::GlWorld() {
 	_raw = ecs_init();
 }
 
-GFWorld::~GFWorld() {
+GlWorld::~GlWorld() {
 	ecs_fini(_raw);
 }
 
-ecs_world_t * GFWorld::raw() {
+ecs_world_t * GlWorld::raw() {
 	return _raw;
 }

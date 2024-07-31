@@ -1,13 +1,14 @@
 
-#pragma once
+#ifndef WORLD_H
+#define WORLD_H
 
-#include <flecs/flecs.h>
+#include <flecs.h>
 #include <godot_cpp/classes/object.hpp>
 
 namespace godot {
 
-	class GFWorld : public Object {
-		GDCLASS(GFWorld, Object)
+	class GlWorld : public Object {
+		GDCLASS(GlWorld, Object)
 
 	private:
 		ecs_world_t *_raw;
@@ -16,10 +17,12 @@ namespace godot {
 		static void _bind_methods();
 
 	public:
-		GFWorld();
-		~GFWorld();
+		GlWorld();
+		~GlWorld();
 
 		ecs_world_t * raw();
 	};
 
 }
+
+#endif

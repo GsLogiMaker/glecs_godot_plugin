@@ -1,0 +1,55 @@
+
+#include <iostream>
+
+#include "entity.h"
+
+#include <flecs.h>
+#include <godot_cpp/classes/ref_counted.hpp>
+#include <godot_cpp/core/class_db.hpp>
+#include <godot_cpp/variant/utility_functions.hpp>
+
+using namespace godot;
+
+GlEntity::GlEntity() {
+}
+GlEntity::~GlEntity() {
+}
+
+Ref<GlEntity> GlEntity::spawn(GlWorld* world) {
+	Ref<GlEntity> e = Variant(memnew(GlEntity));
+	e->set_world(world);
+	e->set_id(ecs_new(world->raw()));
+	return e;
+}
+Ref<GlEntity> GlEntity::from(GlWorld* world, ecs_entity_t id) {
+	Ref<GlEntity> e = Variant(memnew(GlEntity));
+	e->set_world(world);
+	e->set_id(id);
+
+	if (!e->is_alive()) {
+		return Variant(nullptr);
+	}
+	
+	return e;
+}
+
+bool GlEntity::is_alive() {
+	return world != nullptr
+		&& ObjectDB::get_instance(world->get_instance_id())
+		&& ecs_is_alive(world->raw(), get_id());
+}
+
+ecs_entity_t GlEntity::get_id() { return id; }
+GlWorld* GlEntity::get_world() { return world; }
+
+void GlEntity::set_id(ecs_entity_t value) { id = value; }
+void GlEntity::set_world(GlWorld* value) { world = value; }
+
+void GlEntity::_bind_methods() {
+	godot::ClassDB::bind_static_method(GlEntity::get_class_static(), D_METHOD("spawn"), &GlEntity::spawn);
+	godot::ClassDB::bind_static_method(GlEntity::get_class_static(), D_METHOD("from"), &GlEntity::from);
+
+	godot::ClassDB::bind_method(D_METHOD("get_id"), &GlEntity::get_id);
+	godot::ClassDB::bind_method(D_METHOD("get_world"), &GlEntity::get_world);
+}
+
