@@ -1,5 +1,6 @@
 
 #include "world.h"
+
 #include <flecs/flecs.h>
 #include <godot_cpp/core/class_db.hpp>
 
@@ -9,9 +10,13 @@ void GFWorld::_bind_methods() {
 }
 
 GFWorld::GFWorld() {
-	raw = ecs_init();
+	_raw = ecs_init();
 }
 
 GFWorld::~GFWorld() {
-	ecs_fini(raw);
+	ecs_fini(_raw);
+}
+
+ecs_world_t * GFWorld::raw() {
+	return _raw;
 }

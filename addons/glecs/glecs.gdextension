@@ -1,12 +1,12 @@
 [configuration]
-entry_symbol = "gdext_rust_init"
+entry_symbol = "library_init"
 compatibility_minimum = 4.2
 reloadable = true
 
 [libraries]
 
-linux.release.x86_64 = "./bin/release/libglecs.so"
-linux.debug.x86_64 = "./bin/debug/libglecs.so"
+linux.release.x86_64 = "./bin/libglecs.linux.template_debug.x86_64.so"
+linux.debug.x86_64 = "./bin/libglecs.linux.template_debug.x86_64.so"
 
 windows.release.x86_64 = "./bin/release/glecs.dll"
 windows.debug.x86_64 = "./bin/debug/glecs.dll"

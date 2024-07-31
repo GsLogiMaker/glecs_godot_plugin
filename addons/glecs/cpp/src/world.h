@@ -1,8 +1,7 @@
 
-#ifndef GDEXAMPLE_H
-#define GDEXAMPLE_H
+#pragma once
 
-#include "flecs/flecs.h"
+#include <flecs/flecs.h>
 #include <godot_cpp/classes/object.hpp>
 
 namespace godot {
@@ -11,7 +10,7 @@ namespace godot {
 		GDCLASS(GFWorld, Object)
 
 	private:
-		ecs_world_t *raw;
+		ecs_world_t *_raw;
 
 	protected:
 		static void _bind_methods();
@@ -19,8 +18,8 @@ namespace godot {
 	public:
 		GFWorld();
 		~GFWorld();
+
+		ecs_world_t * raw();
 	};
 
 }
-
-#endif
