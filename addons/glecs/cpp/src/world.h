@@ -16,6 +16,9 @@ namespace godot {
 
 		static GlWorld* singleton();
 
+		void progress(double delta);
+		void start_rest_api();
+
 		ecs_world_t * raw();
 
 	protected:

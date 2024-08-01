@@ -3,14 +3,18 @@ extends Control
 
 var mutex:= Mutex.new()
 
+var world:= GlWorld.new()
+
 func _init() -> void:
 	pass
 
 func _ready() -> void:
-	pass
-	var world:= GlWorld.new()
+	world.start_rest_api()
 	#var e:= GlEntity.spawn()
 	#prints("E", e)
+
+func _physics_process(delta: float) -> void:
+	world.progress(delta)
 
 func _on_run_tests_pressed() -> void:
 	get_tree().change_scene_to_file("res://addons/gut/gui/GutRunner.tscn")
