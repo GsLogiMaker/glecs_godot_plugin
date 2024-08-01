@@ -5,11 +5,17 @@
 			"label": "godot-extension: Build Debug",
 			"detail": "Builds debug godot extension library",
 			"type": "shell",
-			"command": "scons -C addons/glecs/cpp target=template_debug debug_symbols=yes optimize=debug",
+			"command": "scons --directory addons/glecs/cpp target=template_debug debug_symbols=yes optimize=debug",
 			"group": {
 				"kind": "build",
 				"isDefault": true
 			},
+			"problemMatcher": []
+		}, {
+			"label": "godot-extension: Clean Build Files",
+			"detail": "Removes artifacts from the build process",
+			"type": "shell",
+			"command": "scons -C addons/glecs/cpp --clean",
 			"problemMatcher": []
 		}
 	]

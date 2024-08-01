@@ -11,6 +11,8 @@
 #include <godot_cpp/classes/engine.hpp>
 #include <godot_cpp/godot.hpp>
 
+// Note to self: If there are undefined symbols showing up as errors in Godot, it may be that symbol was not implemented. Double check the cpp file of the symbol to make sure its name and path are correct, because you will not get warnings or errors if they aren't.
+
 using namespace godot;
 
 void initialize_module(ModuleInitializationLevel p_level) {

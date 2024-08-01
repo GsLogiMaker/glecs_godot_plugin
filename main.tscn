@@ -27,6 +27,11 @@ text = "Play Asteroids example"
 layout_mode = 2
 text = "Compose Release"
 
+[node name="Button" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Do"
+
 [connection signal="pressed" from="VBoxContainer/RunTests" to="." method="_on_run_tests_pressed"]
 [connection signal="pressed" from="VBoxContainer/PlayAsteroids" to="." method="_on_play_asteroids_pressed"]
 [connection signal="pressed" from="VBoxContainer/ComposeRelease" to="." method="_on_compose_release_pressed"]
+[connection signal="pressed" from="VBoxContainer/Button" to="." method="_on_button_pressed"]
