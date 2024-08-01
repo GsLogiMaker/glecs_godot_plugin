@@ -19,13 +19,13 @@ namespace godot {
 		void progress(double delta);
 		void start_rest_api();
 
-		ecs_world_t * raw();
+		ecs_world_t* raw();
 
 	protected:
 		static void _bind_methods();
 
 	private:
-		ecs_world_t *_raw;
+		ecs_world_t* _raw;
 
 	};
 }

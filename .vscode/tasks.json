@@ -5,7 +5,7 @@
 			"label": "godot-extension: Build Debug",
 			"detail": "Builds debug godot extension library",
 			"type": "shell",
-			"command": "scons -C addons/glecs/cpp targetr=template_debug debug_symbols=yes",
+			"command": "scons -C addons/glecs/cpp target=template_debug debug_symbols=yes optimize=debug",
 			"group": {
 				"kind": "build",
 				"isDefault": true

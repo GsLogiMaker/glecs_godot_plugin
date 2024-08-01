@@ -10,8 +10,10 @@ func _init() -> void:
 
 func _ready() -> void:
 	world.start_rest_api()
-	#var e:= GlEntity.spawn()
-	#prints("E", e)
+	var e:= GlEntity.from(9, world)
+	var c:= e.get_component(1)
+	prints("C", c.get_source_id(), c.get_id())
+	prints("C member", c.get_member("sizes"), c.get_member("alignment"))
 
 func _physics_process(delta: float) -> void:
 	world.progress(delta)

@@ -2,6 +2,9 @@
 #include <iostream>
 
 #include "entity.h"
+// needed here because entity.h does not include
+// component.h, but uses forward declaration instead
+#include "component.h"
 
 #include <flecs.h>
 #include <godot_cpp/classes/ref_counted.hpp>
@@ -41,6 +44,23 @@ Ref<GlEntity> GlEntity::from(ecs_entity_t id, GlWorld* world) {
 	return e;
 }
 
+Ref<GlComponent> GlEntity::get_component(ecs_entity_t component) {
+	Ref<GlComponent> c = Variant(memnew(GlComponent));
+	c->set_world(world);
+	c->set_id(component);
+
+	if (!c->is_alive()) {
+		return nullptr;
+	}
+	if (!ecs_has_id(world->raw(), id, component)) {
+		return nullptr;
+	}
+	
+	c->set_source_id(id);
+
+	return c;
+}
+
 bool GlEntity::is_alive() {
 	return world != nullptr
 		&& ObjectDB::get_instance(world->get_instance_id())
@@ -57,6 +77,7 @@ void GlEntity::_bind_methods() {
 	godot::ClassDB::bind_static_method(GlEntity::get_class_static(), D_METHOD("spawn", "world"), &GlEntity::spawn, nullptr);
 	godot::ClassDB::bind_static_method(GlEntity::get_class_static(), D_METHOD("from", "id", "world"), &GlEntity::from, nullptr);
 
+	godot::ClassDB::bind_method(D_METHOD("get_component", "component"), &GlEntity::get_component);
 	godot::ClassDB::bind_method(D_METHOD("get_id"), &GlEntity::get_id);
 	godot::ClassDB::bind_method(D_METHOD("get_world"), &GlEntity::get_world);
 }

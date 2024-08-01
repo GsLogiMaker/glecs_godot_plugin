@@ -4,6 +4,7 @@
 #include "world.h"
 #include "entity.h"
 #include "registerable_entity.h"
+#include "component.h"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/defs.hpp>
@@ -20,6 +21,7 @@ void initialize_module(ModuleInitializationLevel p_level) {
 	godot::ClassDB::register_class<GlWorld>();
 	godot::ClassDB::register_class<GlEntity>();
 	godot::ClassDB::register_class<GlRegisterableEntity>();
+	godot::ClassDB::register_class<GlComponent>();
 
 	Engine::get_singleton()->register_singleton("GlGlobalWorld", memnew(GlWorld));
 }
