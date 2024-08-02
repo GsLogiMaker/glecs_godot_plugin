@@ -1,15 +1,11 @@
 
 #include "component.h"
+#include "utils.h"
 
 #include <stdint.h>
 #include <flecs.h>
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
-
-#define ERR(return_value, ...) \
-	UtilityFunctions::printerr(__VA_ARGS__); \
-	UtilityFunctions::push_error(__VA_ARGS__); \
-	return return_value;
 
 using namespace godot;
 

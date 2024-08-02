@@ -28,14 +28,14 @@ Ref<GlEntity> GlEntity::spawn(GlWorld* world) {
 	e->set_id(ecs_new(world->raw()));
 	return e;
 }
-Ref<GlEntity> GlEntity::from(ecs_entity_t id, GlWorld* world) {
+Ref<GlEntity> GlEntity::from(Variant entity, GlWorld* world) {
 	if (world == nullptr) {
 		// world = GlWorld::singleton();
 	}
 
 	Ref<GlEntity> e = Variant(memnew(GlEntity));
 	e->set_world(world);
-	e->set_id(id);
+	e->set_id(world->coerce_id(entity));
 
 	if (!e->is_alive()) {
 		return Variant(nullptr);
@@ -44,15 +44,16 @@ Ref<GlEntity> GlEntity::from(ecs_entity_t id, GlWorld* world) {
 	return e;
 }
 
-Ref<GlComponent> GlEntity::get_component(ecs_entity_t component) {
+Ref<GlComponent> GlEntity::get_component(Variant component) {
+	ecs_entity_t component_id = world->coerce_id(component);
 	Ref<GlComponent> c = Variant(memnew(GlComponent));
 	c->set_world(world);
-	c->set_id(component);
+	c->set_id(component_id);
 
 	if (!c->is_alive()) {
 		return nullptr;
 	}
-	if (!ecs_has_id(world->raw(), id, component)) {
+	if (!ecs_has_id(world->raw(), id, component_id)) {
 		return nullptr;
 	}
 	

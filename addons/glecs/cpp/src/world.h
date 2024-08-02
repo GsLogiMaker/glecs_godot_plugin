@@ -16,6 +16,7 @@ namespace godot {
 
 		static GlWorld* singleton();
 
+		ecs_entity_t coerce_id(Variant);
 		void progress(double delta);
 		void start_rest_api();
 

@@ -22,9 +22,9 @@ namespace godot {
 		~GlEntity();
 
 		static Ref<GlEntity> spawn(GlWorld*);
-		static Ref<GlEntity> from(ecs_entity_t, GlWorld*);
+		static Ref<GlEntity> from(Variant, GlWorld*);
 
-		Ref<GlComponent> get_component(ecs_entity_t);
+		Ref<GlComponent> get_component(Variant);
 		
 		bool is_alive();
 
