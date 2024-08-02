@@ -1,6 +1,7 @@
 
 #include <iostream>
 
+#include "utils.h"
 #include "entity.h"
 // needed here because entity.h does not include
 // component.h, but uses forward declaration instead
@@ -44,6 +45,12 @@ Ref<GlEntity> GlEntity::from(Variant entity, GlWorld* world) {
 	return e;
 }
 
+Ref<GlEntity> GlEntity::add_component(Variant component) {
+	GlWorld* w = get_world();
+	ecs_add_id(w->raw(), get_id(), w->coerce_id(component));
+	return Ref(this);
+}
+
 Ref<GlComponent> GlEntity::get_component(Variant component) {
 	ecs_entity_t component_id = world->coerce_id(component);
 	Ref<GlComponent> c = Variant(memnew(GlComponent));
@@ -51,10 +58,14 @@ Ref<GlComponent> GlEntity::get_component(Variant component) {
 	c->set_id(component_id);
 
 	if (!c->is_alive()) {
-		return nullptr;
+		ERR(nullptr,
+			"Component ID ", component_id, " is not alive."
+		);
 	}
 	if (!ecs_has_id(world->raw(), id, component_id)) {
-		return nullptr;
+		ERR(nullptr,
+			"Could not find attached component ID ", component_id, " on entity"
+		);
 	}
 	
 	c->set_source_id(id);
@@ -78,7 +89,9 @@ void GlEntity::_bind_methods() {
 	godot::ClassDB::bind_static_method(GlEntity::get_class_static(), D_METHOD("spawn", "world"), &GlEntity::spawn, nullptr);
 	godot::ClassDB::bind_static_method(GlEntity::get_class_static(), D_METHOD("from", "id", "world"), &GlEntity::from, nullptr);
 
+	godot::ClassDB::bind_method(D_METHOD("add_component", "component"), &GlEntity::add_component);
 	godot::ClassDB::bind_method(D_METHOD("get_component", "component"), &GlEntity::get_component);
+
 	godot::ClassDB::bind_method(D_METHOD("get_id"), &GlEntity::get_id);
 	godot::ClassDB::bind_method(D_METHOD("get_world"), &GlEntity::get_world);
 }
