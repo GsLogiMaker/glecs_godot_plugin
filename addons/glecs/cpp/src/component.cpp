@@ -216,7 +216,7 @@ Variant GlComponent::get_member_from_primitive(
 		case ecs_primitive_kind_t::EcsF64: return *(double*) ptr;
 		case ecs_primitive_kind_t::EcsUPtr: ERR(nullptr, "Can't hanlde uptr");
 		case ecs_primitive_kind_t::EcsIPtr: ERR(nullptr, "Can't hanlde iptr");
-		case ecs_primitive_kind_t::EcsString: return (char*) ptr;
+		case ecs_primitive_kind_t::EcsString: return *(char**) ptr;
 		case ecs_primitive_kind_t::EcsEntity: return *(ecs_entity_t*) ptr;
 		case ecs_primitive_kind_t::EcsId: return *(ecs_entity_t*) ptr;
 		default:
