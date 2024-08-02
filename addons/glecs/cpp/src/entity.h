@@ -24,6 +24,7 @@ namespace godot {
 		static Ref<GlEntity> spawn(GlWorld*);
 		static Ref<GlEntity> from(Variant, GlWorld*);
 
+		Ref<GlEntity> add_component(Variant);
 		Ref<GlComponent> get_component(Variant);
 		
 		bool is_alive();
