@@ -86,17 +86,6 @@ void GlComponentBuilder::build() {
 	struct_desc.entity = component_id;
 
 	ecs_entity_t struct_id = ecs_struct_init(raw, &struct_desc);
-
-	// Set size of component
-	const EcsStruct* struct_data = ecs_get(raw, struct_id, EcsStruct);
-	const ecs_member_t* final_member = ecs_vec_last_t(
-		&struct_data->members,
-		ecs_member_t
-	);
-	component_desc.type.size = final_member->offset + final_member->size;
-	component_desc.type.alignment = 8;
-
-	ecs_component_init(raw, &component_desc);
 }
 
 void GlComponentBuilder:: set_world(GlWorld* world_) {
