@@ -2,6 +2,7 @@
 #ifndef GLECS_UTILS_H
 #define GLECS_UTILS_H
 
+#include <flecs.h>
 #include <godot_cpp/variant/utility_functions.hpp>
 
 #define ERR(return_value, ...) \
@@ -59,5 +60,17 @@ private:
         E error;
     };
 };
+
+namespace godot {
+	typedef Result<ecs_entity_t, String> EntityResult;
+
+	class Utils {
+	public:
+		/// Converts a Variant::Type to an Entity ID
+		static EntityResult variant_type_to_id(Variant::Type type);
+
+	};
+
+}
 
 #endif

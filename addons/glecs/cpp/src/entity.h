@@ -9,9 +9,7 @@
 
 namespace godot {
 
-	// Forward declare GlComponent instead of including component.h to avoid
-	// cyclic dependncies that causes GlComponent to compile before GlEntity
-	// is defined.
+	// Predefine instead of include to avoid cyclic dependencies
 	class GlComponent;
 
 	class GlEntity : public RefCounted {

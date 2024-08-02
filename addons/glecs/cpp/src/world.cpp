@@ -1,6 +1,7 @@
 
 #include "world.h"
 #include "entity.h"
+#include "component_builder.h"
 #include "utils.h"
 
 #include <flecs.h>
@@ -73,6 +74,12 @@ static GlWorld* singleton() {
 	return Object::cast_to<GlWorld>(singleton);
 }
 
+Ref<GlComponentBuilder> GlWorld::component_builder() {
+	Ref<GlComponentBuilder> builder = memnew(GlComponentBuilder);
+	builder->set_world(this);
+	return builder;
+}
+
 void GlWorld::start_rest_api() {
 	ecs_entity_t rest_id = ecs_lookup_path_w_sep(raw(), 0, "flecs.rest.Rest", ".", "", false);
 	EcsRest rest = (EcsRest)EcsRest();
@@ -84,6 +91,7 @@ ecs_world_t * GlWorld::raw() {
 }
 
 void GlWorld::_bind_methods() {
+	godot::ClassDB::bind_method(D_METHOD("component_builder"), &GlWorld::component_builder);
 	godot::ClassDB::bind_method(D_METHOD("coerce_id", "entity"), &GlWorld::coerce_id);
 	godot::ClassDB::bind_method(D_METHOD("start_rest_api"), &GlWorld::start_rest_api);
 	godot::ClassDB::bind_method(D_METHOD("progress", "delta"), &GlWorld::progress);
