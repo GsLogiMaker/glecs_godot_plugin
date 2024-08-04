@@ -32,6 +32,27 @@ namespace godot {
 		// *** Unexposed ***
 		// **************************************
 
+		// *** Glecs entities ***
+		static ecs_entity_t glecs;
+		static ecs_entity_t glecs_meta;
+		static ecs_entity_t glecs_meta_real;
+		static ecs_entity_t glecs_meta_vector2;
+		static ecs_entity_t glecs_meta_vector2i;
+		static ecs_entity_t glecs_meta_rect2;
+		static ecs_entity_t glecs_meta_rect2i;
+		static ecs_entity_t glecs_meta_vector3;
+		static ecs_entity_t glecs_meta_vector3i;
+		static ecs_entity_t glecs_meta_transform2d;
+		static ecs_entity_t glecs_meta_vector4;
+		static ecs_entity_t glecs_meta_vector4i;
+		static ecs_entity_t glecs_meta_plane;
+		static ecs_entity_t glecs_meta_quaternion;
+		static ecs_entity_t glecs_meta_aabb;
+		static ecs_entity_t glecs_meta_basis;
+		static ecs_entity_t glecs_meta_transform3d;
+		static ecs_entity_t glecs_meta_projection;
+		static ecs_entity_t glecs_meta_color;
+
 		static GlWorld* singleton();
 		ecs_world_t* raw();
 

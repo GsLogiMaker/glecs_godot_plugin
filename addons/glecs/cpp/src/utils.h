@@ -14,13 +14,11 @@ template <typename T, typename E>
 class Result {
 
 public:
-	Result(T value_) {
+	Result(T value_): value(value_) {
 		_is_ok = true;
-		value = value_;
 	}
-	Result(E error_) {
+	Result(E error_): error(error_) {
 		_is_ok = false;
-		error = error_;
 	}
 	~Result() {
 		if (is_ok()) {
@@ -61,11 +59,31 @@ private:
     };
 };
 
+#define CHECK_VARIANT(VALUE, VARIANT_TYPE) \
+		if (value.get_type() != VARIANT_TYPE) { ERR(/**/, \
+			"Expected variant value, ", VALUE, ", to be of type ", \
+			Variant::get_type_name(VARIANT_TYPE), \
+			", but is of type ", Variant::get_type_name(VALUE.get_type()) \
+		); } \
+
 namespace godot {
 	typedef Result<ecs_entity_t, String> EntityResult;
+	typedef Result<int8_t, String> VoidResult;
 
 	class Utils {
 	public:
+		static VoidResult check_variant_matches(Variant value, Variant::Type type) {
+			if (value.get_type() != type) {
+				return VoidResult(
+					String("Expected variant value \"") + String(value)
+					+ String("\" to be of type ") + Variant::get_type_name(type)
+					+ String(", but it is of type ")
+					+ Variant::get_type_name(value.get_type())
+				);
+			}
+			return VoidResult::Ok(0);
+		}
+
 		/// Converts a Variant::Type to an Entity ID
 		static EntityResult variant_type_to_id(Variant::Type type);
 
