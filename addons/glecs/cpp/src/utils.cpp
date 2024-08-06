@@ -29,6 +29,23 @@ EntityResult Utils::variant_type_to_id(Variant::Type type) {
 		case Variant::PROJECTION: return EntityResult::Ok(GlWorld::glecs_meta_projection);
 		case Variant::COLOR: return EntityResult::Ok(GlWorld::glecs_meta_color);
 		
+		case Variant::STRING_NAME: return EntityResult::Ok(GlWorld::glecs_meta_string_name);
+		case Variant::NODE_PATH: return EntityResult::Ok(GlWorld::glecs_meta_node_path);
+		case Variant::RID: return EntityResult::Ok(GlWorld::glecs_meta_rid);
+		case Variant::OBJECT: return EntityResult::Ok(GlWorld::glecs_meta_object);
+		case Variant::CALLABLE: return EntityResult::Ok(GlWorld::glecs_meta_callable);
+		case Variant::SIGNAL: return EntityResult::Ok(GlWorld::glecs_meta_signal);
+		case Variant::DICTIONARY: return EntityResult::Ok(GlWorld::glecs_meta_dictionary);
+		case Variant::ARRAY: return EntityResult::Ok(GlWorld::glecs_meta_array);
+		case Variant::PACKED_INT32_ARRAY: return EntityResult::Ok(GlWorld::glecs_meta_packed_int32_array);
+		case Variant::PACKED_INT64_ARRAY: return EntityResult::Ok(GlWorld::glecs_meta_packed_int64_array);
+		case Variant::PACKED_FLOAT32_ARRAY: return EntityResult::Ok(GlWorld::glecs_meta_packed_float32_array);
+		case Variant::PACKED_FLOAT64_ARRAY: return EntityResult::Ok(GlWorld::glecs_meta_packed_float64_array);
+		case Variant::PACKED_STRING_ARRAY: return EntityResult::Ok(GlWorld::glecs_meta_packed_string_array);
+		case Variant::PACKED_VECTOR2_ARRAY: return EntityResult::Ok(GlWorld::glecs_meta_packed_vector2_array);
+		case Variant::PACKED_VECTOR3_ARRAY: return EntityResult::Ok(GlWorld::glecs_meta_packed_vector3_array);
+		case Variant::PACKED_COLOR_ARRAY: return EntityResult::Ok(GlWorld::glecs_meta_packed_color_array);
+		
 		default:
 			return EntityResult::Err(
 				String("Could not convert Variant type ")

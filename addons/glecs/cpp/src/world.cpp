@@ -30,6 +30,22 @@ ecs_entity_t GlWorld::glecs_meta_basis = 0;
 ecs_entity_t GlWorld::glecs_meta_transform3d = 0;
 ecs_entity_t GlWorld::glecs_meta_projection = 0;
 ecs_entity_t GlWorld::glecs_meta_color = 0;
+ecs_entity_t GlWorld::glecs_meta_string_name = 0;
+ecs_entity_t GlWorld::glecs_meta_node_path = 0;
+ecs_entity_t GlWorld::glecs_meta_rid = 0;
+ecs_entity_t GlWorld::glecs_meta_object = 0;
+ecs_entity_t GlWorld::glecs_meta_callable = 0;
+ecs_entity_t GlWorld::glecs_meta_signal = 0;
+ecs_entity_t GlWorld::glecs_meta_dictionary = 0;
+ecs_entity_t GlWorld::glecs_meta_array = 0;
+ecs_entity_t GlWorld::glecs_meta_packed_int32_array = 0;
+ecs_entity_t GlWorld::glecs_meta_packed_int64_array = 0;
+ecs_entity_t GlWorld::glecs_meta_packed_float32_array = 0;
+ecs_entity_t GlWorld::glecs_meta_packed_float64_array = 0;
+ecs_entity_t GlWorld::glecs_meta_packed_string_array = 0;
+ecs_entity_t GlWorld::glecs_meta_packed_vector2_array = 0;
+ecs_entity_t GlWorld::glecs_meta_packed_vector3_array = 0;
+ecs_entity_t GlWorld::glecs_meta_packed_color_array = 0;
 
 GlWorld::GlWorld() {
 	_raw = ecs_init();
@@ -60,8 +76,8 @@ GlWorld::GlWorld() {
 		ecs_set_scope(_raw, old_scope);
 	}
 
-	// Add glecs/meta/Real type
 	{
+		// Add glecs/meta/Real type
 		ecs_primitive_kind_t kind;
 		if (sizeof(real_t) == sizeof(float)) {
 			kind = ecs_primitive_kind_t::EcsF32;
@@ -285,6 +301,26 @@ GlWorld::GlWorld() {
 		};
 		glecs_meta_color = ecs_struct_init(_raw, &desc);
 	}
+
+	define_gd_component_with_hooks<StringName>("StringName", &glecs_meta_string_name);
+	define_gd_component_with_hooks<NodePath>("NodePath", &glecs_meta_node_path);
+	define_gd_component_with_hooks<RID>("RID", &glecs_meta_rid);
+	define_gd_component_with_hooks<Variant>("Object", &glecs_meta_object);
+	define_gd_component_with_hooks<Callable>("Callable", &glecs_meta_callable);
+	define_gd_component_with_hooks<Signal>("Signal", &glecs_meta_signal);
+	define_gd_component_with_hooks<Variant>("Dictionary", &glecs_meta_dictionary);
+	define_gd_component_with_hooks<Variant>("Array", &glecs_meta_array);
+	define_gd_component_with_hooks<PackedInt32Array>("PackedInt32Array", &glecs_meta_packed_int32_array);
+	define_gd_component_with_hooks<PackedInt64Array>("PackedInt64Array", &glecs_meta_packed_int64_array);
+	define_gd_component_with_hooks<PackedFloat32Array>("PackedFloat32Array", &glecs_meta_packed_float32_array);
+	define_gd_component_with_hooks<PackedFloat64Array>("PackedFloat64Array", &glecs_meta_packed_float64_array);
+	define_gd_component_with_hooks<PackedStringArray>("PackedStringArray", &glecs_meta_packed_string_array);
+	define_gd_component_with_hooks<PackedVector2Array>("PackedVector2Array", &glecs_meta_packed_vector2_array);
+	define_gd_component_with_hooks<PackedVector3Array>("PackedVector3Array", &glecs_meta_packed_vector3_array);
+	define_gd_component_with_hooks<PackedColorArray>("PackedColorArray", &glecs_meta_packed_color_array);
+
+	#undef DEFINE_GD_COMPONENT
+	#undef DEFINE_GD_COMPONENT_WITH_HOOKS
 }
 
 GlWorld::~GlWorld() {

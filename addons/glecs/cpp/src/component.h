@@ -32,8 +32,10 @@ namespace godot {
 		void* get_member_ptr_mut_at(int offset);
 		const EcsMember* get_member_data(String);
 		
-		Variant get_member_from_primitive(void*, ecs_primitive_kind_t);
-		void set_member_ptr_primitive(Variant, void*, ecs_primitive_kind_t);
+		Variant member_value_as_primitive(void*, ecs_primitive_kind_t);
+		Variant member_value_as_type(void*, ecs_entity_t);
+		void set_member_value_as_primitive(void*, Variant, ecs_primitive_kind_t);
+		void set_member_value_as_type(void*, Variant, ecs_entity_t);
 
 	
 	private:

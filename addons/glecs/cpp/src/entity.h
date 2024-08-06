@@ -24,7 +24,7 @@ namespace godot {
 
 		Ref<GlEntity> add_component(Variant);
 		Ref<GlComponent> get_component(Variant);
-		
+
 		bool is_alive();
 
 		ecs_entity_t get_id();
@@ -35,7 +35,7 @@ namespace godot {
 
 	protected:
 		static void _bind_methods();
-	
+
 	private:
 		ecs_entity_t id;
 		GlWorld* world;
