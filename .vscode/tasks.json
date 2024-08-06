@@ -15,7 +15,13 @@
 			"label": "godot-extension: Clean Build Files",
 			"detail": "Removes artifacts from the build process",
 			"type": "shell",
-			"command": "scons -C addons/glecs/cpp --clean",
+			"command": "scons --directory addons/glecs/cpp --clean",
+			"problemMatcher": []
+		}, {
+			"label": "godot-extension: Build Compilation Commands",
+			"detail": "Removes artifacts from the build process",
+			"type": "shell",
+			"command": "scons --directory addons/glecs/cpp cdb",
 			"problemMatcher": []
 		}
 	]

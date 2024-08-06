@@ -6,9 +6,16 @@ from SCons.Script import *
 from SCons.Script.SConscript import SConsEnvironment
 
 env:SConsEnvironment = SConscript("include/godot-cpp/SConstruct")
+
+# Settings for speeding up compilation
 env.Decider('MD5-timestamp')
 env.SetOption('max_drift', 1)
 env.SetOption('implicit_cache', 1)
+
+# Compilation commands
+env.Tool('compilation_db')
+cdb = env.CompilationDatabase()
+Alias('cdb', cdb)
 
 platform:str = env["platform"]
 target:str = env["target"]
@@ -44,4 +51,3 @@ else:
     )
 
 env.Default(library)
-

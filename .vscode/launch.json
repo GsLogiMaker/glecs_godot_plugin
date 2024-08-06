@@ -7,8 +7,11 @@
             "type": "lldb",
             "preLaunchTask": "godot-extension: Build Debug",
             "program": "${config:godotTools.editorPath.godot4}",
-            "args": ["--path", "${workspaceFolder}"],
+      "args": [
+        "--path",
+        "${workspaceFolder}"
+      ],
             "cwd": "${workspaceFolder}"
-        },
+    }
     ]
 }
