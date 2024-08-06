@@ -9,7 +9,8 @@
             "program": "${config:godotTools.editorPath.godot4}",
       "args": [
         "--path",
-        "${workspaceFolder}"
+        "${workspaceFolder}",
+        "--headless"
       ],
             "cwd": "${workspaceFolder}"
     }

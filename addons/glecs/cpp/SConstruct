@@ -15,7 +15,9 @@ env.SetOption('implicit_cache', 1)
 # Compilation commands
 env.Tool('compilation_db')
 cdb = env.CompilationDatabase()
-Alias('cdb', cdb)
+x = env.Alias('cdb', cdb)
+if "cdb" in COMMAND_LINE_TARGETS:
+    env._dict["CXXFLAGS"].remove("-fno-gnu-unique")
 
 platform:str = env["platform"]
 target:str = env["target"]
