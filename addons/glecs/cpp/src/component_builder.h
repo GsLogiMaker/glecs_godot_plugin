@@ -47,6 +47,16 @@ namespace godot {
 		GlWorld* world;
 		/// Is true if this builder has already been built
 		bool built;
+
+		static void ctor(void*, int32_t, const ecs_type_info_t*);
+	};
+
+	class HooksBindingContext {
+	public:
+		GlWorld* world;
+
+		HooksBindingContext(GlWorld* world);
+		~HooksBindingContext();
 	};
 
 }

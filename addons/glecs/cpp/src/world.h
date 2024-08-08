@@ -2,6 +2,7 @@
 #ifndef WORLD_H
 #define WORLD_H
 
+#include "godot_cpp/variant/utility_functions.hpp"
 #include <flecs.h>
 #include <godot_cpp/classes/object.hpp>
 #include <godot_cpp/classes/ref_counted.hpp>
@@ -69,6 +70,9 @@ namespace godot {
 		static ecs_entity_t glecs_meta_packed_vector3_array;
 		static ecs_entity_t glecs_meta_packed_color_array;
 
+		void init_component_ptr(void*, ecs_entity_t, Variant);
+		void init_gd_type_ptr(void*, ecs_entity_t);
+
 		static GlWorld* singleton();
 		ecs_world_t* raw();
 
@@ -86,7 +90,9 @@ namespace godot {
 		) {
 			T* list = (T*)ptr;
 			for (int i=0; i != count; i++) {
-				list[i] = T();
+				T value = T();
+				UtilityFunctions::print("ANY CTOR ", reinterpret_cast<uintptr_t>(&list[i]), ", ", value);
+				list[i] = value;
 			}
 		}
 
@@ -112,6 +118,7 @@ namespace godot {
 			T* dst_list = (T*)dst_ptr;
 			const T* src_list = (const T*)src_ptr;
 			for (int i=0; i != count; i++) {
+				UtilityFunctions::print("ANY COPY ", reinterpret_cast<uintptr_t>(&src_list[i]));
 				dst_list[i] = T(src_list[i]);
 			}
 		}
@@ -136,27 +143,26 @@ namespace godot {
 			ecs_entity_t* static_id
 		) {
 			ecs_component_desc_t desc = {
-				.entity = ecs_new_from_path(_raw, glecs_meta, name),
 				.type = {
 					.size = sizeof(T),
 					.alignment = 8
 				}
 			};
 			*static_id = ecs_component_init(_raw, &desc);
-		}
-
-		template<typename T>
-		void define_gd_component_with_hooks(
-			const char* name,
-			ecs_entity_t* static_id
-		) {
-			define_gd_component<T>(name, static_id);
 			ecs_type_hooks_t hooks = {
 				.ctor = GlWorld::gd_type_ctor<T>,
 				.dtor = GlWorld::gd_type_dtor<T>,
 				.copy = GlWorld::gd_type_copy<T>,
 				.move = GlWorld::gd_type_move<T>
 			}; ecs_set_hooks_id(_raw, *static_id, &hooks);
+			ecs_add_path_w_sep(
+				_raw,
+				*static_id,
+				glecs_meta,
+				name,
+				"",
+				"/root/"
+			);
 		}
 
 	};

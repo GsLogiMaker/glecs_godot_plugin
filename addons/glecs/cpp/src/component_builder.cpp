@@ -4,6 +4,7 @@
 #include "world.h"
 #include "utils.h"
 
+#include <stdlib.h>
 #include <flecs.h>
 
 using namespace godot;
@@ -81,14 +82,25 @@ void GlComponentBuilder::build() {
 	ecs_world_t* raw = world->raw();
 
 	// Create component entity
-	ecs_entity_t component_id = ecs_new_from_path(raw, 0, component_desc.type.name);
+	ecs_entity_t component_id = ecs_new(raw);
 	component_desc.entity = component_id;
 	struct_desc.entity = component_id;
 
 	ecs_entity_t struct_id = ecs_struct_init(raw, &struct_desc);
+
+	ecs_type_hooks_t hooks = {
+		.ctor = GlComponentBuilder::ctor,
+		.binding_ctx = new HooksBindingContext(world),
+		.binding_ctx_free = [](void* ptr) {
+			HooksBindingContext* ctx = (HooksBindingContext*)ptr;
+			delete ctx;
+		}
+	}; ecs_set_hooks_id(raw, component_id, &hooks);
+
+	ecs_add_path(raw, component_id, 0, component_desc.type.name);
 }
 
-void GlComponentBuilder:: set_world(GlWorld* world_) {
+void GlComponentBuilder::set_world(GlWorld* world_) {
 	world = world_;
 }
 
@@ -106,3 +118,19 @@ void GlComponentBuilder::_bind_methods() {
 // **********************************************
 // *** PRIVATE ***
 // **********************************************
+
+void GlComponentBuilder::ctor(void* ptr, int32_t count, const ecs_type_info_t* type_info) {
+	uint8_t* list = (uint8_t*)ptr;
+	HooksBindingContext* ctx = (HooksBindingContext*) type_info->hooks.binding_ctx;
+
+	for (int i=0; i != count; i++) {
+		uint8_t* item = &list[i*type_info->size];
+		ctx->world->init_component_ptr((void*)item, type_info->component, Variant());
+	}
+}
+
+HooksBindingContext::HooksBindingContext(GlWorld* world_) {
+	world = world_;
+}
+HooksBindingContext::~HooksBindingContext() {
+}

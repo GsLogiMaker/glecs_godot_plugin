@@ -1,8 +1,11 @@
 
 #include "component.h"
+#include "godot_cpp/variant/array.hpp"
+#include "godot_cpp/variant/dictionary.hpp"
 #include "godot_cpp/variant/variant.hpp"
 #include "utils.h"
 
+#include <cstdint>
 #include <stdint.h>
 #include <flecs.h>
 #include <godot_cpp/core/class_db.hpp>
@@ -132,8 +135,8 @@ void GlComponent::set_member_value_as_type(
 	else if (type == GlWorld::glecs_meta_object) { SET_MEMBER(OBJECT, Variant); return; }
 	else if (type == GlWorld::glecs_meta_callable) { SET_MEMBER(CALLABLE, Callable); return; }
 	else if (type == GlWorld::glecs_meta_signal) { SET_MEMBER(SIGNAL, Signal); return; }
-	else if (type == GlWorld::glecs_meta_dictionary) { SET_MEMBER(DICTIONARY, Variant); return; }
-	else if (type == GlWorld::glecs_meta_array) { SET_MEMBER(ARRAY, Variant); return; }
+	else if (type == GlWorld::glecs_meta_dictionary) { SET_MEMBER(DICTIONARY, Dictionary); return; }
+	else if (type == GlWorld::glecs_meta_array) { SET_MEMBER(ARRAY, Array); return; }
 	else if (type == GlWorld::glecs_meta_packed_int32_array) { SET_MEMBER(PACKED_INT32_ARRAY, PackedInt32Array); return; }
 	else if (type == GlWorld::glecs_meta_packed_int64_array) { SET_MEMBER(PACKED_INT64_ARRAY, PackedInt64Array); return; }
 	else if (type == GlWorld::glecs_meta_packed_float32_array) { SET_MEMBER(PACKED_FLOAT32_ARRAY, PackedFloat32Array); return; }
@@ -269,8 +272,8 @@ Variant GlComponent::member_value_as_type(
 	else if (type == GlWorld::glecs_meta_object) { return Variant( *(Variant*) ptr ); }
 	else if (type == GlWorld::glecs_meta_callable) { return Variant( *(Callable*) ptr ); }
 	else if (type == GlWorld::glecs_meta_signal) { return Variant( *(Signal*) ptr ); }
-	else if (type == GlWorld::glecs_meta_dictionary) { return *(Variant*) ptr; }
-	else if (type == GlWorld::glecs_meta_array) { return *(Variant*) ptr; }
+	else if (type == GlWorld::glecs_meta_dictionary) { return *(Dictionary*) ptr; }
+	else if (type == GlWorld::glecs_meta_array) { return *(Array*) ptr; }
 	else if (type == GlWorld::glecs_meta_packed_int32_array) { return Variant( *(PackedInt32Array*) ptr ); }
 	else if (type == GlWorld::glecs_meta_packed_int64_array) { return Variant( *(PackedInt64Array*) ptr ); }
 	else if (type == GlWorld::glecs_meta_packed_float32_array) { return Variant( *(PackedFloat32Array*) ptr ); }

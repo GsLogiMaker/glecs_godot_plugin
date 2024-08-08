@@ -19,6 +19,10 @@ namespace godot {
 		GlEntity();
 		~GlEntity();
 
+		// --------------------------------------
+		// --- Exposed ---
+		// --------------------------------------
+
 		static Ref<GlEntity> spawn(GlWorld*);
 		static Ref<GlEntity> from(Variant, GlWorld*);
 
@@ -29,6 +33,10 @@ namespace godot {
 
 		ecs_entity_t get_id();
 		GlWorld* get_world();
+
+		// --------------------------------------
+		// --- Unexposed ---
+		// --------------------------------------
 
 		void set_id(ecs_entity_t);
 		void set_world(GlWorld*);

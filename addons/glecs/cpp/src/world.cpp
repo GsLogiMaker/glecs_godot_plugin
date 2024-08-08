@@ -2,6 +2,9 @@
 #include "world.h"
 #include "entity.h"
 #include "component_builder.h"
+#include "godot_cpp/core/memory.hpp"
+#include "godot_cpp/variant/dictionary.hpp"
+#include "godot_cpp/variant/utility_functions.hpp"
 #include "utils.h"
 
 #include <flecs.h>
@@ -302,22 +305,22 @@ GlWorld::GlWorld() {
 		glecs_meta_color = ecs_struct_init(_raw, &desc);
 	}
 
-	define_gd_component_with_hooks<StringName>("StringName", &glecs_meta_string_name);
-	define_gd_component_with_hooks<NodePath>("NodePath", &glecs_meta_node_path);
-	define_gd_component_with_hooks<RID>("RID", &glecs_meta_rid);
-	define_gd_component_with_hooks<Variant>("Object", &glecs_meta_object);
-	define_gd_component_with_hooks<Callable>("Callable", &glecs_meta_callable);
-	define_gd_component_with_hooks<Signal>("Signal", &glecs_meta_signal);
-	define_gd_component_with_hooks<Variant>("Dictionary", &glecs_meta_dictionary);
-	define_gd_component_with_hooks<Variant>("Array", &glecs_meta_array);
-	define_gd_component_with_hooks<PackedInt32Array>("PackedInt32Array", &glecs_meta_packed_int32_array);
-	define_gd_component_with_hooks<PackedInt64Array>("PackedInt64Array", &glecs_meta_packed_int64_array);
-	define_gd_component_with_hooks<PackedFloat32Array>("PackedFloat32Array", &glecs_meta_packed_float32_array);
-	define_gd_component_with_hooks<PackedFloat64Array>("PackedFloat64Array", &glecs_meta_packed_float64_array);
-	define_gd_component_with_hooks<PackedStringArray>("PackedStringArray", &glecs_meta_packed_string_array);
-	define_gd_component_with_hooks<PackedVector2Array>("PackedVector2Array", &glecs_meta_packed_vector2_array);
-	define_gd_component_with_hooks<PackedVector3Array>("PackedVector3Array", &glecs_meta_packed_vector3_array);
-	define_gd_component_with_hooks<PackedColorArray>("PackedColorArray", &glecs_meta_packed_color_array);
+	define_gd_component<StringName>("StringName", &glecs_meta_string_name);
+	define_gd_component<NodePath>("NodePath", &glecs_meta_node_path);
+	define_gd_component<RID>("RID", &glecs_meta_rid);
+	define_gd_component<Variant>("Object", &glecs_meta_object);
+	define_gd_component<Callable>("Callable", &glecs_meta_callable);
+	define_gd_component<Signal>("Signal", &glecs_meta_signal);
+	define_gd_component<Dictionary>("Dictionary", &glecs_meta_dictionary);
+	define_gd_component<Array>("Array", &glecs_meta_array);
+	define_gd_component<PackedInt32Array>("PackedInt32Array", &glecs_meta_packed_int32_array);
+	define_gd_component<PackedInt64Array>("PackedInt64Array", &glecs_meta_packed_int64_array);
+	define_gd_component<PackedFloat32Array>("PackedFloat32Array", &glecs_meta_packed_float32_array);
+	define_gd_component<PackedFloat64Array>("PackedFloat64Array", &glecs_meta_packed_float64_array);
+	define_gd_component<PackedStringArray>("PackedStringArray", &glecs_meta_packed_string_array);
+	define_gd_component<PackedVector2Array>("PackedVector2Array", &glecs_meta_packed_vector2_array);
+	define_gd_component<PackedVector3Array>("PackedVector3Array", &glecs_meta_packed_vector3_array);
+	define_gd_component<PackedColorArray>("PackedColorArray", &glecs_meta_packed_color_array);
 
 	#undef DEFINE_GD_COMPONENT
 	#undef DEFINE_GD_COMPONENT_WITH_HOOKS
@@ -393,9 +396,74 @@ void GlWorld::start_rest_api() {
 	ecs_set_id(raw(), rest_id, rest_id, sizeof(EcsRest), &rest);
 }
 
+// ----------------------------------------------
+// --- Unexposed ---
+// ----------------------------------------------
+
+void GlWorld::init_component_ptr(
+	void* ptr,
+	ecs_entity_t component,
+	Variant args
+) {
+	const EcsStruct* c_struct = ecs_get(_raw, component, EcsStruct);
+	if (c_struct == nullptr) {
+		return;
+	}
+	for (int i=0; i != ecs_vec_count(&c_struct->members); i++) {
+		const ecs_member_t* member = ecs_vec_get_t(&c_struct->members, ecs_member_t, i);
+		auto member_value = (void*) ((int8_t*)ptr + member->offset);
+		init_gd_type_ptr(member_value, member->type);
+	}
+}
+
+/// If the type is a Variant, then initializes the pointer as that type
+void GlWorld::init_gd_type_ptr(
+	void* ptr,
+	ecs_entity_t type
+) {
+	if (type == GlWorld::glecs_meta_vector2) { new(ptr) Vector2(); }
+	else if (type == GlWorld::glecs_meta_vector2i) { new(ptr) Vector2i(); }
+	else if (type == GlWorld::glecs_meta_rect2) { new(ptr) Rect2(); }
+	else if (type == GlWorld::glecs_meta_rect2i) { new(ptr) Rect2i(); }
+	else if (type == GlWorld::glecs_meta_vector3) { new(ptr) Vector3(); }
+	else if (type == GlWorld::glecs_meta_vector3i) { new(ptr) Vector3i(); }
+	else if (type == GlWorld::glecs_meta_transform2d) { new(ptr) Transform2D(); }
+	else if (type == GlWorld::glecs_meta_vector4) { new(ptr) Vector4(); }
+	else if (type == GlWorld::glecs_meta_vector4i) { new(ptr) Vector4i(); }
+	else if (type == GlWorld::glecs_meta_plane) { new(ptr) Plane(); }
+	else if (type == GlWorld::glecs_meta_quaternion) { new(ptr) Quaternion(); }
+	else if (type == GlWorld::glecs_meta_aabb) { new(ptr) AABB(); }
+	else if (type == GlWorld::glecs_meta_basis) { new(ptr) Basis(); }
+	else if (type == GlWorld::glecs_meta_transform3d) { new(ptr) Transform3D(); }
+	else if (type == GlWorld::glecs_meta_projection) { new(ptr) Projection(); }
+	else if (type == GlWorld::glecs_meta_color) { new(ptr) Color(); }
+	else if (type == GlWorld::glecs_meta_string_name) { new(ptr) StringName(); }
+	else if (type == GlWorld::glecs_meta_node_path) { new(ptr) NodePath(); }
+	else if (type == GlWorld::glecs_meta_rid) { new(ptr) RID(); }
+	else if (type == GlWorld::glecs_meta_object) { *(Object**)ptr = nullptr ; }
+	else if (type == GlWorld::glecs_meta_callable) { new(ptr) Callable(); }
+	else if (type == GlWorld::glecs_meta_signal) { new(ptr) Signal(); }
+	else if (type == GlWorld::glecs_meta_dictionary) { new(ptr) Dictionary(); }
+	else if (type == GlWorld::glecs_meta_array) { new(ptr) Array(); }
+	else if (type == GlWorld::glecs_meta_packed_int32_array) { new(ptr) PackedInt32Array(); }
+	else if (type == GlWorld::glecs_meta_packed_int64_array) { new(ptr) PackedInt64Array(); }
+	else if (type == GlWorld::glecs_meta_packed_float32_array) { new(ptr) PackedFloat32Array(); }
+	else if (type == GlWorld::glecs_meta_packed_float64_array) { new(ptr) PackedFloat64Array(); }
+	else if (type == GlWorld::glecs_meta_packed_string_array) { new(ptr) PackedStringArray(); }
+	else if (type == GlWorld::glecs_meta_packed_vector2_array) { new(ptr) PackedVector2Array(); }
+	else if (type == GlWorld::glecs_meta_packed_vector3_array) { new(ptr) PackedVector3Array(); }
+	else if (type == GlWorld::glecs_meta_packed_color_array) { new(ptr) PackedColorArray(); }
+
+	else if (ecs_has(_raw, type, EcsStruct)) { init_component_ptr(ptr, type, Variant()); }
+}
+
 ecs_world_t * GlWorld::raw() {
 	return _raw;
 }
+
+// ----------------------------------------------
+// --- Protected ---
+// ----------------------------------------------
 
 void GlWorld::_bind_methods() {
 	godot::ClassDB::bind_method(D_METHOD("component_builder"), &GlWorld::component_builder);
@@ -403,3 +471,7 @@ void GlWorld::_bind_methods() {
 	godot::ClassDB::bind_method(D_METHOD("start_rest_api"), &GlWorld::start_rest_api);
 	godot::ClassDB::bind_method(D_METHOD("progress", "delta"), &GlWorld::progress);
 }
+
+// ----------------------------------------------
+// --- Private ---
+// ----------------------------------------------
