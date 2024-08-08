@@ -1,6 +1,5 @@
 
-#include <iostream>
-
+#include "godot_cpp/variant/variant.hpp"
 #include "utils.h"
 #include "entity.h"
 // needed here because entity.h does not include
@@ -41,13 +40,15 @@ Ref<GlEntity> GlEntity::from(Variant entity, GlWorld* world) {
 	if (!e->is_alive()) {
 		return Variant(nullptr);
 	}
-	
+
 	return e;
 }
 
 Ref<GlEntity> GlEntity::add_component(Variant component) {
 	GlWorld* w = get_world();
-	ecs_add_id(w->raw(), get_id(), w->coerce_id(component));
+	ecs_entity_t component_id = w->coerce_id(component);
+	ecs_add_id(w->raw(), get_id(), component_id);
+
 	return Ref(this);
 }
 
@@ -67,7 +68,7 @@ Ref<GlComponent> GlEntity::get_component(Variant component) {
 			"Could not find attached component ID ", component_id, " on entity"
 		);
 	}
-	
+
 	c->set_source_id(id);
 
 	return c;
@@ -82,6 +83,10 @@ bool GlEntity::is_alive() {
 ecs_entity_t GlEntity::get_id() { return id; }
 GlWorld* GlEntity::get_world() { return world; }
 
+// ----------------------------------------------
+// --- Unexposed ---
+// ----------------------------------------------
+
 void GlEntity::set_id(ecs_entity_t value) { id = value; }
 void GlEntity::set_world(GlWorld* value) { world = value; }
 
@@ -95,4 +100,3 @@ void GlEntity::_bind_methods() {
 	godot::ClassDB::bind_method(D_METHOD("get_id"), &GlEntity::get_id);
 	godot::ClassDB::bind_method(D_METHOD("get_world"), &GlEntity::get_world);
 }
-

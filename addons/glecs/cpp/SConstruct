@@ -6,9 +6,18 @@ from SCons.Script import *
 from SCons.Script.SConscript import SConsEnvironment
 
 env:SConsEnvironment = SConscript("include/godot-cpp/SConstruct")
+
+# Settings for speeding up compilation
 env.Decider('MD5-timestamp')
 env.SetOption('max_drift', 1)
 env.SetOption('implicit_cache', 1)
+
+# Compilation commands
+env.Tool('compilation_db')
+cdb = env.CompilationDatabase()
+x = env.Alias('cdb', cdb)
+if "cdb" in COMMAND_LINE_TARGETS:
+    env._dict["CXXFLAGS"].remove("-fno-gnu-unique")
 
 platform:str = env["platform"]
 target:str = env["target"]
@@ -24,6 +33,8 @@ shlib_suffix:str = env["SHLIBSUFFIX"]
 # - LINKFLAGS are for linking flags
 
 # tweak this if you want to use different folders, or more folders, to store your source code in.
+env.Append(CXXFLAGS=["-fexceptions"])
+
 env.Append(CPPPATH=["src/"])
 env.Append(CPPPATH=["include/flecs/"])
 sources = env.Glob("src/*.cpp") + env.Glob("include/flecs/*.c")
@@ -42,4 +53,3 @@ else:
     )
 
 env.Default(library)
-
