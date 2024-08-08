@@ -90,6 +90,9 @@ void GlComponentBuilder::build() {
 
 	ecs_type_hooks_t hooks = {
 		.ctor = GlComponentBuilder::ctor,
+		.dtor = GlComponentBuilder::dtor,
+		.copy = GlComponentBuilder::copy,
+		.move = GlComponentBuilder::move,
 		.binding_ctx = new HooksBindingContext(world),
 		.binding_ctx_free = [](void* ptr) {
 			HooksBindingContext* ctx = (HooksBindingContext*)ptr;
@@ -126,6 +129,49 @@ void GlComponentBuilder::ctor(void* ptr, int32_t count, const ecs_type_info_t* t
 	for (int i=0; i != count; i++) {
 		uint8_t* item = &list[i*type_info->size];
 		ctx->world->init_component_ptr((void*)item, type_info->component, Variant());
+	}
+}
+void GlComponentBuilder::dtor(void* ptr, int32_t count, const ecs_type_info_t* type_info) {
+	uint8_t* list = (uint8_t*)ptr;
+	HooksBindingContext* ctx = (HooksBindingContext*) type_info->hooks.binding_ctx;
+
+	for (int i=0; i != count; i++) {
+		uint8_t* item = &list[i*type_info->size];
+		ctx->world->deinit_component_ptr((void*)item, type_info->component);
+	}
+}
+void GlComponentBuilder::copy(
+	void* dst_ptr,
+	const void* src_ptr,
+	int32_t count,
+	const ecs_type_info_t* type_info
+) {
+	const uint8_t* src_list = (const uint8_t*)src_ptr;
+	uint8_t* dst_list = (uint8_t*)dst_ptr;
+	HooksBindingContext* ctx = (HooksBindingContext*) type_info->hooks.binding_ctx;
+
+	for (int i=0; i != count; i++) {
+		const uint8_t* src = &src_list[i*type_info->size];
+		uint8_t* dst = &dst_list[i*type_info->size];
+
+		ctx->world->copy_component_ptr((const void*)src, (void*)dst, type_info->component);
+	}
+}
+void GlComponentBuilder::move(
+	void* dst_ptr,
+	void* src_ptr,
+	int32_t count,
+	const ecs_type_info_t* type_info
+) {
+	uint8_t* src_list = (uint8_t*)src_ptr;
+	uint8_t* dst_list = (uint8_t*)dst_ptr;
+	HooksBindingContext* ctx = (HooksBindingContext*) type_info->hooks.binding_ctx;
+
+	for (int i=0; i != count; i++) {
+		uint8_t* src = &src_list[i*type_info->size];
+		uint8_t* dst = &dst_list[i*type_info->size];
+
+		ctx->world->copy_component_ptr((void*)src, (void*)dst, type_info->component);
 	}
 }
 

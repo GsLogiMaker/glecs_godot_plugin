@@ -49,6 +49,10 @@ namespace godot {
 		bool built;
 
 		static void ctor(void*, int32_t, const ecs_type_info_t*);
+		static void dtor(void*, int32_t, const ecs_type_info_t*);
+		static void copy(void*, const void*, int32_t, const ecs_type_info_t*);
+		static void move(void*, void*, int32_t, const ecs_type_info_t*);
+
 	};
 
 	class HooksBindingContext {

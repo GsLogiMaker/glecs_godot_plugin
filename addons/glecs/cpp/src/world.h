@@ -78,6 +78,10 @@ namespace godot {
 		static ecs_entity_t glecs_meta_packed_vector3_array;
 		static ecs_entity_t glecs_meta_packed_color_array;
 
+		void copy_component_ptr(const void*, void*, ecs_entity_t);
+		void copy_gd_type_ptr(const void*, void*, ecs_entity_t);
+		void deinit_component_ptr(void*, ecs_entity_t);
+		void deinit_gd_type_ptr(void*, ecs_entity_t);
 		void init_component_ptr(void*, ecs_entity_t, Variant);
 		void init_gd_type_ptr(void*, ecs_entity_t);
 
@@ -99,7 +103,6 @@ namespace godot {
 			T* list = (T*)ptr;
 			for (int i=0; i != count; i++) {
 				T value = T();
-				UtilityFunctions::print("ANY CTOR ", reinterpret_cast<uintptr_t>(&list[i]), ", ", value);
 				list[i] = value;
 			}
 		}
@@ -126,7 +129,6 @@ namespace godot {
 			T* dst_list = (T*)dst_ptr;
 			const T* src_list = (const T*)src_ptr;
 			for (int i=0; i != count; i++) {
-				UtilityFunctions::print("ANY COPY ", reinterpret_cast<uintptr_t>(&src_list[i]));
 				dst_list[i] = T(src_list[i]);
 			}
 		}
