@@ -5,6 +5,7 @@
 #include "godot_cpp/core/memory.hpp"
 #include "godot_cpp/variant/dictionary.hpp"
 #include "godot_cpp/variant/utility_functions.hpp"
+#include "godot_cpp/variant/variant.hpp"
 #include "utils.h"
 
 #include <flecs.h>
@@ -17,6 +18,11 @@ using namespace godot;
 ecs_entity_t GlWorld::glecs = 0;
 ecs_entity_t GlWorld::glecs_meta = 0;
 ecs_entity_t GlWorld::glecs_meta_real = 0;
+ecs_entity_t GlWorld::glecs_meta_nil = 0;
+ecs_entity_t GlWorld::glecs_meta_bool = 0;
+ecs_entity_t GlWorld::glecs_meta_int = 0;
+ecs_entity_t GlWorld::glecs_meta_float = 0;
+ecs_entity_t GlWorld::glecs_meta_string = 0;
 ecs_entity_t GlWorld::glecs_meta_vector2 = 0;
 ecs_entity_t GlWorld::glecs_meta_vector2i = 0;
 ecs_entity_t GlWorld::glecs_meta_rect2 = 0;
@@ -41,6 +47,7 @@ ecs_entity_t GlWorld::glecs_meta_callable = 0;
 ecs_entity_t GlWorld::glecs_meta_signal = 0;
 ecs_entity_t GlWorld::glecs_meta_dictionary = 0;
 ecs_entity_t GlWorld::glecs_meta_array = 0;
+ecs_entity_t GlWorld::glecs_meta_packed_byte_array = 0;
 ecs_entity_t GlWorld::glecs_meta_packed_int32_array = 0;
 ecs_entity_t GlWorld::glecs_meta_packed_int64_array = 0;
 ecs_entity_t GlWorld::glecs_meta_packed_float32_array = 0;
@@ -79,8 +86,7 @@ GlWorld::GlWorld() {
 		ecs_set_scope(_raw, old_scope);
 	}
 
-	{
-		// Add glecs/meta/Real type
+	{ // Add glecs/meta/Real type
 		ecs_primitive_kind_t kind;
 		if (sizeof(real_t) == sizeof(float)) {
 			kind = ecs_primitive_kind_t::EcsF32;
@@ -96,125 +102,223 @@ GlWorld::GlWorld() {
 		glecs_meta_real = ecs_primitive_init(_raw, &primi_desc);
 	}
 
-	{
-		// Add glecs/meta/Vector2 type
+	glecs_meta_nil = ecs_new(_raw);
+	glecs_meta_bool = ecs_new(_raw);
+	glecs_meta_int = ecs_new(_raw);
+	glecs_meta_float = ecs_new(_raw);
+	glecs_meta_string = ecs_new(_raw);
+	glecs_meta_vector2 = ecs_new(_raw);
+	glecs_meta_vector2i = ecs_new(_raw);
+	glecs_meta_rect2 = ecs_new(_raw);
+	glecs_meta_rect2i = ecs_new(_raw);
+	glecs_meta_vector3 = ecs_new(_raw);
+	glecs_meta_vector3i = ecs_new(_raw);
+	glecs_meta_transform2d = ecs_new(_raw);
+	glecs_meta_vector4 = ecs_new(_raw);
+	glecs_meta_vector4i = ecs_new(_raw);
+	glecs_meta_plane = ecs_new(_raw);
+	glecs_meta_quaternion = ecs_new(_raw);
+	glecs_meta_aabb = ecs_new(_raw);
+	glecs_meta_basis = ecs_new(_raw);
+	glecs_meta_transform3d = ecs_new(_raw);
+	glecs_meta_projection = ecs_new(_raw);
+	glecs_meta_color = ecs_new(_raw);
+	glecs_meta_string_name = ecs_new(_raw);
+	glecs_meta_node_path = ecs_new(_raw);
+	glecs_meta_rid = ecs_new(_raw);
+	glecs_meta_object = ecs_new(_raw);
+	glecs_meta_callable = ecs_new(_raw);
+	glecs_meta_signal = ecs_new(_raw);
+	glecs_meta_dictionary = ecs_new(_raw);
+	glecs_meta_array = ecs_new(_raw);
+	glecs_meta_packed_byte_array = ecs_new(_raw);
+	glecs_meta_packed_int32_array = ecs_new(_raw);
+	glecs_meta_packed_int64_array = ecs_new(_raw);
+	glecs_meta_packed_float32_array = ecs_new(_raw);
+	glecs_meta_packed_float64_array = ecs_new(_raw);
+	glecs_meta_packed_string_array = ecs_new(_raw);
+	glecs_meta_packed_vector2_array = ecs_new(_raw);
+	glecs_meta_packed_vector3_array = ecs_new(_raw);
+	glecs_meta_packed_color_array = ecs_new(_raw);
+
+	define_gd_literal("nil", ecs_primitive_kind_t::EcsUPtr, &glecs_meta_nil);
+	define_gd_literal("bool", ecs_primitive_kind_t::EcsBool, &glecs_meta_bool);
+	define_gd_literal("int", ecs_primitive_kind_t::EcsI64, &glecs_meta_int);
+	define_gd_literal("float", ecs_primitive_kind_t::EcsF64, &glecs_meta_float);
+	define_gd_component<String>("String", &glecs_meta_string);
+
+	{ // Add glecs/meta/Vector2 type
 		ecs_struct_desc_t desc = {
-			.entity = ecs_new_from_path(_raw, glecs_meta, "Vector2"),
+			.entity = glecs_meta_vector2,
 			.members = {
 				{.name = "x", .type = glecs_meta_real},
 				{.name = "y", .type = glecs_meta_real}
 			}
-		};
-		glecs_meta_vector2 = ecs_struct_init(_raw, &desc);
+		}; ecs_struct_init(_raw, &desc);
+		ecs_add_path_w_sep(
+			_raw,
+			glecs_meta_vector2,
+			glecs_meta,
+			"Vector2",
+			"/",
+			"/root/"
+		);
 	}
 
-	{
-		// Add glecs/meta/Vector2i type
+	{ // Add glecs/meta/Vector2i type
 		ecs_struct_desc_t desc = {
-			.entity = ecs_new_from_path(_raw, glecs_meta, "Vector2i"),
+			.entity = glecs_meta_vector2i,
 			.members = {
 				{.name = "x", .type = ecs_id(ecs_i32_t)},
 				{.name = "y", .type = ecs_id(ecs_i32_t)}
 			}
-		};
-		glecs_meta_vector2i = ecs_struct_init(_raw, &desc);
+		}; ecs_struct_init(_raw, &desc);
+		ecs_add_path_w_sep(
+			_raw,
+			glecs_meta_vector2i,
+			glecs_meta,
+			"Vector2I",
+			"/",
+			"/root/"
+		);
 	}
 
-	{
-		// Add glecs/meta/Rect type
+	{ // Add glecs/meta/Rect type
 		ecs_struct_desc_t desc = {
-			.entity = ecs_new_from_path(_raw, glecs_meta, "Rect2"),
+			.entity = glecs_meta_rect2,
 			.members = {
 				{.name = "position", .type = glecs_meta_vector2},
 				{.name = "size", .type = glecs_meta_vector2}
 			}
-		};
-		glecs_meta_rect2 = ecs_struct_init(_raw, &desc);
+		}; ecs_struct_init(_raw, &desc);
+		ecs_add_path_w_sep(
+			_raw,
+			glecs_meta_rect2,
+			glecs_meta,
+			"Rect2",
+			"/",
+			"/root/"
+		);
 	}
 
-	{
-		// Add glecs/meta/Rect2i type
+	{ // Add glecs/meta/Rect2i type
 		ecs_struct_desc_t desc = {
-			.entity = ecs_new_from_path(_raw, glecs_meta, "Rect2i"),
+			.entity = glecs_meta_rect2i,
 			.members = {
 				{.name = "position", .type = glecs_meta_vector2i},
 				{.name = "size", .type = glecs_meta_vector2i}
 			}
-		};
-		glecs_meta_rect2i = ecs_struct_init(_raw, &desc);
+		}; ecs_struct_init(_raw, &desc);
+		ecs_add_path_w_sep(
+			_raw,
+			glecs_meta_rect2i,
+			glecs_meta,
+			"Rect2i",
+			"/",
+			"/root/"
+		);
 	}
 
-	{
-		// Add glecs/meta/Vector3 type
+	{ // Add glecs/meta/Vector3 type
 		ecs_struct_desc_t desc = {
-			.entity = ecs_new_from_path(_raw, glecs_meta, "Vector3"),
+			.entity = glecs_meta_vector3,
 			.members = {
 				{.name = "x", .type = glecs_meta_real},
 				{.name = "y", .type = glecs_meta_real},
 				{.name = "z", .type = glecs_meta_real}
 			}
-		};
-		glecs_meta_vector3 = ecs_struct_init(_raw, &desc);
+		}; ecs_struct_init(_raw, &desc);
+		ecs_add_path_w_sep(
+			_raw,
+			glecs_meta_vector3,
+			glecs_meta,
+			"Vector3",
+			"/",
+			"/root/"
+		);
 	}
 
-	{
-		// Add glecs/meta/Vector3i type
+	{ // Add glecs/meta/Vector3i type
 		ecs_struct_desc_t desc = {
-			.entity = ecs_new_from_path(_raw, glecs_meta, "Vector3i"),
+			.entity = glecs_meta_vector3i,
 			.members = {
 				{.name = "x", .type = ecs_id(ecs_i32_t)},
 				{.name = "y", .type = ecs_id(ecs_i32_t)},
 				{.name = "z", .type = ecs_id(ecs_i32_t)}
 			}
-		};
-		glecs_meta_vector3i = ecs_struct_init(_raw, &desc);
+		}; ecs_struct_init(_raw, &desc);
+		ecs_add_path_w_sep(
+			_raw,
+			glecs_meta_vector3i,
+			glecs_meta,
+			"Vector3i",
+			"/",
+			"/root/"
+		);
 	}
 
-	{
-		// Add glecs/meta/Transform2D type
+	{ // Add glecs/meta/Transform2D type
 		ecs_struct_desc_t desc = {
-			.entity = ecs_new_from_path(_raw, glecs_meta, "Transform2D"),
+			.entity = glecs_meta_transform2d,
 			.members = {
 				{.name = "x", .type = glecs_meta_vector2},
 				{.name = "y", .type = glecs_meta_vector2},
 				{.name = "origin", .type = glecs_meta_vector2}
 			}
-		};
-		glecs_meta_transform2d = ecs_struct_init(_raw, &desc);
+		}; ecs_struct_init(_raw, &desc);
+		ecs_add_path_w_sep(
+			_raw,
+			glecs_meta_transform2d,
+			glecs_meta,
+			"Transform2D",
+			"/",
+			"/root/"
+		);
 	}
 
-	{
-		// Add glecs/meta/Vector4 type
+	{ // Add glecs/meta/Vector4 type
 		ecs_struct_desc_t desc = {
-			.entity = ecs_new_from_path(_raw, glecs_meta, "Vector4"),
+			.entity = glecs_meta_vector4,
 			.members = {
 				{.name = "x", .type = glecs_meta_real},
 				{.name = "y", .type = glecs_meta_real},
 				{.name = "z", .type = glecs_meta_real},
 				{.name = "w", .type = glecs_meta_real}
 			}
-		};
-		glecs_meta_vector4 = ecs_struct_init(_raw, &desc);
+		}; ecs_struct_init(_raw, &desc);
+		ecs_add_path_w_sep(
+			_raw,
+			glecs_meta_vector4,
+			glecs_meta,
+			"Vector4",
+			"/",
+			"/root/"
+		);
 	}
 
-	{
-		// Add glecs/meta/Vector4i type
+	{ // Add glecs/meta/Vector4i type
 		ecs_struct_desc_t desc = {
-			.entity = ecs_new_from_path(_raw, glecs_meta, "Vector4i"),
+			.entity = glecs_meta_vector4i,
 			.members = {
 				{.name = "x", .type = ecs_id(ecs_i32_t)},
 				{.name = "y", .type = ecs_id(ecs_i32_t)},
 				{.name = "z", .type = ecs_id(ecs_i32_t)},
 				{.name = "w", .type = ecs_id(ecs_i32_t)}
 			}
-		};
-		glecs_meta_vector4i = ecs_struct_init(_raw, &desc);
+		}; ecs_struct_init(_raw, &desc);
+		ecs_add_path_w_sep(
+			_raw,
+			glecs_meta_vector4i,
+			glecs_meta,
+			"Vector4i",
+			"/",
+			"/root/"
+		);
 	}
 
-	{
-		// Add glecs/meta/Plane type
+	{ // Add glecs/meta/Plane type
 		ecs_struct_desc_t desc = {
-			.entity = ecs_new_from_path(_raw, glecs_meta, "Plane"),
+			.entity = glecs_meta_plane,
 			.members = {
 				{.name = "x", .type = glecs_meta_real},
 				{.name = "y", .type = glecs_meta_real},
@@ -222,87 +326,130 @@ GlWorld::GlWorld() {
 				{.name = "d", .type = glecs_meta_real},
 				{.name = "normal", .type = glecs_meta_vector3}
 			}
-		};
-		glecs_meta_plane = ecs_struct_init(_raw, &desc);
+		}; ecs_struct_init(_raw, &desc);
+		ecs_add_path_w_sep(
+			_raw,
+			glecs_meta_plane,
+			glecs_meta,
+			"Plane",
+			"/",
+			"/root/"
+		);
 	}
 
-	{
-		// Add glecs/meta/Quaternion type
+	{ // Add glecs/meta/Quaternion type
 		ecs_struct_desc_t desc = {
-			.entity = ecs_new_from_path(_raw, glecs_meta, "Quaternion"),
+			.entity = glecs_meta_quaternion,
 			.members = {
 				{.name = "x", .type = glecs_meta_real},
 				{.name = "y", .type = glecs_meta_real},
 				{.name = "z", .type = glecs_meta_real},
 				{.name = "w", .type = glecs_meta_real}
 			}
-		};
-		glecs_meta_quaternion = ecs_struct_init(_raw, &desc);
+		}; ecs_struct_init(_raw, &desc);
+		ecs_add_path_w_sep(
+			_raw,
+			glecs_meta_quaternion,
+			glecs_meta,
+			"Quaternion",
+			"/",
+			"/root/"
+		);
 	}
 
-	{
-		// Add glecs/meta/AABB type
+	{ // Add glecs/meta/AABB type
 		ecs_struct_desc_t desc = {
-			.entity = ecs_new_from_path(_raw, glecs_meta, "AABB"),
+			.entity = glecs_meta_aabb,
 			.members = {
 				{.name = "position", .type = glecs_meta_vector3},
 				{.name = "size", .type = glecs_meta_vector3}
 			}
-		};
-		glecs_meta_aabb = ecs_struct_init(_raw, &desc);
+		}; ecs_struct_init(_raw, &desc);
+		ecs_add_path_w_sep(
+			_raw,
+			glecs_meta_aabb,
+			glecs_meta,
+			"AABB",
+			"/",
+			"/root/"
+		);
 	}
 
-	{
-		// Add glecs/meta/Basis type
+	{ // Add glecs/meta/Basis type
 		ecs_struct_desc_t desc = {
-			.entity = ecs_new_from_path(_raw, glecs_meta, "Basis"),
+			.entity = glecs_meta_basis,
 			.members = {
 				{.name = "x", .type = glecs_meta_vector3},
 				{.name = "y", .type = glecs_meta_vector3},
 				{.name = "z", .type = glecs_meta_vector3}
 			}
-		};
-		glecs_meta_basis = ecs_struct_init(_raw, &desc);
+		}; ecs_struct_init(_raw, &desc);
+		ecs_add_path_w_sep(
+			_raw,
+			glecs_meta_basis,
+			glecs_meta,
+			"Basis",
+			"/",
+			"/root/"
+		);
 	}
 
-	{
-		// Add glecs/meta/Transform3D type
+	{ // Add glecs/meta/Transform3D type
 		ecs_struct_desc_t desc = {
-			.entity = ecs_new_from_path(_raw, glecs_meta, "Transform3D"),
+			.entity = glecs_meta_transform3d,
 			.members = {
 				{.name = "basis", .type = glecs_meta_basis},
 				{.name = "origin", .type = glecs_meta_vector3}
 			}
-		};
-		glecs_meta_transform3d = ecs_struct_init(_raw, &desc);
+		}; ecs_struct_init(_raw, &desc);
+		ecs_add_path_w_sep(
+			_raw,
+			glecs_meta_transform3d,
+			glecs_meta,
+			"Transform3D",
+			"/",
+			"/root/"
+		);
 	}
 
-	{
-		// Add glecs/meta/Projection type
+	{ // Add glecs/meta/Projection type
 		ecs_struct_desc_t desc = {
-			.entity = ecs_new_from_path(_raw, glecs_meta, "Projection"),
+			.entity = glecs_meta_projection,
 			.members = {
 				{.name = "x", .type = glecs_meta_vector4},
 				{.name = "y", .type = glecs_meta_vector4},
 				{.name = "z", .type = glecs_meta_vector4},
 				{.name = "w", .type = glecs_meta_vector4}
 			}
-		};
-		glecs_meta_projection = ecs_struct_init(_raw, &desc);
+		}; ecs_struct_init(_raw, &desc);
+		ecs_add_path_w_sep(
+			_raw,
+			glecs_meta_projection,
+			glecs_meta,
+			"Projection",
+			"/",
+			"/root/"
+		);
 	}
 
-	{
-		// Add glecs/meta/Color type
+	{ // Add glecs/meta/Color type
 		ecs_struct_desc_t desc = {
-			.entity = ecs_new_from_path(_raw, glecs_meta, "Color"),
+			.entity = glecs_meta_color,
 			.members = {
 				{.name = "r", .type = ecs_id(ecs_f32_t)},
 				{.name = "g", .type = ecs_id(ecs_f32_t)},
 				{.name = "b", .type = ecs_id(ecs_f32_t)},
 				{.name = "a", .type = ecs_id(ecs_f32_t)}
 			}
-		};
-		glecs_meta_color = ecs_struct_init(_raw, &desc);
+		}; ecs_struct_init(_raw, &desc);
+		ecs_add_path_w_sep(
+			_raw,
+			glecs_meta_color,
+			glecs_meta,
+			"Color",
+			"/",
+			"/root/"
+		);
 	}
 
 	define_gd_component<StringName>("StringName", &glecs_meta_string_name);
@@ -313,6 +460,7 @@ GlWorld::GlWorld() {
 	define_gd_component<Signal>("Signal", &glecs_meta_signal);
 	define_gd_component<Dictionary>("Dictionary", &glecs_meta_dictionary);
 	define_gd_component<Array>("Array", &glecs_meta_array);
+	define_gd_component<PackedByteArray>("PackedByteArray", &glecs_meta_packed_byte_array);
 	define_gd_component<PackedInt32Array>("PackedInt32Array", &glecs_meta_packed_int32_array);
 	define_gd_component<PackedInt64Array>("PackedInt64Array", &glecs_meta_packed_int64_array);
 	define_gd_component<PackedFloat32Array>("PackedFloat32Array", &glecs_meta_packed_float32_array);
@@ -396,6 +544,24 @@ void GlWorld::start_rest_api() {
 	ecs_set_id(raw(), rest_id, rest_id, sizeof(EcsRest), &rest);
 }
 
+ecs_entity_t GlWorld::variant_type_to_id(Variant::Type type) {
+	if (type == Variant::Type::VARIANT_MAX) {
+		throw "No ID exists for VARIANT_MAX";
+	}
+	return GlWorld::glecs_meta_nil + type;
+}
+
+Variant::Type GlWorld::id_to_variant_type(ecs_entity_t id) {
+	if (id < GlWorld::glecs_meta_nil) {
+		return godot::Variant::NIL;
+	}
+	Variant::Type type = Variant::Type(id - GlWorld::glecs_meta_nil);
+	if (type >= Variant::Type::VARIANT_MAX) {
+		return godot::Variant::NIL;
+	}
+	return type;
+}
+
 // ----------------------------------------------
 // --- Unexposed ---
 // ----------------------------------------------
@@ -421,40 +587,49 @@ void GlWorld::init_gd_type_ptr(
 	void* ptr,
 	ecs_entity_t type
 ) {
-	if (type == GlWorld::glecs_meta_vector2) { new(ptr) Vector2(); }
-	else if (type == GlWorld::glecs_meta_vector2i) { new(ptr) Vector2i(); }
-	else if (type == GlWorld::glecs_meta_rect2) { new(ptr) Rect2(); }
-	else if (type == GlWorld::glecs_meta_rect2i) { new(ptr) Rect2i(); }
-	else if (type == GlWorld::glecs_meta_vector3) { new(ptr) Vector3(); }
-	else if (type == GlWorld::glecs_meta_vector3i) { new(ptr) Vector3i(); }
-	else if (type == GlWorld::glecs_meta_transform2d) { new(ptr) Transform2D(); }
-	else if (type == GlWorld::glecs_meta_vector4) { new(ptr) Vector4(); }
-	else if (type == GlWorld::glecs_meta_vector4i) { new(ptr) Vector4i(); }
-	else if (type == GlWorld::glecs_meta_plane) { new(ptr) Plane(); }
-	else if (type == GlWorld::glecs_meta_quaternion) { new(ptr) Quaternion(); }
-	else if (type == GlWorld::glecs_meta_aabb) { new(ptr) AABB(); }
-	else if (type == GlWorld::glecs_meta_basis) { new(ptr) Basis(); }
-	else if (type == GlWorld::glecs_meta_transform3d) { new(ptr) Transform3D(); }
-	else if (type == GlWorld::glecs_meta_projection) { new(ptr) Projection(); }
-	else if (type == GlWorld::glecs_meta_color) { new(ptr) Color(); }
-	else if (type == GlWorld::glecs_meta_string_name) { new(ptr) StringName(); }
-	else if (type == GlWorld::glecs_meta_node_path) { new(ptr) NodePath(); }
-	else if (type == GlWorld::glecs_meta_rid) { new(ptr) RID(); }
-	else if (type == GlWorld::glecs_meta_object) { *(Object**)ptr = nullptr ; }
-	else if (type == GlWorld::glecs_meta_callable) { new(ptr) Callable(); }
-	else if (type == GlWorld::glecs_meta_signal) { new(ptr) Signal(); }
-	else if (type == GlWorld::glecs_meta_dictionary) { new(ptr) Dictionary(); }
-	else if (type == GlWorld::glecs_meta_array) { new(ptr) Array(); }
-	else if (type == GlWorld::glecs_meta_packed_int32_array) { new(ptr) PackedInt32Array(); }
-	else if (type == GlWorld::glecs_meta_packed_int64_array) { new(ptr) PackedInt64Array(); }
-	else if (type == GlWorld::glecs_meta_packed_float32_array) { new(ptr) PackedFloat32Array(); }
-	else if (type == GlWorld::glecs_meta_packed_float64_array) { new(ptr) PackedFloat64Array(); }
-	else if (type == GlWorld::glecs_meta_packed_string_array) { new(ptr) PackedStringArray(); }
-	else if (type == GlWorld::glecs_meta_packed_vector2_array) { new(ptr) PackedVector2Array(); }
-	else if (type == GlWorld::glecs_meta_packed_vector3_array) { new(ptr) PackedVector3Array(); }
-	else if (type == GlWorld::glecs_meta_packed_color_array) { new(ptr) PackedColorArray(); }
+	Variant::Type vari_type = id_to_variant_type(type);
 
-	else if (ecs_has(_raw, type, EcsStruct)) { init_component_ptr(ptr, type, Variant()); }
+	switch (vari_type) {
+	case(Variant::Type::NIL): if (ecs_has(_raw, type, EcsStruct)) {init_component_ptr(ptr, type, Variant());}; break;
+	case(Variant::Type::BOOL): *(bool*) ptr = false; break;
+	case(Variant::Type::INT): *(int*) ptr = 0; break;
+	case(Variant::Type::FLOAT): *(float*) ptr = 0; break;
+	case(Variant::Type::STRING): new(ptr) String(); break;
+	case(Variant::Type::VECTOR2): new(ptr) Vector2(); break;
+	case(Variant::Type::VECTOR2I): new(ptr) Vector2i(); break;
+	case(Variant::Type::RECT2): new(ptr) Rect2(); break;
+	case(Variant::Type::RECT2I): new(ptr) Rect2i(); break;
+	case(Variant::Type::VECTOR3): new(ptr) Vector3(); break;
+	case(Variant::Type::VECTOR3I): new(ptr) Vector3i(); break;
+	case(Variant::Type::TRANSFORM2D): new(ptr) Transform2D(); break;
+	case(Variant::Type::VECTOR4): new(ptr) Vector4(); break;
+	case(Variant::Type::VECTOR4I): new(ptr) Vector4i(); break;
+	case(Variant::Type::PLANE): new(ptr) Plane(); break;
+	case(Variant::Type::QUATERNION): new(ptr) Quaternion(); break;
+	case(Variant::Type::AABB): new(ptr) AABB(); break;
+	case(Variant::Type::BASIS): new(ptr) Basis(); break;
+	case(Variant::Type::TRANSFORM3D): new(ptr) Transform3D(); break;
+	case(Variant::Type::PROJECTION): new(ptr) Projection(); break;
+	case(Variant::Type::COLOR): new(ptr) Color(); break;
+	case(Variant::Type::STRING_NAME): new(ptr) StringName(); break;
+	case(Variant::Type::NODE_PATH): new(ptr) NodePath(); break;
+	case(Variant::Type::RID): new(ptr) RID(); break;
+	case(Variant::Type::OBJECT): *(Variant*)ptr = nullptr ; break;
+	case(Variant::Type::CALLABLE): new(ptr) Callable(); break;
+	case(Variant::Type::SIGNAL): new(ptr) Signal(); break;
+	case(Variant::Type::DICTIONARY): new(ptr) Dictionary(); break;
+	case(Variant::Type::ARRAY): new(ptr) Array(); break;
+	case(Variant::Type::PACKED_BYTE_ARRAY): new(ptr) PackedByteArray(); break;
+	case(Variant::Type::PACKED_INT32_ARRAY): new(ptr) PackedInt32Array(); break;
+	case(Variant::Type::PACKED_INT64_ARRAY): new(ptr) PackedInt64Array(); break;
+	case(Variant::Type::PACKED_FLOAT32_ARRAY): new(ptr) PackedFloat32Array(); break;
+	case(Variant::Type::PACKED_FLOAT64_ARRAY): new(ptr) PackedFloat64Array(); break;
+	case(Variant::Type::PACKED_STRING_ARRAY): new(ptr) PackedStringArray(); break;
+	case(Variant::Type::PACKED_VECTOR2_ARRAY): new(ptr) PackedVector2Array(); break;
+	case(Variant::Type::PACKED_VECTOR3_ARRAY): new(ptr) PackedVector3Array(); break;
+	case(Variant::Type::PACKED_COLOR_ARRAY): new(ptr) PackedColorArray(); break;
+	case(Variant::Type::VARIANT_MAX): throw "VARIANT_MAX can't be initialized";
+	}
 }
 
 ecs_world_t * GlWorld::raw() {
@@ -475,3 +650,22 @@ void GlWorld::_bind_methods() {
 // ----------------------------------------------
 // --- Private ---
 // ----------------------------------------------
+
+void GlWorld::define_gd_literal(
+	const char* name,
+	ecs_primitive_kind_t primitive,
+	ecs_entity_t* id_storage
+) {
+	ecs_primitive_desc_t desc = {
+		.entity = *id_storage,
+		.kind = primitive
+	}; ecs_primitive_init(_raw, &desc);
+	ecs_add_path_w_sep(
+		_raw,
+		*id_storage,
+		glecs_meta,
+		name,
+		"/",
+		"/root/"
+	);
+}

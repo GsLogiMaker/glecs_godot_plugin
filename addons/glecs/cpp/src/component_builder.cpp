@@ -32,7 +32,7 @@ Ref<GlComponentBuilder> GlComponentBuilder::add_member(
 		);
 	}
 
-	EntityResult ecs_type_result = Utils::variant_type_to_id(type);
+	EntityResult ecs_type_result = GlWorld::variant_type_to_id(type);
 	if (!ecs_type_result.is_ok()) {
 		ERR(Ref(this),
 			ERR_ADD_COMPONENT,

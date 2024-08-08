@@ -28,6 +28,8 @@ namespace godot {
 		ecs_entity_t coerce_id(Variant);
 		void progress(double delta);
 		void start_rest_api();
+		static ecs_entity_t variant_type_to_id(Variant::Type);
+		static Variant::Type id_to_variant_type(ecs_entity_t);
 
 		// **************************************
 		// *** Unexposed ***
@@ -37,6 +39,11 @@ namespace godot {
 		static ecs_entity_t glecs;
 		static ecs_entity_t glecs_meta;
 		static ecs_entity_t glecs_meta_real;
+		static ecs_entity_t glecs_meta_nil;
+		static ecs_entity_t glecs_meta_bool;
+		static ecs_entity_t glecs_meta_int;
+		static ecs_entity_t glecs_meta_float;
+		static ecs_entity_t glecs_meta_string;
 		static ecs_entity_t glecs_meta_vector2;
 		static ecs_entity_t glecs_meta_vector2i;
 		static ecs_entity_t glecs_meta_rect2;
@@ -61,6 +68,7 @@ namespace godot {
 		static ecs_entity_t glecs_meta_signal;
 		static ecs_entity_t glecs_meta_dictionary;
 		static ecs_entity_t glecs_meta_array;
+		static ecs_entity_t glecs_meta_packed_byte_array;
 		static ecs_entity_t glecs_meta_packed_int32_array;
 		static ecs_entity_t glecs_meta_packed_int64_array;
 		static ecs_entity_t glecs_meta_packed_float32_array;
@@ -143,12 +151,12 @@ namespace godot {
 			ecs_entity_t* static_id
 		) {
 			ecs_component_desc_t desc = {
+				.entity = *static_id,
 				.type = {
 					.size = sizeof(T),
 					.alignment = 8
 				}
-			};
-			*static_id = ecs_component_init(_raw, &desc);
+			}; ecs_component_init(_raw, &desc);
 			ecs_type_hooks_t hooks = {
 				.ctor = GlWorld::gd_type_ctor<T>,
 				.dtor = GlWorld::gd_type_dtor<T>,
@@ -160,11 +168,12 @@ namespace godot {
 				*static_id,
 				glecs_meta,
 				name,
-				"",
+				"/",
 				"/root/"
 			);
 		}
 
+		void define_gd_literal(const char*, ecs_primitive_kind_t, ecs_entity_t* id_storage);
 	};
 }
 

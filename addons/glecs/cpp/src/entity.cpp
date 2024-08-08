@@ -47,21 +47,7 @@ Ref<GlEntity> GlEntity::from(Variant entity, GlWorld* world) {
 Ref<GlEntity> GlEntity::add_component(Variant component) {
 	GlWorld* w = get_world();
 	ecs_entity_t component_id = w->coerce_id(component);
-	UtilityFunctions::print("compoefm ", component_id, ", ", component);
-	ecs_add_id(
-		w->raw(),
-		get_id(),
-		component_id
-	);
-
-	// if (ecs_has(w->raw(), component_id, EcsComponent)) {
-	// 	// Id is a component, initialize newly added component
-	// 	w->init_component_ptr(
-	// 		ecs_get_mut_id(w->raw(), get_id(), component_id),
-	// 		component_id,
-	// 		Variant()
-	// 	);
-	// }
+	ecs_add_id(w->raw(), get_id(), component_id);
 
 	return Ref(this);
 }
